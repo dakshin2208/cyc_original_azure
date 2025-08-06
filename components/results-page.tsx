@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, Download, Filter, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@supabase/supabase-js"
 import type { College } from "@/lib/college-data"
 import { getParameterLabel, formatValue, getDurationLabel } from "@/lib/college-data"
+import { supabase } from "@/lib/supabase"
 
 interface ResultsPageProps {
   query: string
@@ -32,11 +32,7 @@ export function ResultsPage({
   const [colleges, setColleges] = useState<College[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Create Supabase client
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-  )
+
 
   // Fetch colleges from Supabase
   useEffect(() => {

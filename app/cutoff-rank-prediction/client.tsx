@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Search, Download } from "lucide-react"
-import { createClient } from '@supabase/supabase-js'
 import { fetchColleges } from "@/lib/college-service"
+import { supabase } from "@/lib/supabase"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRouter } from "next/navigation"
 import { jsPDF } from "jspdf"
@@ -27,15 +27,7 @@ declare global {
   }
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: false
-    }
-  }
-)
+
 
 const reservationCategories = [
   "OC", "BC", "BCM", "MBC", "MBCDNC", "MBCV", "SC", "SCA", "ST"
