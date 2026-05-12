@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
             <CardContent className="space-y-6 text-gray-700 dark:text-gray-300">
               <div className="space-y-4">
                 <p>
-                  This Privacy Policy describes how EMMESS TECHNOLOGIES PRIVATE LIMITED and its affiliates (collectively "EMMESS TECHNOLOGIES PRIVATE LIMITED, we, our, us") collect, use, share, protect or otherwise process your information/personal data through our website https://chooseyourcollege.com/ (hereinafter referred to as Platform).
+                  This Privacy Policy describes how Happi Global Ventures LLP and its affiliates (collectively "Happi Global Ventures LLP, we, our, us") collect, use, share, protect or otherwise process your information/personal data through our website https://chooseyourcollege.com/ (hereinafter referred to as Platform).
                 </p>
 
                 <p>
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
                     <p><strong>Phone:</strong> Monday - Friday (9:00 - 18:00)</p>
                     <div>
                       <p className="font-medium mb-2">Address:</p>
-                      <p>EMMESS TECHNOLOGIES PRIVATE LIMITED</p>
+                      <p>Happi Global Ventures LLP</p>
                       <p>Prestige sunrise park</p>
                       <p>Bengaluru Electronics City Phase 1</p>
                       <p>Bangalore, India</p>

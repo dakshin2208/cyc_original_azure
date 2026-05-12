@@ -52,7 +52,7 @@ export default function CancellationAndRefund() {
                   <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Policy Details</h2>
                   <div className="space-y-3">
                     <p>
-                      At EMMESS TECHNOLOGIES PRIVATE LIMITED, we strive to provide the best possible service to our users. However, due to the nature of our digital services and the immediate access provided upon payment, we maintain a strict no-refund policy.
+                      At Happi Global Ventures LLP, we strive to provide the best possible service to our users. However, due to the nature of our digital services and the immediate access provided upon payment, we maintain a strict no-refund policy.
                     </p>
                     
                     <p>
@@ -90,7 +90,7 @@ export default function CancellationAndRefund() {
                       If you have any questions about this cancellation and refund policy or need clarification about our services before making a payment, please contact us:
                     </p>
                     <div className="space-y-2">
-                      <p><strong>Company:</strong> EMMESS TECHNOLOGIES PRIVATE LIMITED</p>
+                      <p><strong>Company:</strong> Happi Global Ventures LLP</p>
                       <p><strong>Address:</strong> Prestige sunrise park, Bengaluru Electronics City Phase 1, Bangalore, India</p>
                       <p><strong>Website:</strong> https://chooseyourcollege.com/</p>
                       <p><strong>Email:</strong> sganeshan@chooseyourcollege.com</p>

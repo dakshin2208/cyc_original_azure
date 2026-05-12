@@ -81,7 +81,7 @@ export default function Contact() {
                       <Building className="h-6 w-6 text-[#0B5588] mt-1" />
                       <div>
                         <p className="font-medium">Company</p>
-                        <p>EMMESS TECHNOLOGIES PRIVATE LIMITED</p>
+                        <p>Happi Global Ventures LLP</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">

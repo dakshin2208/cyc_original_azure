@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-xs sm:text-sm text-center md:text-left">
-            <p>&copy; {new Date().getFullYear()} ChooseYourCollege.com (EMMESS TECHNOLOGIES PRIVATE LIMITED). All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} ChooseYourCollege.com (Happi Global Ventures LLP). All rights reserved.</p>
           </div>
           
           <div className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6 text-xs sm:text-sm">
