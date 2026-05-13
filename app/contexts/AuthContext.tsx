@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { withTimeout } from '@/lib/auth-timeouts'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 
@@ -33,14 +34,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    let cancelled = false
+
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
+    withTimeout(supabase.auth.getSession(), 12000, 'getSession')
+      .then(({ data: { session } }) => {
+        if (cancelled) return
+        if (session?.user) {
+          fetchUserProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.error('getSession error:', err)
+        if (!cancelled) {
+          setLoading(false)
+        }
+      })
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -48,11 +59,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         // Check if user has a profile before proceeding
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-          .select('*')
-            .eq('id', session.user.id)
-          .maybeSingle()
+        let profileData: Record<string, unknown> | null = null
+        let profileError: { message: string } | null = null
+        try {
+          const result = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle(),
+            12000,
+            'onAuthStateChange profile lookup'
+          )
+          profileData = result.data as Record<string, unknown> | null
+          profileError = result.error as { message: string } | null
+        } catch (e) {
+          console.error('Profile lookup timed out or failed:', e)
+          setLoading(false)
+          return
+        }
 
         if (profileError) {
           console.error('Error checking user profile:', profileError)
@@ -64,7 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('No profile found for user:', session.user.id)
           
           // Check if this is a new user (first time OAuth) or existing user trying to sign in
-          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null
+          let userError: Awaited<ReturnType<typeof supabase.auth.getUser>>['error'] = null
+          try {
+            const u = await withTimeout(supabase.auth.getUser(), 12000, 'getUser')
+            user = u.data.user
+            userError = u.error
+          } catch (e) {
+            console.error('getUser timed out or failed:', e)
+            setLoading(false)
+            return
+          }
           
           if (userError) {
             console.error('Error getting user from auth:', userError)
@@ -117,18 +152,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   phone_number: userPhoneNumber
                 })
                 
-                const profileResponse = await fetch('/api/create-profile', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    id: user.id,
-                    email: userEmail,
-                    full_name: userFullName,
-                    phone_number: userPhoneNumber,
+                const profileResponse = await withTimeout(
+                  fetch('/api/create-profile', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      id: user.id,
+                      email: userEmail,
+                      full_name: userFullName,
+                      phone_number: userPhoneNumber,
+                    }),
                   }),
-                })
+                  25000,
+                  'oauth create-profile'
+                )
                 
                 if (profileResponse.ok) {
                   const profileData = await profileResponse.json()
@@ -224,6 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
+      cancelled = true
       subscription.unsubscribe()
     }
   }, [])
@@ -231,11 +271,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log('Fetching user profile for:', userId)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
+      const { data, error } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        12000,
+        'fetchUserProfile'
+      )
 
       if (error) {
         console.error('Error fetching user profile:', error)
@@ -266,43 +306,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, fullName: string, phoneNumber: string) => {
-    let signupTimeout: NodeJS.Timeout;
-    
+    let signupTimeout: ReturnType<typeof setTimeout> | undefined = undefined
+
     try {
       setLoading(true)
       console.log('Starting signup process for:', email)
       
-      // Increase timeout to 90 seconds
+      // Overall guard so the UI cannot spin forever
       signupTimeout = setTimeout(() => {
-        console.error('Signup process timed out after 90 seconds')
+        console.error('Signup process timed out after 60 seconds')
         setLoading(false)
-        toast.error('Signup process is taking longer than expected. Please try again.')
-        throw new Error('Signup timeout')
-      }, 90000) // 90 second timeout
+        toast.error('Signup is taking too long. Check your connection and try again.')
+      }, 60000)
 
       try {
-        // First check if user already exists with increased timeout
+        // First check if user already exists (bounded retries — avoid long backoff)
         console.log('Checking if user exists...')
         let existingUser: { email: string } | null = null
         let checkError: any = null
         let userCheckRetryCount = 0
-        const userCheckMaxRetries = 3
+        const userCheckMaxRetries = 2
 
         while (userCheckRetryCount < userCheckMaxRetries) {
           try {
-            const { data, error } = await supabase
-        .from('profiles')
-              .select('email')
-        .eq('email', email)
-              .maybeSingle()
+            const { data, error } = await withTimeout(
+              supabase.from('profiles').select('email').eq('email', email).maybeSingle(),
+              10000,
+              'signup email lookup'
+            )
 
             if (error) {
               console.error(`User check attempt ${userCheckRetryCount + 1} failed:`, error)
               checkError = error
               userCheckRetryCount++
               if (userCheckRetryCount < userCheckMaxRetries) {
-                console.log(`Retrying user check in ${userCheckRetryCount * 2} seconds...`)
-                await new Promise(resolve => setTimeout(resolve, userCheckRetryCount * 2000))
+                await new Promise((resolve) => setTimeout(resolve, 800))
                 continue
               }
             } else {
@@ -314,8 +352,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             checkError = error
             userCheckRetryCount++
             if (userCheckRetryCount < userCheckMaxRetries) {
-              console.log(`Retrying user check in ${userCheckRetryCount * 2} seconds...`)
-              await new Promise(resolve => setTimeout(resolve, userCheckRetryCount * 2000))
+              await new Promise((resolve) => setTimeout(resolve, 800))
             }
           }
         }
@@ -338,17 +375,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create auth user
         console.log('Creating auth user...')
         // Sign up the user with email confirmation
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              full_name: fullName,
-              phone_number: phoneNumber
+        const { data: authData, error: authError } = await withTimeout(
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              data: {
+                full_name: fullName,
+                phone_number: phoneNumber
+              }
             }
-          }
-        })
+          }),
+          20000,
+          'auth signUp'
+        )
 
         console.log('Auth signup response:', { authData, authError })
 
@@ -366,24 +407,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('User email confirmed:', authData.user.email_confirmed_at)
         console.log('Session:', authData.session)
 
-        // Wait a moment to ensure the auth user is fully created
-        console.log('Waiting for auth system to complete user creation...')
-        await new Promise(resolve => setTimeout(resolve, 3000))
-
-        // Create profile in profiles table
+        // Create profile in profiles table (short pause for auth propagation only)
         console.log('Creating user profile via API...')
-        const profileResponse = await fetch('/api/create-profile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: authData.user.id,
-            email,
-            full_name: fullName,
-            phone_number: phoneNumber,
+        const profileResponse = await withTimeout(
+          fetch('/api/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: authData.user.id,
+              email,
+              full_name: fullName,
+              phone_number: phoneNumber,
+            }),
           }),
-        })
+          25000,
+          'create-profile API'
+        )
 
         if (!profileResponse.ok) {
           const errorData = await profileResponse.json()
@@ -422,60 +463,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           toast.success('Account created and email confirmed! You can now sign in.')
         } else {
           console.log('Email not confirmed, sending verification email...')
-          
-          // Send verification email
-          console.log('Sending verification email...')
-          console.log('Email:', email)
-          console.log('Redirect URL:', `${window.location.origin}/auth/callback`)
-          
-          // Try with different redirect URLs
-          const redirectUrls = [
-            `${window.location.origin}/auth/callback`,
-            `${window.location.origin}/login`,
-            `${window.location.origin}`,
-            'http://localhost:3000/auth/callback',
-            'http://localhost:3000/login'
-          ]
-          
-          let emailSent = false
-          
-          for (const redirectUrl of redirectUrls) {
-            if (emailSent) break
-            
-            try {
-              console.log(`Trying with redirect URL: ${redirectUrl}`)
-              
-              const { data: emailData, error: emailError } = await supabase.auth.resend({
-                type: 'signup',
-                email,
-                options: {
-                  emailRedirectTo: redirectUrl,
-                },
-              })
+          const emailRedirectTo = `${window.location.origin}/auth/callback`
+          // Never use localhost fallbacks from a deployed HTTPS origin — Chrome blocks
+          // local-network targets and it can stall or spam the console.
+          const { error: emailError } = await withTimeout(
+            supabase.auth.resend({
+              type: 'signup',
+              email,
+              options: { emailRedirectTo },
+            }),
+            20000,
+            'verification email resend'
+          )
 
-              console.log(`Email resend response for ${redirectUrl}:`, { emailData, emailError })
-
-              if (emailError) {
-                console.error(`Email verification error for ${redirectUrl}:`, emailError)
-                continue
-              } else {
-                console.log(`Verification email sent successfully with ${redirectUrl}:`, emailData)
-                emailSent = true
-                toast.success(
-                  'Account created successfully! Please check your email for verification. You will be able to log in after verifying your email.',
-                  { duration: 5000 }
-                )
-                break
-              }
-    } catch (error) {
-              console.error(`Error with redirect URL ${redirectUrl}:`, error)
-              continue
-            }
-          }
-          
-          if (!emailSent) {
-            console.error('Failed to send verification email with any redirect URL')
-            toast.error('Account created but failed to send verification email. Please try logging in to resend.')
+          if (emailError) {
+            console.error('Email verification resend error:', emailError)
+            toast.error(
+              'Account created but we could not send the verification email. Use “Resend” on the login page or contact support.'
+            )
+          } else {
+            toast.success(
+              'Account created successfully! Please check your email for verification. You will be able to log in after verifying your email.',
+              { duration: 5000 }
+            )
           }
         }
 
@@ -505,12 +515,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
     } catch (error: any) {
+      if (signupTimeout !== undefined) clearTimeout(signupTimeout)
       console.error('Error in signup process:', error)
       setLoading(false)
       
       // Handle specific error cases
-      if (error.message?.includes('timeout')) {
-        toast.error('The signup process is taking longer than expected. Please try again.')
+      if (
+        error.message?.includes('timeout') ||
+        error.message?.includes('timed out')
+      ) {
+        toast.error('Request timed out. Check your connection and try again.')
       } else if (error.message?.includes('security policy')) {
         toast.error('Unable to create account due to security restrictions. Please try again or contact support.')
       } else if (error.message?.includes('email already registered')) {
@@ -538,11 +552,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // First, check if user has a profile in our database
       console.log('Checking if user profile exists...')
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle()
+      const { data: profileData, error: profileError } = await withTimeout(
+        supabase.from('profiles').select('*').eq('email', email).maybeSingle(),
+        12000,
+        'signIn profile lookup'
+      )
 
       if (profileError) {
         console.error('Error checking user profile:', profileError)
@@ -559,10 +573,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('User profile found, proceeding with sign in...')
       
       // Proceed with sign in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        20000,
+        'signInWithPassword'
+      )
 
       if (error) {
         console.error('Sign in error:', error)
@@ -570,13 +588,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.message.includes('Email not confirmed')) {
           // Resend verification email
           console.log('Email not confirmed, resending verification email...')
-          const { error: resendError } = await supabase.auth.resend({
-            type: 'signup',
-            email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
-      })
+          const { error: resendError } = await withTimeout(
+            supabase.auth.resend({
+              type: 'signup',
+              email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+              },
+            }),
+            20000,
+            'resend verification (sign in)'
+          )
 
           if (resendError) {
             console.error('Error resending verification:', resendError)
@@ -599,14 +621,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!data.user.email_confirmed_at) {
         console.log('User email not verified, resending verification email...')
         
-        // Resend verification email
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+        const { error: resendError } = await withTimeout(
+          supabase.auth.resend({
+            type: 'signup',
+            email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          }),
+          20000,
+          'resend verification (unconfirmed)'
+        )
 
       if (resendError) {
           console.error('Error resending verification:', resendError)
@@ -634,6 +659,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error('Failed to resend verification email. Please try again.')
       } else if (error.message?.includes('No account found')) {
         toast.error('No account found with this email. Please sign up first.')
+      } else if (error.message?.includes('timed out')) {
+        toast.error('Request timed out. Check your connection and try again.')
       } else {
         toast.error(error.message || 'Failed to sign in')
       }
@@ -755,13 +782,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       console.log('Resending verification email to:', email)
       
-      const { data, error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      const { data, error } = await withTimeout(
+        supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        }),
+        20000,
+        'resendVerificationEmail'
+      )
 
       if (error) {
         console.error('Resend verification error:', error)
