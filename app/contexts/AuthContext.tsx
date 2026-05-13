@@ -644,6 +644,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('User signed in successfully:', data.user.id)
+      setUser({
+        id: data.user.id,
+        email: profileData.email,
+        fullName: profileData.full_name,
+        phoneNumber: profileData.phone_number ?? '',
+      })
       toast.success('Logged in successfully!')
       router.push('/choice-filling')
     } catch (error: any) {

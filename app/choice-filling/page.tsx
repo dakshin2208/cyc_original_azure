@@ -3856,8 +3856,8 @@ export default function ChoiceFilling() {
     }
   }
 
-  // Show loading only during initial auth check or when signing out
-  if (loading && user) {
+  // Show loading while auth state is still resolving
+  if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
@@ -3888,12 +3888,7 @@ export default function ChoiceFilling() {
     )
   }
 
-  // If no user, redirect to login
   if (!user) {
-    // Force redirect to login
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
     return null
   }
 
