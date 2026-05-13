@@ -18,9 +18,15 @@ This project now includes a complete Razorpay payment integration for processing
 Create a `.env.local` file in your project root and add:
 
 ```env
-RAZORPAY_KEY_ID=rzp_test_qooJHsq0y4J1aK
-RAZORPAY_KEY_SECRET=hcCQnehBV89uXZUa9uvDN2n2
+# Server-only (create order + verify signature)
+RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=your_key_secret_from_dashboard
+
+# Same Key ID as above — required for client checkout (PaymentButton)
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
 ```
+
+Copy `.env.example` to `.env.local` and replace the placeholders with values from the [Razorpay Dashboard](https://dashboard.razorpay.com/app/keys).
 
 ### 2. API Routes
 
@@ -81,9 +87,9 @@ For testing, you can use these test card details:
 
 To move to production:
 
-1. Replace test API keys with live keys from Razorpay dashboard
-2. Update the key in `PaymentButton.tsx` and API routes
-3. Test thoroughly with small amounts first
+1. Replace test keys with live keys in your deployment environment variables (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`).
+2. Redeploy or restart the app so Next.js picks up `NEXT_PUBLIC_*` changes at build time.
+3. Test thoroughly with small amounts first.
 
 ## Security Features
 

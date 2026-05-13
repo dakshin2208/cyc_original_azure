@@ -12,10 +12,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      console.error('Razorpay key secret is not configured');
+      return NextResponse.json(
+        { error: 'Payment service is not configured' },
+        { status: 503 }
+      );
+    }
+
     // Verify the payment signature
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const signature = crypto
-      .createHmac('sha256', 'zvWala2T9OaV9EPNVHBToBFN')
+      .createHmac('sha256', keySecret)
       .update(text)
       .digest('hex');
 

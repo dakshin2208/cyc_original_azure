@@ -62,9 +62,14 @@ export function PaymentButton({
         throw new Error(orderData.error || 'Failed to create payment order');
       }
 
+      const publishableKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!publishableKey) {
+        throw new Error('Payment client is not configured');
+      }
+
       // Initialize Razorpay
       const options = {
-        key: 'rzp_live_KlInbHxazxLUKL',
+        key: publishableKey,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'CYC - College Choice Filling',
