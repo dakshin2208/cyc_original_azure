@@ -22,7 +22,7 @@ Create a `.env.local` file in your project root and add:
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
 RAZORPAY_KEY_SECRET=your_key_secret_from_dashboard
 
-# Same Key ID as above — required for client checkout (PaymentButton)
+# Same Key ID as above — optional locally; production sends keyId from /api/create-payment
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
 ```
 

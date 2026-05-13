@@ -39,10 +39,13 @@ export async function POST(request: NextRequest) {
 
     const order = await razorpay.orders.create(options);
 
+    // Key ID is public (same as in Checkout); returning it avoids requiring
+    // NEXT_PUBLIC_RAZORPAY_KEY_ID at build time on Netlify/Vercel.
     return NextResponse.json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
+      keyId,
     });
   } catch (error) {
     console.error('Error creating payment order:', error);

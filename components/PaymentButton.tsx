@@ -62,9 +62,13 @@ export function PaymentButton({
         throw new Error(orderData.error || 'Failed to create payment order');
       }
 
-      const publishableKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      const publishableKey =
+        (typeof orderData.keyId === 'string' && orderData.keyId) ||
+        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
       if (!publishableKey) {
-        throw new Error('Payment client is not configured');
+        throw new Error(
+          'Razorpay Key ID missing. Set RAZORPAY_KEY_ID (and secret) on the server, or NEXT_PUBLIC_RAZORPAY_KEY_ID for local dev.'
+        );
       }
 
       // Initialize Razorpay
