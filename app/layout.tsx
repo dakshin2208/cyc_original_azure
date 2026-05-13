@@ -12,6 +12,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "ChooseYourCollege - AI-Assisted Choice Filling",
   description: "Get AI-powered recommendations for your college choice filling process",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({
