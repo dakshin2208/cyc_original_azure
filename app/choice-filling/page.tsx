@@ -375,7 +375,7 @@ export default function ChoiceFilling() {
   // Check if user is authenticated
   useEffect(() => {
     console.log('Auth state changed:', { user, loading, isSigningOut })
-    if (!loading && !user) {
+    if (!loading && !user && !isSigningOut) {
       console.log('Redirecting to login - no user found')
       router.push('/login')
     }

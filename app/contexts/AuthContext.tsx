@@ -36,29 +36,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    // Check active sessions and sets the user
-    withTimeout(supabase.auth.getSession(), 12000, 'getSession')
-      .then(({ data: { session } }) => {
-        if (cancelled) return
-        if (session?.user) {
-          fetchUserProfile(session.user.id)
-        } else {
-          setLoading(false)
-        }
-      })
-      .catch((err) => {
-        console.error('getSession error:', err)
-        if (!cancelled) {
-          setLoading(false)
-        }
-      })
+  const finishWithoutSession = () => {
+    if (cancelled) return
+    setUser(null)
+    setLoading(false)
+  }
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change event:', event, session?.user?.email)
+  const failsafe = window.setTimeout(() => {
+    if (!cancelled) {
+      console.warn('Auth initialization took longer than expected; releasing loading state.')
+      setLoading(false)
+    }
+  }, 30000)
 
+  // Do not time out getSession — a timed race can mark the user logged out while
+  // Supabase is still restoring the session from storage.
+  supabase.auth
+    .getSession()
+    .then(({ data: { session } }) => {
+      if (cancelled) return
       if (session?.user) {
-        // Check if user has a profile before proceeding
+        void fetchUserProfile(session.user.id, session.user.email)
+      } else {
+        finishWithoutSession()
+      }
+    })
+    .catch((err) => {
+      console.error('getSession error:', err)
+    })
+
+  // Defer async work so getSession / session restore is not blocked (Supabase deadlock).
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    setTimeout(() => {
+      void (async () => {
+        if (cancelled) return
+        console.log('Auth state change event:', event, session?.user?.email)
+
+        if (!session?.user) {
+          finishWithoutSession()
+          return
+        }
+
         let profileData: Record<string, unknown> | null = null
         let profileError: { message: string } | null = null
         try {
@@ -68,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select('*')
               .eq('id', session.user.id)
               .maybeSingle(),
-            12000,
+            15000,
             'onAuthStateChange profile lookup'
           )
           profileData = result.data as Record<string, unknown> | null
@@ -77,6 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Profile lookup timed out or failed:', e)
           setLoading(false)
           return
+        }
+
+        if (!profileData && session.user.email) {
+          try {
+            const byEmail = await withTimeout(
+              supabase
+                .from('profiles')
+                .select('*')
+                .eq('email', session.user.email)
+                .maybeSingle(),
+              15000,
+              'onAuthStateChange profile lookup by email'
+            )
+            profileData = byEmail.data as Record<string, unknown> | null
+            if (!profileError) {
+              profileError = byEmail.error as { message: string } | null
+            }
+          } catch (e) {
+            console.error('Profile lookup by email timed out or failed:', e)
+          }
         }
 
         if (profileError) {
@@ -246,36 +284,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // User has a profile, proceed with normal flow
-        await fetchUserProfile(session.user.id)
-        
-        // If this is a sign in event, redirect to choice-filling
+        await fetchUserProfile(session.user.id, session.user.email)
+
         if (event === 'SIGNED_IN') {
           console.log('User signed in, redirecting to choice-filling...')
-          // Use setTimeout with a longer delay to ensure all state updates are complete
           setTimeout(() => {
             router.push('/choice-filling')
           }, 1000)
         }
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
-    })
+      })()
+    }, 0)
+  })
 
     return () => {
       cancelled = true
+      window.clearTimeout(failsafe)
       subscription.unsubscribe()
     }
   }, [])
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, email?: string | null) => {
     try {
       console.log('Fetching user profile for:', userId)
-      const { data, error } = await withTimeout(
-        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        12000,
-        'fetchUserProfile'
-      )
+      let data: {
+        email: string
+        full_name: string
+        phone_number: string
+      } | null = null
+      let error: { message: string } | null = null
+
+      try {
+        const result = await withTimeout(
+          supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+          15000,
+          'fetchUserProfile'
+        )
+        data = result.data
+        error = result.error as { message: string } | null
+      } catch (profileError) {
+        console.error('Error in fetchUserProfile:', profileError)
+        setLoading(false)
+        return
+      }
+
+      if (!data && email) {
+        try {
+          const byEmail = await withTimeout(
+            supabase.from('profiles').select('*').eq('email', email).maybeSingle(),
+            15000,
+            'fetchUserProfile by email'
+          )
+          data = byEmail.data
+          if (!error) {
+            error = byEmail.error as { message: string } | null
+          }
+        } catch (profileError) {
+          console.error('Profile lookup by email failed:', profileError)
+        }
+      }
 
       if (error) {
         console.error('Error fetching user profile:', error)
@@ -285,8 +351,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!data) {
         console.log('No profile found for user:', userId)
-        // Don't create profile automatically - user must sign up first
-        setUser(null)
         setLoading(false)
         return
       }
