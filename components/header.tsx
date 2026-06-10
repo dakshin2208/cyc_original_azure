@@ -100,7 +100,7 @@ export function Header() {
       label: "Scholarships & free seat"
     },
     {
-      href: "/add-college-data",
+      href: "/nirf-upload",
       icon: PlusCircle,
       label: "Add College Data"
     },

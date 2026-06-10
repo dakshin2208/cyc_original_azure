@@ -11,6 +11,18 @@ export function Footer() {
           
           <div className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6 text-xs sm:text-sm">
             <Link 
+              href="/cheatsheet" 
+              className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
+            >
+              Cheat Sheet
+            </Link>
+            <Link 
+              href="/vote" 
+              className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
+            >
+              Vote for Your State
+            </Link>
+            <Link 
               href="/contact" 
               className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
             >

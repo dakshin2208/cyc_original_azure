@@ -96,7 +96,7 @@ export default function HomePage() {
       icon: FileText,
       color: "text-indigo-600",
       bgColor: "bg-gradient-to-br from-indigo-50 to-indigo-100",
-      route: "/add-college-data",
+      route: "/nirf-upload",
       gradient: "from-indigo-500 to-indigo-600"
     },
     {
@@ -476,7 +476,7 @@ export default function HomePage() {
                 <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/blogs')}>
                 Educational Blogs
               </Button>
-                <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/add-college-data')}>
+                <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/nirf-upload')}>
                 Add College Data
               </Button>
                 <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/compare-colleges')}>

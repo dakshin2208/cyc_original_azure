@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Add College Data - ChooseYourCollege.com",
+  title: "NIRF Upload - ChooseYourCollege.com",
   description: "Submit your college's NIRF data to be included in our database",
 }
 
