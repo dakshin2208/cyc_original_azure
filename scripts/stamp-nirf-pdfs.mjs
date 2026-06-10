@@ -24,6 +24,7 @@ const FILES = [
     source: 'total-tn-engineering-colleges.pdf',
     output: 'total-tn-engineering-colleges.pdf',
     title: 'Total TN Engineering Colleges',
+    skipFirstPage: true,
   },
   {
     source: 'total-nirf-participated-tn-colleges.pdf',
@@ -37,7 +38,8 @@ const FILES = [
   },
 ]
 
-async function stampPdf(sourceFile, outputFile, docTitle) {
+async function stampPdf(sourceFile, outputFile, docTitle, options = {}) {
+  const { skipFirstPage = false } = options
   const sourceBytes = fs.readFileSync(path.join(sourceDir, sourceFile))
   const sourceDoc = await PDFDocument.load(sourceBytes)
   const logoBytes = fs.readFileSync(logoPath)
@@ -46,9 +48,12 @@ async function stampPdf(sourceFile, outputFile, docTitle) {
   const outDoc = await PDFDocument.create()
   const fontBold = await outDoc.embedFont(StandardFonts.HelveticaBold)
   const fontNormal = await outDoc.embedFont(StandardFonts.Helvetica)
-  const pageCount = sourceDoc.getPageCount()
+  const sourcePageCount = sourceDoc.getPageCount()
+  const startIndex = skipFirstPage ? 1 : 0
+  const outputPageCount = sourcePageCount - startIndex
 
-  for (let i = 0; i < pageCount; i++) {
+  for (let i = startIndex; i < sourcePageCount; i++) {
+    const outputPageNum = i - startIndex + 1
     const srcPage = sourceDoc.getPage(i)
     const { width, height } = srcPage.getSize()
     const embedded = await outDoc.embedPage(srcPage)
@@ -120,7 +125,7 @@ async function stampPdf(sourceFile, outputFile, docTitle) {
     })
 
     // Footer: page numbers (center)
-    const pageText = `Page ${i + 1} of ${pageCount}`
+    const pageText = `Page ${outputPageNum} of ${outputPageCount}`
     const pageTextWidth = fontNormal.widthOfTextAtSize(pageText, 10)
     page.drawText(pageText, {
       x: (width - pageTextWidth) / 2,
@@ -145,13 +150,15 @@ async function stampPdf(sourceFile, outputFile, docTitle) {
 
   const pdfBytes = await outDoc.save()
   fs.writeFileSync(path.join(outDir, outputFile), pdfBytes)
-  console.log(`✓ ${outputFile} (${pageCount} pages)`)
+  console.log(`✓ ${outputFile} (${outputPageCount} pages)`)
 }
 
 async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
   for (const file of FILES) {
-    await stampPdf(file.source, file.output, file.title)
+    await stampPdf(file.source, file.output, file.title, {
+      skipFirstPage: file.skipFirstPage ?? false,
+    })
   }
   console.log('Done.')
 }
