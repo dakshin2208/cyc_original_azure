@@ -33,6 +33,11 @@ import {
   type College,
 } from "@/lib/college-service"
 import {
+  fetchComputedParameters,
+  isNewParam,
+  isNewNumericParam,
+} from "@/lib/parameters-catalog"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -192,6 +197,17 @@ export function ResultsTable({
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const collegesPerPage = 10
+
+  // ── New computed parameters (faculty/financial/research/etc.) ──────────────
+  // collegeId → { paramId: formattedValue } merged into colleges for display/sort.
+  const [computedValues, setComputedValues] = useState<Record<number, Record<string, string>>>({})
+  const [computingParams, setComputingParams] = useState(false)
+
+  // Which of the selected parameters are the new computed ones
+  const selectedNewParams = useMemo(
+    () => selectedParameters.filter(isNewParam),
+    [selectedParameters],
+  )
 
   // Store the full range of values for each parameter
   const [dataRanges, setDataRanges] = useState<FilterRanges>({
@@ -384,10 +400,93 @@ export function ResultsTable({
     loadCollegeData()
   }, [])
 
+  // Colleges in the selected location (search-independent) — bounds the set we
+  // compute new parameters for, so we don't recompute on every keystroke.
+  const geoColleges = useMemo(() => {
+    if (locationType === "district" && locationValue && locationValue !== "All Districts") {
+      return colleges.filter(
+        (c) =>
+          c.District?.toLowerCase() === locationValue.toLowerCase() ||
+          c.collegeName.toLowerCase().includes(locationValue.toLowerCase()) ||
+          c.instituteName.toLowerCase().includes(locationValue.toLowerCase()),
+      )
+    }
+    if (locationType === "state" && locationValue) {
+      return colleges.filter(
+        (c) =>
+          c.State?.toLowerCase() === locationValue.toLowerCase() ||
+          c.collegeName.toLowerCase().includes(locationValue.toLowerCase()) ||
+          c.instituteName.toLowerCase().includes(locationValue.toLowerCase()),
+      )
+    }
+    return colleges
+  }, [colleges, locationType, locationValue])
+
+  // On-demand: compute new parameters for the geo-filtered colleges, in parallel,
+  // relying on the API route's 1-hour cache. Only runs when a new param is selected.
+  useEffect(() => {
+    if (selectedNewParams.length === 0) return
+    let cancelled = false
+
+    const targets = geoColleges.filter((c) => c.nirf_id || c.counselling_code)
+    const todo = targets.filter((c) => {
+      const have = computedValues[c.id]
+      return !have || selectedNewParams.some((p) => !(p in have))
+    })
+    if (todo.length === 0) return
+
+    setComputingParams(true)
+    ;(async () => {
+      const CONCURRENCY = 8
+      const collected: Record<number, Record<string, string>> = {}
+      let cursor = 0
+      const worker = async () => {
+        while (cursor < todo.length && !cancelled) {
+          const c = todo[cursor++]
+          const { values } = await fetchComputedParameters(
+            c.nirf_id ?? null,
+            c.counselling_code ?? null,
+            selectedNewParams,
+          )
+          collected[c.id] = values
+        }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, todo.length) }, () => worker()),
+      )
+      if (cancelled) return
+      setComputedValues((prev) => {
+        const next = { ...prev }
+        for (const [id, v] of Object.entries(collected)) {
+          next[Number(id)] = { ...(next[Number(id)] || {}), ...v }
+        }
+        return next
+      })
+      setComputingParams(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+    // computedValues intentionally omitted from deps to avoid a refetch loop;
+    // already-computed colleges are skipped via the todo filter and the server cache.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNewParams, geoColleges])
+
+  // Merge computed values onto colleges so the existing filter/sort/render path
+  // (which reads college[param]) picks them up transparently.
+  const mergedColleges = useMemo(
+    () =>
+      colleges.map((c) =>
+        computedValues[c.id] ? { ...c, ...computedValues[c.id] } : c,
+      ),
+    [colleges, computedValues],
+  )
+
   // Apply search term and active filters
   const filteredColleges = useMemo(() => {
     // First filter by search term
-    let filtered = colleges.filter(
+    let filtered = mergedColleges.filter(
       (college) =>
         college.collegeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         college.instituteName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -518,7 +617,7 @@ export function ResultsTable({
     filtered = deduplicateColleges(filtered)
 
     return filtered
-  }, [colleges, searchTerm, locationType, locationValue, filterSettings, activeFilters])
+  }, [mergedColleges, searchTerm, locationType, locationValue, filterSettings, activeFilters])
 
   // Apply sorting and prioritize colleges with data for the selected parameters
   const sortedColleges = useMemo(() => {
@@ -601,7 +700,8 @@ export function ResultsTable({
               "avgWomenStudents",
               "avgOutsideStudents",
               "IdleOutputIndex",
-            ].includes(sortColumn)
+            ].includes(sortColumn) ||
+            isNewNumericParam(sortColumn)
           ) {
             const aValue = extractNumericValue(aCollege[sortColumn as keyof College] as string)
             const bValue = extractNumericValue(bCollege[sortColumn as keyof College] as string)
@@ -1074,6 +1174,12 @@ export function ResultsTable({
           </div>
         ) : (
           <div className="rounded-md border border-gray-800">
+            {computingParams && selectedNewParams.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 text-sm text-blue-500 border-b border-gray-800">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Computing parameters…
+              </div>
+            )}
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow className="border-input">

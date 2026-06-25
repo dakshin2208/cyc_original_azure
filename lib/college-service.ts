@@ -1,5 +1,6 @@
 import { PathString } from "react-hook-form"
 import { supabase } from "./supabase"
+import { NEW_PARAM_BY_ID } from "./parameters-catalog"
 
 export interface College {
   id: number
@@ -20,6 +21,10 @@ export interface College {
   avgOutsideStudents: string
   IdleOutputIndex: string // Changed from avgNONGraduated
   PowerScore: string
+  nirf_id?: string | null          // from "NIRF Code" column — links to nirf_* tables
+  counselling_code?: string | null // from CollegeCode — links to tnea_* tables
+  // Computed parameters merged in at runtime are keyed by their param id (string values)
+  [key: string]: any
 }
 
 // Fallback college data
@@ -179,12 +184,21 @@ function processCollegeData(data: any[]): College[] {
     // Handle the field name change from avgGraduationOutcomes to avgNONGraduated
     const IdleOutputIndex = college.IdleOutputIndex || college.avgGraduationOutcomes || "";
 
+    // Link keys for the new computed parameters.
+    // "NIRF Code" → nirf_id (nirf_* tables); CollegeCode → counselling_code (tnea_* tables)
+    const nirfCode = college["NIRF Code"] ?? college["NIRF code"] ?? college["nirf_id"] ?? null
+    const nirf_id = nirfCode && String(nirfCode).trim() ? String(nirfCode).trim() : null
+    const counselling_code =
+      college.CollegeCode && String(college.CollegeCode).trim() ? String(college.CollegeCode).trim() : null
+
     return {
       ...college,
       code,
       collegeName,
       instituteName,
       IdleOutputIndex,
+      nirf_id,
+      counselling_code,
       isPSGCollege: instituteName.includes("PSG College of Technology [IR-E-C-37013]") || false,
       isPSGITAR: instituteName.includes("PSG INSTITUTE OF TECHNOLOGY AND APPLIED RESEARCH [IR-E-C-50605]") || false,
       isVSBCollege: collegeName.includes("V S B College of Engineering Technical Campus") || false,
@@ -304,7 +318,8 @@ export function getParameterLabel(param: string): string {
     avgOutsideStudents: "Avg. Outside Students %",
     IdleOutputIndex: "Idle Output Index (IOI%)", // Changed from avgNONGraduated
   }
-  return paramMap[param] || param
+  // New computed parameters fall back to the shared catalog labels
+  return paramMap[param] || NEW_PARAM_BY_ID[param]?.label || param
 }
 
 export function formatValue(param: string, value: any): string {

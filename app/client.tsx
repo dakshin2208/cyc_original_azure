@@ -12,6 +12,7 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { NEW_PARAMETER_GROUPS } from "@/lib/parameters-catalog"
 
 export default function HomeClient() {
   const router = useRouter()
@@ -78,8 +79,12 @@ export default function HomeClient() {
     PowerScore: true,
   })
 
-  // Count selected parameters
-  const selectedCount = Object.values(parameters).filter(Boolean).length
+  // New computed parameters (faculty/financial/research/etc.) selected by id
+  const [newSelected, setNewSelected] = useState<Set<string>>(new Set())
+
+  // Count selected parameters across both old (12) and new sets
+  const MAX_PARAMS = 3
+  const selectedCount = Object.values(parameters).filter(Boolean).length + newSelected.size
 
   const handleParameterChange = (param: keyof typeof parameters) => {
     // If parameter is already selected, allow deselecting
@@ -91,8 +96,8 @@ export default function HomeClient() {
       return
     }
 
-    // If two parameters are already selected, don't allow selecting more
-    if (selectedCount >= 2) {
+    // If the max parameters are already selected, don't allow selecting more
+    if (selectedCount >= MAX_PARAMS) {
       return
     }
 
@@ -103,11 +108,25 @@ export default function HomeClient() {
     }))
   }
 
+  // Select/deselect a new computed parameter (shares the same MAX_PARAMS limit)
+  const handleNewParameterChange = (id: string) => {
+    setNewSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+        return next
+      }
+      if (selectedCount >= MAX_PARAMS) return prev
+      next.add(id)
+      return next
+    })
+  }
+
   const handleSearch = () => {
-    const selectedParams = Object.entries(parameters)
+    const oldParams = Object.entries(parameters)
       .filter(([_, isSelected]) => isSelected)
       .map(([param]) => param)
-      .join(",")
+    const selectedParams = [...oldParams, ...newSelected].join(",")
 
     const params = new URLSearchParams()
     params.append("location", `district:${district}`)
@@ -166,14 +185,14 @@ export default function HomeClient() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">Search Parameters</h3>
-                  <span className="text-sm text-gray-400">Select up to 2 parameters</span>
+                  <span className="text-sm text-gray-400">Select up to 3 parameters</span>
                 </div>
 
-                {selectedCount === 2 && (
+                {selectedCount === 3 && (
                   <Alert variant="custom">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      You've selected 2 parameters. Uncheck one to change your selection.
+                      You've selected 3 parameters. Uncheck one to change your selection.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -185,12 +204,12 @@ export default function HomeClient() {
                       checked={parameters.avgMedianSalary}
                       onCheckedChange={() => handleParameterChange("avgMedianSalary")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgMedianSalary}
+                      disabled={selectedCount >= 3 && !parameters.avgMedianSalary}
                     />
                     <div>
                       <Label
                         htmlFor="avgMedianSalary"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgMedianSalary ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgMedianSalary ? "text-gray-500" : ""}`}
                       >
                         Median Salary
                       </Label>
@@ -204,12 +223,12 @@ export default function HomeClient() {
                       checked={parameters.avgPlacementPercentage}
                       onCheckedChange={() => handleParameterChange("avgPlacementPercentage")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgPlacementPercentage}
+                      disabled={selectedCount >= 3 && !parameters.avgPlacementPercentage}
                     />
                     <div>
                       <Label
                         htmlFor="avgPlacementPercentage"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgPlacementPercentage ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgPlacementPercentage ? "text-gray-500" : ""}`}
                       >
                         Placement %
                       </Label>
@@ -223,12 +242,12 @@ export default function HomeClient() {
                       checked={parameters.avgPassingPercentage}
                       onCheckedChange={() => handleParameterChange("avgPassingPercentage")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgPassingPercentage}
+                      disabled={selectedCount >= 3 && !parameters.avgPassingPercentage}
                     />
                     <div>
                       <Label
                         htmlFor="avgPassingPercentage"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgPassingPercentage ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgPassingPercentage ? "text-gray-500" : ""}`}
                       >
                         Passing %
                       </Label>
@@ -242,12 +261,12 @@ export default function HomeClient() {
                       checked={parameters.avgHigherStudiesPercentage}
                       onCheckedChange={() => handleParameterChange("avgHigherStudiesPercentage")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgHigherStudiesPercentage}
+                      disabled={selectedCount >= 3 && !parameters.avgHigherStudiesPercentage}
                     />
                     <div>
                       <Label
                         htmlFor="avgHigherStudiesPercentage"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgHigherStudiesPercentage ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgHigherStudiesPercentage ? "text-gray-500" : ""}`}
                       >
                         Higher Studies %
                       </Label>
@@ -261,12 +280,12 @@ export default function HomeClient() {
                       checked={parameters.avgScholarshipPercentage}
                       onCheckedChange={() => handleParameterChange("avgScholarshipPercentage")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgScholarshipPercentage}
+                      disabled={selectedCount >= 3 && !parameters.avgScholarshipPercentage}
                     />
                     <div>
                       <Label
                         htmlFor="avgScholarshipPercentage"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgScholarshipPercentage ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgScholarshipPercentage ? "text-gray-500" : ""}`}
                       >
                         Scholarships %
                       </Label>
@@ -280,12 +299,12 @@ export default function HomeClient() {
                       checked={parameters.totalIntake}
                       onCheckedChange={() => handleParameterChange("totalIntake")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.totalIntake}
+                      disabled={selectedCount >= 3 && !parameters.totalIntake}
                     />
                     <div>
                       <Label
                         htmlFor="totalIntake"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.totalIntake ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.totalIntake ? "text-gray-500" : ""}`}
                       >
                         Total Intake
                       </Label>
@@ -299,12 +318,12 @@ export default function HomeClient() {
                       checked={parameters.avgSeatsFilled}
                       onCheckedChange={() => handleParameterChange("avgSeatsFilled")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgSeatsFilled}
+                      disabled={selectedCount >= 3 && !parameters.avgSeatsFilled}
                     />
                     <div>
                       <Label
                         htmlFor="avgSeatsFilled"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgSeatsFilled ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgSeatsFilled ? "text-gray-500" : ""}`}
                       >
                         Seats Filled %
                       </Label>
@@ -318,12 +337,12 @@ export default function HomeClient() {
                       checked={parameters.avgWomenStudents}
                       onCheckedChange={() => handleParameterChange("avgWomenStudents")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgWomenStudents}
+                      disabled={selectedCount >= 3 && !parameters.avgWomenStudents}
                     />
                     <div>
                       <Label
                         htmlFor="avgWomenStudents"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgWomenStudents ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgWomenStudents ? "text-gray-500" : ""}`}
                       >
                         Female Students %
                       </Label>
@@ -337,12 +356,12 @@ export default function HomeClient() {
                       checked={parameters.avgOutsideStudents}
                       onCheckedChange={() => handleParameterChange("avgOutsideStudents")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.avgOutsideStudents}
+                      disabled={selectedCount >= 3 && !parameters.avgOutsideStudents}
                     />
                     <div>
                       <Label
                         htmlFor="avgOutsideStudents"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.avgOutsideStudents ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.avgOutsideStudents ? "text-gray-500" : ""}`}
                       >
                         Outside Students %
                       </Label>
@@ -356,12 +375,12 @@ export default function HomeClient() {
                       checked={parameters.IdleOutputIndex}
                       onCheckedChange={() => handleParameterChange("IdleOutputIndex")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.IdleOutputIndex}
+                      disabled={selectedCount >= 3 && !parameters.IdleOutputIndex}
                     />
                     <div>
                       <Label
                         htmlFor="IdleOutputIndex"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.IdleOutputIndex ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.IdleOutputIndex ? "text-gray-500" : ""}`}
                       >
                         IOI (IdleOutputIndex) %
                       </Label>
@@ -374,12 +393,12 @@ export default function HomeClient() {
                       checked={parameters.ocCutoff}
                       onCheckedChange={() => handleParameterChange("ocCutoff")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.ocCutoff}
+                      disabled={selectedCount >= 3 && !parameters.ocCutoff}
                     />
                     <div>
                       <Label
                         htmlFor="ocCutoff"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.ocCutoff ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.ocCutoff ? "text-gray-500" : ""}`}
                       >
                         OC CSE Cutoff
                       </Label>
@@ -393,12 +412,12 @@ export default function HomeClient() {
                       checked={parameters.PowerScore}
                       onCheckedChange={() => handleParameterChange("PowerScore")}
                       className="mt-1"
-                      disabled={selectedCount >= 2 && !parameters.PowerScore}
+                      disabled={selectedCount >= 3 && !parameters.PowerScore}
                     />
                     <div>
                       <Label
                         htmlFor="PowerScore"
-                        className={`font-medium ${selectedCount >= 2 && !parameters.PowerScore ? "text-gray-500" : ""}`}
+                        className={`font-medium ${selectedCount >= 3 && !parameters.PowerScore ? "text-gray-500" : ""}`}
                       >
                         Power Score
                       </Label>
@@ -406,6 +425,36 @@ export default function HomeClient() {
                     </div>
                   </div>
                 </div>
+
+                {/* New computed parameters (calculated live from NIRF/TNEA data) */}
+                {NEW_PARAMETER_GROUPS.map((group) => (
+                  <div key={group.section} className="space-y-3 pt-2">
+                    <h4 className="text-base font-semibold text-[#0B5588]">{group.sectionLabel}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {group.params.map((p) => {
+                        const checked = newSelected.has(p.id)
+                        const disabled = selectedCount >= MAX_PARAMS && !checked
+                        return (
+                          <div key={p.id} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={p.id}
+                              checked={checked}
+                              onCheckedChange={() => handleNewParameterChange(p.id)}
+                              className="mt-1"
+                              disabled={disabled}
+                            />
+                            <div>
+                              <Label htmlFor={p.id} className={`font-medium ${disabled ? "text-gray-500" : ""}`}>
+                                {p.label}
+                              </Label>
+                              <p className="text-sm text-gray-400">{p.description}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <Button
