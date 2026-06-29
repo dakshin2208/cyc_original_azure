@@ -153,10 +153,10 @@ export default function Pricing() {
                   {/* Payment Option */}
                   <div className="text-center">
                     <div className="text-xs sm:text-sm text-gray-600 mb-1">Premium Access</div>
-                    <div className="text-xl sm:text-2xl font-bold text-green-700">₹199</div>
+                    <div className="text-xl sm:text-2xl font-bold text-green-700">₹299</div>
                     <div className="text-xs text-gray-600 mb-3">Unlimited access for 30 days</div>
                     <PaymentButton
-                      amount={199}
+                      amount={299}
                       planName="Secure"
                       onSuccess={handlePaymentSuccess}
                       onError={handlePaymentError}
@@ -226,10 +226,10 @@ export default function Pricing() {
                   {/* Payment Option */}
                   <div className="text-center">
                     <div className="text-xs sm:text-sm text-gray-600 mb-1">Premium Access</div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-700">₹299</div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-700">₹399</div>
                     <div className="text-xs text-gray-600 mb-3">Unlimited access for 30 days</div>
                     <PaymentButton
-                      amount={299}
+                      amount={399}
                       planName="Assured+"
                       onSuccess={handlePaymentSuccess}
                       onError={handlePaymentError}

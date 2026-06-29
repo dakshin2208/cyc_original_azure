@@ -179,9 +179,9 @@ export async function POST(request: Request) {
     // Map plan type to human-readable name
     let currentPlan = 'Freemium'
     if (planType === 'premium_199') {
-      currentPlan = 'Secure (₹199)'
+      currentPlan = 'Secure (₹299)'
     } else if (planType === 'premium_299') {
-      currentPlan = 'Assured+ (₹299)'
+      currentPlan = 'Assured+ (₹399)'
     } else if (planType === 'referral_75') {
       currentPlan = 'Referral Premium (75 Choices)'
     } else if (planType === 'referral_200') {

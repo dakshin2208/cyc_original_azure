@@ -4189,7 +4189,7 @@ export default function ChoiceFilling() {
                 {/* Secure Plan */}
                 <div className="bg-white border border-green-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
                   <div className="text-xs font-bold text-green-700 mb-1">SECURE</div>
-                  <div className="text-xl font-bold text-green-700">₹199</div>
+                  <div className="text-xl font-bold text-green-700">₹299</div>
                   <div className="text-sm text-gray-700 mb-2">upto 75 Choices</div>
                   <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
                   <div className="text-xs text-green-600 font-semibold">3 Trials / 3 Referrals</div>
@@ -4197,7 +4197,7 @@ export default function ChoiceFilling() {
                 {/* Assured+ Plan */}
                 <div className="bg-white border border-blue-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
                   <div className="text-xs font-bold text-blue-700 mb-1">ASSURED+</div>
-                  <div className="text-xl font-bold text-blue-700">₹299</div>
+                  <div className="text-xl font-bold text-blue-700">₹399</div>
                   <div className="text-sm text-gray-700 mb-2">upto 200 Choices</div>
                   <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
                   <div className="text-xs text-blue-600 font-semibold">10 Trials / 5 Referrals</div>
@@ -4332,11 +4332,11 @@ export default function ChoiceFilling() {
                                           <IndianRupee className="h-4 w-4 text-blue-600" />
                                           <span className="font-semibold text-blue-700">Premium Access</span>
                                         </div>
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹199</div>
+                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
                                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                                       </div>
                                       <PaymentButton
-                                        amount={199}
+                                        amount={299}
                                         planName="Secure"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
@@ -4398,11 +4398,11 @@ export default function ChoiceFilling() {
                                           <IndianRupee className="h-4 w-4 text-blue-600" />
                                           <span className="font-semibold text-blue-700">Premium Access</span>
                                         </div>
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
+                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹399</div>
                                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                                       </div>
                                       <PaymentButton
-                                        amount={299}
+                                        amount={399}
                                         planName="Assured+"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
@@ -4533,11 +4533,11 @@ export default function ChoiceFilling() {
                                           <IndianRupee className="h-4 w-4 text-blue-600" />
                                           <span className="font-semibold text-blue-700">Premium Access</span>
                                         </div>
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
+                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹399</div>
                                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                                       </div>
                                       <PaymentButton
-                                        amount={299}
+                                        amount={399}
                                         planName="Assured+"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
@@ -4599,11 +4599,11 @@ export default function ChoiceFilling() {
                                           <IndianRupee className="h-4 w-4 text-blue-600" />
                                           <span className="font-semibold text-blue-700">Premium Access</span>
                                         </div>
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
+                                        <div className="text-2xl font-bold text-blue-600 mb-1">₹399</div>
                                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                                       </div>
                                       <PaymentButton
-                                        amount={299}
+                                        amount={399}
                                         planName="Assured+"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
@@ -5148,11 +5148,11 @@ export default function ChoiceFilling() {
                           <IndianRupee className="h-4 w-4 text-blue-600" />
                           <span className="font-semibold text-blue-700">Premium Access</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-1">₹199</div>
+                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                       </div>
                       <PaymentButton
-                        amount={199}
+                        amount={299}
                         planName="Secure"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
@@ -5215,11 +5215,11 @@ export default function ChoiceFilling() {
                           <IndianRupee className="h-4 w-4 text-blue-600" />
                           <span className="font-semibold text-blue-700">Premium Access</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
+                        <div className="text-2xl font-bold text-blue-600 mb-1">₹399</div>
                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                       </div>
                       <PaymentButton
-                        amount={299}
+                        amount={399}
                         planName="Assured+"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
@@ -5369,11 +5369,11 @@ export default function ChoiceFilling() {
                           <IndianRupee className="h-4 w-4 text-blue-600" />
                           <span className="font-semibold text-blue-700">Premium Access</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-1">₹199</div>
+                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                       </div>
                       <PaymentButton
-                        amount={199}
+                        amount={299}
                         planName="Secure"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
@@ -5436,11 +5436,11 @@ export default function ChoiceFilling() {
                           <IndianRupee className="h-4 w-4 text-blue-600" />
                           <span className="font-semibold text-blue-700">Premium Access</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-1">₹299</div>
+                        <div className="text-2xl font-bold text-blue-600 mb-1">₹399</div>
                         <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
                       </div>
                       <PaymentButton
-                        amount={299}
+                        amount={399}
                         planName="Assured+"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}

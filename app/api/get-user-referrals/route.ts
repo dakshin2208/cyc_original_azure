@@ -83,10 +83,10 @@ export async function POST(request: Request) {
 
     // Check actual plan from database first
     if (usageData?.plan_type === 'premium_199') {
-      currentPlan = 'Secure (₹199)'
+      currentPlan = 'Secure (₹299)'
       maxChoices = 75
     } else if (usageData?.plan_type === 'premium_299') {
-      currentPlan = 'Assured+ (₹299)'
+      currentPlan = 'Assured+ (₹399)'
       maxChoices = 200
     } else if (usageData?.plan_type === 'referral_75') {
       currentPlan = 'Referral Premium (75 Choices)'
