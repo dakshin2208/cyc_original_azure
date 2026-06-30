@@ -138,8 +138,8 @@ export async function POST(request: Request) {
           if (completedCount >= 3) {
             // Determine plan type and max choices based on completed referrals
             let planType = 'freemium'
-            let maxChoices = 20
-            
+            let maxChoices = 5
+
             if (completedCount >= 5) {
               planType = 'referral_200'
               maxChoices = 200

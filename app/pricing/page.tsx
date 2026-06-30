@@ -66,7 +66,7 @@ export default function Pricing() {
                 <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center">
                     <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-2 sm:mr-3" />
-                    <span className="text-sm sm:text-base">upto 20 Choices</span>
+                    <span className="text-sm sm:text-base">upto 5 Choices</span>
                   </div>
                   <div className="flex items-center">
                     <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-2 sm:mr-3" />

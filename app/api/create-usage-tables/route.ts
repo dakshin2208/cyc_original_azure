@@ -25,7 +25,7 @@ export async function POST() {
           user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
           email TEXT NOT NULL,
           usage_count INTEGER DEFAULT 0,
-          max_choices INTEGER DEFAULT 20,
+          max_choices INTEGER DEFAULT 5,
           plan_type TEXT DEFAULT 'freemium' CHECK (plan_type IN ('freemium', 'premium_199', 'premium_299')),
           referral_trials_earned INTEGER DEFAULT 0,
           referral_trials_used INTEGER DEFAULT 0,

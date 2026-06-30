@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     // Determine current plan benefits based on actual database plan first
     let currentPlan = 'Freemium'
-    let maxChoices = usageData?.max_choices || 20
+    let maxChoices = usageData?.max_choices || 5
     let trialsEarned = 0
 
     // Check actual plan from database first

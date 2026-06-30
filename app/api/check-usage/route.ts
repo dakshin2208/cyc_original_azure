@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           user_id: userId,
           email: email,
           usage_count: 0,
-          max_choices: 20,
+          max_choices: 5,
           plan_type: 'freemium',
           referral_trials_earned: 0,
           referral_trials_used: 0

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     // Map plan names to database plan types
     let planType = 'freemium'
-    let maxChoices = 20
+    let maxChoices = 5
 
     if (planName === 'Secure') {
       planType = 'premium_199'

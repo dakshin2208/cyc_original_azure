@@ -302,6 +302,19 @@ export default function CompareColleges() {
       {/* Comparison Table - Only show when both colleges are selected */}
       {selectedCollege1 && selectedCollege2 && (
         <div className="mt-6 sm:mt-8 overflow-x-auto">
+          {(() => {
+            const missing = [selectedCollege1, selectedCollege2]
+              .filter((c) => !getCollegeLinks(c).nirfId)
+              .map((c) => c!.collegeName)
+            if (missing.length === 0) return null
+            return (
+              <p className="mb-3 text-xs sm:text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                Note: Faculty, Financial, Research, Student Composition &amp; Infrastructure metrics are sourced from NIRF.{" "}
+                {missing.join(" and ")} {missing.length > 1 ? "have" : "has"} not published NIRF data, so those rows show
+                &quot;-&quot;. (Admissions metrics like Fill Rate are still shown from TNEA data.)
+              </p>
+            )
+          })()}
           <Table className="border-collapse border border-gray-300 min-w-full">
             <TableHeader>
               <TableRow className="bg-gray-100">

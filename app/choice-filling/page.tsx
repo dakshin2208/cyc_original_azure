@@ -1407,7 +1407,7 @@ export default function ChoiceFilling() {
       // Sort by PowerScore for better quality colleges
       const sortedResults = transformedResults
         .sort((a, b) => b.powerScore - a.powerScore)
-        .slice(0, usage.maxChoices || 20) // Limit based on user's plan
+        .slice(0, usage.maxChoices || 5) // Limit based on user's plan
 
       console.log(`Returning ${sortedResults.length} null colleges after filtering and sorting`)
       return sortedResults
@@ -1681,7 +1681,7 @@ export default function ChoiceFilling() {
                   })
 
                 // For AI method: Sort by PowerScore (descending) and take top colleges based on plan
-                const maxChoices = usage.maxChoices || 20 // Default to freemium limit
+                const maxChoices = usage.maxChoices || 5 // Default to freemium limit
                 const sortedByPowerScore = transformedResults
                   .sort((a, b) => b.powerScore - a.powerScore)
                   .slice(0, maxChoices)
@@ -1709,7 +1709,7 @@ export default function ChoiceFilling() {
               ).values()
             )
             .sort((a, b) => b.powerScore - a.powerScore) // Sort by PowerScore for AI method
-            .slice(0, usage.maxChoices || 20) // Limit based on user's plan
+            .slice(0, usage.maxChoices || 5) // Limit based on user's plan
 
             console.log('AI Method - Total unique results after PowerScore filtering:', uniqueResults.length)
             allResults = [...allResults, ...uniqueResults]
@@ -1800,7 +1800,7 @@ export default function ChoiceFilling() {
                 return isValid
               })
               .sort((a, b) => b.powerScore - a.powerScore) // Sort by PowerScore for AI method
-              .slice(0, usage.maxChoices || 20) // Take top colleges based on user's plan
+              .slice(0, usage.maxChoices || 5) // Take top colleges based on user's plan
 
             console.log('AI Method - After PowerScore filtering:', regularResults.length)
             allResults = [...allResults, ...regularResults]
@@ -1857,7 +1857,7 @@ export default function ChoiceFilling() {
                   .not(`"${userPreferences.category}"`, 'is', null)
                   .gt('PowerScore', 0)
                   .order(`"${userPreferences.category}"`, { ascending: true })
-                  .limit(usage.maxChoices || 20) // Limit based on user's plan
+                  .limit(usage.maxChoices || 5) // Limit based on user's plan
 
                 // Apply district filter if specified
                 if (userPreferences.selectedDistricts.length > 0) {
@@ -1941,7 +1941,7 @@ export default function ChoiceFilling() {
               // Then by power score
                 return b.powerScore - a.powerScore
             })
-            .slice(0, usage.maxChoices || 20) // Limit based on user's plan
+            .slice(0, usage.maxChoices || 5) // Limit based on user's plan
 
             console.log('Traditional Method - Total unique results:', uniqueResults.length)
 
@@ -1977,7 +1977,7 @@ export default function ChoiceFilling() {
           .lt(`"${userPreferences.category}"`, userPreferences.cutoff) // Only get colleges below cutoff
           .gt('PowerScore', 0)
           .order(`"${userPreferences.category}"`, { ascending: true }) // Order by cutoff ascending
-          .limit(usage.maxChoices || 20) // Limit based on user's plan
+          .limit(usage.maxChoices || 5) // Limit based on user's plan
 
         // Apply district filter if specified
         if (userPreferences.selectedDistricts.length > 0) {
@@ -2087,7 +2087,7 @@ export default function ChoiceFilling() {
       }
 
       // Limit results based on user's plan
-      const maxChoices = usage.maxChoices || 20 // Default to freemium limit
+      const maxChoices = usage.maxChoices || 5 // Default to freemium limit
       let limitedResults = sortedResults.slice(0, maxChoices)
       
       console.log(`Limiting results to ${maxChoices} colleges based on user plan (${usage.planType})`)
@@ -2364,7 +2364,7 @@ export default function ChoiceFilling() {
                 .lt(`"${userPreferences.category}"`, userPreferences.cutoff)
                 .gt('PowerScore', 0)
                 .order(`"${userPreferences.category}"`, { ascending: true })
-                .limit(usage.maxChoices || 20) // Limit based on user's plan
+                .limit(usage.maxChoices || 5) // Limit based on user's plan
 
               // Apply district filter if specified
               if (userPreferences.selectedDistricts.length > 0) {
@@ -2436,7 +2436,7 @@ export default function ChoiceFilling() {
             // Then by power score
               return b.powerScore - a.powerScore
           })
-          .slice(0, usage.maxChoices || 20) // Limit based on user's plan
+          .slice(0, usage.maxChoices || 5) // Limit based on user's plan
 
           console.log('Total unique results:', uniqueResults.length)
 
@@ -2472,7 +2472,7 @@ export default function ChoiceFilling() {
           .lt(`"${userPreferences.category}"`, userPreferences.cutoff) // Only get colleges below cutoff
           .gt('PowerScore', 0)
           .order(`"${userPreferences.category}"`, { ascending: true }) // Order by cutoff ascending
-          .limit(usage.maxChoices || 20) // Limit based on user's plan
+          .limit(usage.maxChoices || 5) // Limit based on user's plan
 
         // Apply district filter if specified
         if (userPreferences.selectedDistricts.length > 0) {
@@ -2567,7 +2567,7 @@ export default function ChoiceFilling() {
       })
 
       // Limit results based on user's plan
-      const maxChoices = usage.maxChoices || 20 // Default to freemium limit
+      const maxChoices = usage.maxChoices || 5 // Default to freemium limit
       let limitedResults = sortedResults.slice(0, maxChoices)
       
       console.log(`Limiting results to ${maxChoices} colleges based on user plan (${usage.planType})`)
@@ -3722,7 +3722,7 @@ export default function ChoiceFilling() {
       let finalResults
       if (userPreferences.choiceType === 'smart') {
         // AI METHOD: Sort by PowerScore (descending) and take top colleges based on plan
-        const maxChoices = usage.maxChoices || 20 // Default to freemium limit
+        const maxChoices = usage.maxChoices || 5 // Default to freemium limit
         console.log(`AI Method: Sorting by PowerScore and taking top ${maxChoices} colleges`)
         let sortedResults = dataFilteredResults
           .sort((a, b) => {
@@ -3788,7 +3788,7 @@ export default function ChoiceFilling() {
         setIsAIProcessing(false)
       } else {
         // TRADITIONAL METHOD: Sort by rank (ascending - lower ranks first) and take top colleges based on plan
-        const maxChoices = usage.maxChoices || 20 // Default to freemium limit
+        const maxChoices = usage.maxChoices || 5 // Default to freemium limit
         console.log(`Traditional Method: Sorting by rank and taking top ${maxChoices} colleges`)
         let sortedResults = dataFilteredResults
           .sort((a, b) => {
@@ -4182,7 +4182,7 @@ export default function ChoiceFilling() {
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
                   <div className="text-xs font-bold text-gray-500 mb-1">FREEMIUM</div>
                   <div className="text-xl font-bold text-[#0B5588]">Free</div>
-                  <div className="text-sm text-gray-700 mb-2">upto 20 Choices</div>
+                  <div className="text-sm text-gray-700 mb-2">upto 5 Choices</div>
                   <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
                   <div className="text-xs text-green-600 font-semibold">1 Free Trial</div>
                 </div>
@@ -4272,7 +4272,7 @@ export default function ChoiceFilling() {
                                     <Trophy className="h-6 w-6 text-green-600" />
                                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                                   </div>
-                                  <div className="text-3xl font-bold text-green-600">20 Choices</div>
+                                  <div className="text-3xl font-bold text-green-600">5 Choices</div>
                                   <p className="text-gray-600">You've successfully used your free plan!</p>
                                 </div>
                               </CardContent>
@@ -4473,7 +4473,7 @@ export default function ChoiceFilling() {
                                     <Trophy className="h-6 w-6 text-green-600" />
                                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                                   </div>
-                                  <div className="text-3xl font-bold text-green-600">20 Choices</div>
+                                  <div className="text-3xl font-bold text-green-600">5 Choices</div>
                                   <p className="text-gray-600">You've successfully used your free plan!</p>
                                 </div>
                               </CardContent>
@@ -5071,7 +5071,7 @@ export default function ChoiceFilling() {
                 <Card className="border-2 border-green-200 bg-green-50">
                   <CardContent className="p-4 text-center">
                     <div className="text-sm text-gray-600 mb-1">Max Choices</div>
-                    <div className="font-bold text-green-600 text-lg">{usageData?.maxChoices || 20} colleges</div>
+                    <div className="font-bold text-green-600 text-lg">{usageData?.maxChoices || 5} colleges</div>
                   </CardContent>
                 </Card>
                 <Card className="border-2 border-purple-200 bg-purple-50">
@@ -5308,7 +5308,7 @@ export default function ChoiceFilling() {
                     <Trophy className="h-6 w-6 text-green-600" />
                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                   </div>
-                  <div className="text-3xl font-bold text-green-600">upto 20 Choices</div>
+                  <div className="text-3xl font-bold text-green-600">upto 5 Choices</div>
                   <p className="text-gray-600">You've successfully used your free plan!</p>
                 </div>
               </CardContent>
