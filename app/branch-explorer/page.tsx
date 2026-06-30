@@ -10,7 +10,7 @@ import { fetchColleges } from "@/lib/college-service"
 import { supabase } from "@/lib/supabase"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useRouter } from "next/navigation"
-import { Gift, Building2, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 
@@ -180,14 +180,6 @@ export default function BranchExplorer() {
     }
   }
 
-  const handleScholarshipClaim = (collegeCode: string, branchCode: string, branchName: string) => {
-    router.push(`/college-scholarship-seat?collegeCode=${collegeCode}&branchCode=${branchCode}&branchName=${encodeURIComponent(branchName)}`)
-  }
-
-  const handleManagementSeatClaim = (collegeCode: string, branchCode: string, branchName: string) => {
-    router.push(`/college-management-seat?collegeCode=${collegeCode}&branchCode=${branchCode}&branchName=${encodeURIComponent(branchName)}`)
-  }
-
   const filteredColleges = colleges.filter((college) => {
     const searchTerm = collegeSearch.toLowerCase()
     return (
@@ -302,7 +294,6 @@ export default function BranchExplorer() {
                         </div>
                       </TableHead>
                       <TableHead>{selectedCategory} Rank</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -313,28 +304,6 @@ export default function BranchExplorer() {
                         <TableCell></TableCell>
                         <TableCell>{branch.cutoffData[selectedCategory]}</TableCell>
                         <TableCell>{branch.rankData[selectedCategory]}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2 justify-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                              onClick={() => handleScholarshipClaim(selectedCollegeCode, branch.branchCode, branch.branchName)}
-                            >
-                              <Gift className="h-4 w-4" />
-                              Scholarship/Free Seat
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                              onClick={() => handleManagementSeatClaim(selectedCollegeCode, branch.branchCode, branch.branchName)}
-                            >
-                              <Building2 className="h-4 w-4" />
-                              Management Seat
-                            </Button>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -4,22 +4,19 @@ import Link from "next/link"
 import Image from "next/image"
 import logo from "@/app/img/logo.jpeg"
 import { Button } from "./ui/button"
-import { 
-  Menu, 
-  GraduationCap, 
-  PlusCircle, 
-  LineChart, 
-  Building2, 
-  Scale, 
-  BookOpen, 
-  Compass, 
-  MoreVertical, 
+import {
+  Menu,
+  PlusCircle,
+  LineChart,
+  Scale,
+  BookOpen,
+  Compass,
+  MoreVertical,
   ClipboardList,
   User,
   LogOut,
   Shield,
   DollarSign,
-  CreditCard,
   Users,
   TrendingUp,
   IndianRupeeIcon
@@ -58,12 +55,6 @@ export function Header() {
       className: "px-4 py-2"
     },
     {
-      href: "/educational-loan",
-      icon: CreditCard,
-      label: "Educational Loan",
-      className: "px-4 py-2"
-    },
-    {
       href: "/college-search",
       icon: Compass,
       label: (
@@ -95,19 +86,9 @@ export function Header() {
       label: "Compare Colleges"
     },
     {
-      href: "/college-scholarship-seat",
-      icon: GraduationCap,
-      label: "Scholarships & free seat"
-    },
-    {
       href: "/nirf-upload",
       icon: PlusCircle,
       label: "Add College Data"
-    },
-    {
-      href: "/college-management-seat",
-      icon: Building2,
-      label: "College Management Seat"
     },
     {
       href: "/blogs",

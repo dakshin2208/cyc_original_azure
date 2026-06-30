@@ -63,7 +63,6 @@ export default function CancellationAndRefund() {
                       <li>Choice filling services</li>
                       <li>College comparison tools</li>
                       <li>Cutoff prediction services</li>
-                      <li>Educational loan assistance</li>
                       <li>Any other premium features or services</li>
                     </ul>
                   </div>

@@ -26,7 +26,6 @@ import {
   TrendingUp,
   Target,
   Award,
-  GraduationCap,
   MapPin,
   Clock,
   CheckCircle,
@@ -116,15 +115,6 @@ export default function HomePage() {
       bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100",
       route: "/pricing",
       gradient: "from-emerald-500 to-emerald-600"
-    },
-    {
-      title: "Educational Loans",
-      description: "Information and guidance about educational loan options for college education.",
-      icon: GraduationCap,
-      color: "text-cyan-600",
-      bgColor: "bg-gradient-to-br from-cyan-50 to-cyan-100",
-      route: "/educational-loan",
-      gradient: "from-cyan-500 to-cyan-600"
     }
   ]
 
@@ -285,32 +275,6 @@ export default function HomePage() {
         </div>
       </section>
 
-            {/* Educational Loan CTA */}
-      <section className="py-16 bg-gradient-to-r from-emerald-50 to-teal-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-emerald-100 rounded-full px-4 py-2 mb-6">
-              <GraduationCap className="h-5 w-5 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-700">Financial Support</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Need Financial Support for Your Education?
-            </h2>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Apply for educational loans with our streamlined process. Get quick approval and competitive interest rates to fund your college education.
-            </p>
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-              onClick={() => router.push('/educational-loan')}
-            >
-              <GraduationCap className="mr-3 h-6 w-6" />
-              Apply for Educational Loan
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
 
             {/* Features Showcase */}
       <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -453,9 +417,6 @@ export default function HomePage() {
               <CardContent className="space-y-3">
                 <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/shipping-delivery')}>
                 Shipping & Delivery
-              </Button>
-                <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/educational-loan')}>
-                Educational Loans
               </Button>
                 <Button variant="link" className="p-0 h-auto text-left text-gray-600 hover:text-[#0B5588] transition-colors" onClick={() => router.push('/contact')}>
                 Contact Support
