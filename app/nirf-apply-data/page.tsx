@@ -85,6 +85,42 @@ export default function DataTransparencyPage() {
         }
       },
     })
+
+    // Book-purchase footer (clickable Amazon + Flipkart) on every page
+    const AMAZON_URL = 'https://www.amazon.in/How-Not-Choose-Your-College-ebook/dp/B0GZ2PS4GF'
+    const FLIPKART_URL = 'https://www.flipkart.com/not-choose-your-college/p/itm4b166c915391d'
+    const pageCount = doc.getNumberOfPages()
+    const pw = doc.internal.pageSize.getWidth()
+    const ph = doc.internal.pageSize.getHeight()
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p)
+      doc.setFontSize(8)
+      const prefix = 'How Not to Choose Your College  ·  Buy on '
+      const sep = '  ·  '
+      doc.setTextColor(90)
+      const wPrefix = doc.getTextWidth(prefix)
+      doc.setTextColor(41, 128, 185)
+      const wAmazon = doc.getTextWidth('Amazon')
+      doc.setTextColor(90)
+      const wSep = doc.getTextWidth(sep)
+      doc.setTextColor(41, 128, 185)
+      const wFlipkart = doc.getTextWidth('Flipkart')
+      const total = wPrefix + wAmazon + wSep + wFlipkart
+      let x = (pw - total) / 2
+      const y = ph - 8
+      doc.setTextColor(90)
+      doc.text(prefix, x, y)
+      x += wPrefix
+      doc.setTextColor(41, 128, 185)
+      doc.textWithLink('Amazon', x, y, { url: AMAZON_URL })
+      x += wAmazon
+      doc.setTextColor(90)
+      doc.text(sep, x, y)
+      x += wSep
+      doc.setTextColor(41, 128, 185)
+      doc.textWithLink('Flipkart', x, y, { url: FLIPKART_URL })
+    }
+
     doc.save('data-transparency.pdf')
   }
 

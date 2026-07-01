@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { drawBookLinks, bookLinksWidth } from './pdf-book-footer.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
@@ -124,25 +125,19 @@ async function stampPdf(sourceFile, outputFile, docTitle, options = {}) {
       color: BRAND_RGB,
     })
 
-    // Footer: page numbers (center)
+    // Footer: book-purchase links (clickable Amazon + Flipkart), centered on the same row
+    const fonts = { normal: fontNormal, bold: fontBold }
+    const bookPrefix = 'Buy the book on  '
+    const bookWidth = bookLinksWidth(fonts, 9, bookPrefix)
+    drawBookLinks(page, outDoc, fonts, (width - bookWidth) / 2, 14, 9, bookPrefix)
+
+    // Footer: page numbers (right)
     const pageText = `Page ${outputPageNum} of ${outputPageCount}`
     const pageTextWidth = fontNormal.widthOfTextAtSize(pageText, 10)
     page.drawText(pageText, {
-      x: (width - pageTextWidth) / 2,
+      x: width - 25 - pageTextWidth,
       y: 14,
       size: 10,
-      font: fontNormal,
-      color: GRAY_RGB,
-    })
-
-    // Footer: generated date (right)
-    const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
-    const tsSize = 8
-    const tsWidth = fontNormal.widthOfTextAtSize(timestamp, tsSize)
-    page.drawText(timestamp, {
-      x: width - 25 - tsWidth,
-      y: 14,
-      size: tsSize,
       font: fontNormal,
       color: GRAY_RGB,
     })

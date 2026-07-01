@@ -17,12 +17,12 @@ export interface TransparencyRow {
   t: Transparency
 }
 
-export const TRANSPARENCY_COUNTS = {"Transparent":225,"Avoid":177,"Suspicious":66} as const
+export const TRANSPARENCY_COUNTS = {"Transparent":226,"Avoid":176,"Suspicious":66} as const
 
 export const TRANSPARENCY_ROWS: TransparencyRow[] = [
   {"code":"1","name":"University Departments of Anna University","t":"Transparent"},
   {"code":"2","name":"University Departments of Anna University","t":"Transparent"},
-  {"code":"3","name":"School of Architecture and Planning","t":"Avoid"},
+  {"code":"3","name":"School of Architecture and Planning","t":"Transparent"},
   {"code":"4","name":"University Departments of Anna University","t":"Transparent"},
   {"code":"5","name":"Annamalai University Faculty of Engineering and Technology","t":"Transparent"},
   {"code":"1013","name":"University College of Engineering","t":"Transparent"},
