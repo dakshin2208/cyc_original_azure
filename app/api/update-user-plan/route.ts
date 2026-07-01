@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { planTypeForPlanName } from '@/lib/plans'
 
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
@@ -24,17 +25,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Map plan names to database plan types
-    let planType = 'freemium'
-    let maxChoices = 5
-
-    if (planName === 'Secure') {
-      planType = 'premium_199'
-      maxChoices = 75
-    } else if (planName === 'Assured+') {
-      planType = 'premium_299'
-      maxChoices = 200
-    }
+    // Map plan names to database plan types (Secure / Annual / Annual+).
+    // 'Assured+' kept as a legacy alias for the Annual tier.
+    const { planType, maxChoices } = planTypeForPlanName(
+      planName === 'Assured+' ? 'Annual' : planName
+    )
 
     // Update or create usage record
     const { data: existingUsage, error: fetchError } = await supabaseAdmin

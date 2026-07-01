@@ -15,6 +15,7 @@ import { jsPDF } from "jspdf"
 import autoTable from 'jspdf-autotable'
 import { toast } from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
+import { planAllowsAiMethod, planAspirationalLimit } from "@/lib/plans"
 import { LoginForm } from "@/app/components/LoginForm"
 import { useAuth } from "../contexts/AuthContext"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -1109,11 +1110,14 @@ export default function ChoiceFilling() {
           showSelectedOptions: true
         }
         
-        // Then add the choice type question
+        // Then add the choice type question.
+        // AI (Smartass) method is only offered on the Annual+ plan.
         const choiceTypeMessage: Message = {
           type: 'bot',
           content: 'Do you want Traditional Cutoff based choices or Smartass ai-choices?',
-          options: ['Traditional Method', 'Smartass AI - Method']
+          options: planAllowsAiMethod(usageData?.planType)
+            ? ['Traditional Method', 'Smartass AI - Method']
+            : ['Traditional Method']
         }
         
         // Add both messages in sequence
@@ -1131,9 +1135,15 @@ export default function ChoiceFilling() {
       }
     } else if (message.content.includes('Traditional Cutoff based choices or Smartass ai-choices')) {
       const option = response.split(':')[0].trim()
-      setUserPreferences(prev => ({ 
-        ...prev, 
-        choiceType: option === 'Traditional Method' ? 'traditional' : 'smart'
+      let choiceType: 'traditional' | 'smart' = option === 'Traditional Method' ? 'traditional' : 'smart'
+      // AI (Smartass) method is available only on the Annual+ plan
+      if (choiceType === 'smart' && !planAllowsAiMethod(usageData?.planType)) {
+        toast.error('AI Method is available on the Annual+ plan — using Traditional Method instead.')
+        choiceType = 'traditional'
+      }
+      setUserPreferences(prev => ({
+        ...prev,
+        choiceType
       }))
 
       // Ask about colleges in mind after choice type selection
@@ -1144,19 +1154,31 @@ export default function ChoiceFilling() {
       }
     } else if (message.content.includes('specific colleges in mind to add it in your choices')) {
       const option = response.split(':')[0].trim()
-      
-      if (option === 'Yes') {
-        // Show specific college selection options
+
+      const aspirationalLimit = planAspirationalLimit(usageData?.planType)
+
+      if (option === 'Yes' && aspirationalLimit <= 0) {
+        // Aspirational (specific-college) choices are not available on the Free plan
+        toast.error('Aspirational choices are available on paid plans. Upgrade to pick specific colleges.')
+        setUserPreferences(prev => ({ ...prev, collegeOption: 'cutoff' }))
         nextMessage = {
           type: 'bot',
-          content: 'How many specific colleges would you like to select?',
-          options: [
-            'Select 1 specific college',
-            'Select 2 specific colleges', 
-            'Select 3 specific colleges',
-            'Select 4 specific colleges',
-            'Select 5 specific colleges'
-          ]
+          content: 'Do you want the results based on your Cutoff or Rank?',
+          options: ['Cutoff based', 'Rank based']
+        }
+      } else if (option === 'Yes') {
+        // Show specific college selection options, capped at the plan's aspirational limit
+        const counts = new Set<number>()
+        for (let i = 1; i <= Math.min(5, aspirationalLimit); i++) counts.add(i)
+        for (const step of [10, 15, 20, 25, 50]) if (step <= aspirationalLimit) counts.add(step)
+        counts.add(aspirationalLimit)
+        const options = [...counts]
+          .sort((a, b) => a - b)
+          .map((n) => `Select ${n} specific college${n > 1 ? 's' : ''}`)
+        nextMessage = {
+          type: 'bot',
+          content: `How many specific colleges would you like to select? (up to ${aspirationalLimit} on your plan)`,
+          options
         }
       } else if (option === 'No') {
         // User chose No, so use cutoff-based colleges
@@ -1173,14 +1195,16 @@ export default function ChoiceFilling() {
       }
     } else if (message.content.includes('How many specific colleges would you like to select')) {
       const option = response.split(':')[0].trim()
-      setUserPreferences(prev => ({ 
-        ...prev, 
+      setUserPreferences(prev => ({
+        ...prev,
         collegeOption: 'specific'
       }))
 
-      // Extract the number of colleges to select from the option
+      // Extract the number of colleges to select, clamped to the plan's aspirational limit
       const collegeCountMatch = option.match(/Select (\d+) specific college/)
-      const collegeCount = collegeCountMatch ? parseInt(collegeCountMatch[1]) : 5
+      const aspirationalLimit = planAspirationalLimit(usageData?.planType)
+      const requested = collegeCountMatch ? parseInt(collegeCountMatch[1]) : 5
+      const collegeCount = Math.max(1, Math.min(requested, aspirationalLimit || 5))
 
       if (option.includes('Select') && option.includes('specific college')) {
         setIsSelectingColleges(true)
@@ -4177,30 +4201,38 @@ export default function ChoiceFilling() {
                 Let AARVI help you make the best college choices
               </p>
               {/* Small Pricing Plan Cards */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-                {/* Freemium Plan */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
-                  <div className="text-xs font-bold text-gray-500 mb-1">FREEMIUM</div>
+              <div className="flex flex-wrap gap-4 justify-center items-stretch mb-8">
+                {/* Free Plan */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
+                  <div className="text-xs font-bold text-gray-500 mb-1">FREE</div>
                   <div className="text-xl font-bold text-[#0B5588]">Free</div>
-                  <div className="text-sm text-gray-700 mb-2">upto 5 Choices</div>
-                  <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
+                  <div className="text-sm text-gray-700 mb-2">upto 10 Choices</div>
+                  <div className="text-xs text-gray-500 mb-2">Traditional · AI chat 2</div>
                   <div className="text-xs text-green-600 font-semibold">1 Free Trial</div>
                 </div>
                 {/* Secure Plan */}
-                <div className="bg-white border border-green-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
+                <div className="bg-white border border-green-200 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
                   <div className="text-xs font-bold text-green-700 mb-1">SECURE</div>
                   <div className="text-xl font-bold text-green-700">₹299</div>
                   <div className="text-sm text-gray-700 mb-2">upto 75 Choices</div>
-                  <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
-                  <div className="text-xs text-green-600 font-semibold">3 Trials / 3 Referrals</div>
+                  <div className="text-xs text-gray-500 mb-2">Traditional · 5 aspirational</div>
+                  <div className="text-xs text-green-600 font-semibold">3 Referrals</div>
                 </div>
-                {/* Assured+ Plan */}
-                <div className="bg-white border border-blue-200 rounded-lg shadow-sm px-4 py-3 w-64 flex flex-col items-center">
-                  <div className="text-xs font-bold text-blue-700 mb-1">ASSURED+</div>
+                {/* Annual Plan */}
+                <div className="bg-white border border-blue-200 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
+                  <div className="text-xs font-bold text-blue-700 mb-1">ANNUAL</div>
                   <div className="text-xl font-bold text-blue-700">₹399</div>
                   <div className="text-sm text-gray-700 mb-2">upto 200 Choices</div>
-                  <div className="text-xs text-gray-500 mb-2">AI & Traditional</div>
-                  <div className="text-xs text-blue-600 font-semibold">10 Trials / 5 Referrals</div>
+                  <div className="text-xs text-gray-500 mb-2">Traditional · 15 aspirational</div>
+                  <div className="text-xs text-blue-600 font-semibold">5 Referrals</div>
+                </div>
+                {/* Annual+ Plan */}
+                <div className="bg-white border border-purple-300 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
+                  <div className="text-xs font-bold text-purple-700 mb-1">ANNUAL+</div>
+                  <div className="text-xl font-bold text-purple-700">₹499</div>
+                  <div className="text-sm text-gray-700 mb-2">upto 300+ Choices</div>
+                  <div className="text-xs text-gray-500 mb-2">AI Method · 50 aspirational</div>
+                  <div className="text-xs text-purple-600 font-semibold">10 Referrals</div>
                 </div>
               </div>
             </div>
@@ -4272,7 +4304,7 @@ export default function ChoiceFilling() {
                                     <Trophy className="h-6 w-6 text-green-600" />
                                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                                   </div>
-                                  <div className="text-3xl font-bold text-green-600">5 Choices</div>
+                                  <div className="text-3xl font-bold text-green-600">{usageData?.maxChoices || 10} Choices</div>
                                   <p className="text-gray-600">You've successfully used your free plan!</p>
                                 </div>
                               </CardContent>
@@ -4403,7 +4435,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Assured+"
+                                        planName="Annual"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -4473,7 +4505,7 @@ export default function ChoiceFilling() {
                                     <Trophy className="h-6 w-6 text-green-600" />
                                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                                   </div>
-                                  <div className="text-3xl font-bold text-green-600">5 Choices</div>
+                                  <div className="text-3xl font-bold text-green-600">{usageData?.maxChoices || 10} Choices</div>
                                   <p className="text-gray-600">You've successfully used your free plan!</p>
                                 </div>
                               </CardContent>
@@ -4538,7 +4570,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Assured+"
+                                        planName="Annual"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -4604,7 +4636,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Assured+"
+                                        planName="Annual"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -5220,7 +5252,7 @@ export default function ChoiceFilling() {
                       </div>
                       <PaymentButton
                         amount={399}
-                        planName="Assured+"
+                        planName="Annual"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
                         onClick={() => setShowUsageModal(false)}
@@ -5308,7 +5340,7 @@ export default function ChoiceFilling() {
                     <Trophy className="h-6 w-6 text-green-600" />
                     <h3 className="text-xl font-bold text-green-700">Your Current Plan</h3>
                   </div>
-                  <div className="text-3xl font-bold text-green-600">upto 5 Choices</div>
+                  <div className="text-3xl font-bold text-green-600">upto {usageData?.maxChoices || 10} Choices</div>
                   <p className="text-gray-600">You've successfully used your free plan!</p>
                 </div>
               </CardContent>
@@ -5441,7 +5473,7 @@ export default function ChoiceFilling() {
                       </div>
                       <PaymentButton
                         amount={399}
-                        planName="Assured+"
+                        planName="Annual"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
                         onClick={() => setShowPricingDialog(false)}

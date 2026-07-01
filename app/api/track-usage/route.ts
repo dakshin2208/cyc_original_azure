@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { referralTrialCap } from '@/lib/plans'
 
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
@@ -75,10 +76,8 @@ export async function POST(request: Request) {
       let availableTrials = 0
       if (currentUsage?.plan_type.startsWith('premium')) {
         availableTrials = 999
-      } else if (currentUsage?.plan_type === 'referral_75') {
-        availableTrials = Math.max(0, 3 - currentTrialsUsed)
-      } else if (currentUsage?.plan_type === 'referral_200') {
-        availableTrials = Math.max(0, 5 - currentTrialsUsed)
+      } else if (referralTrialCap(currentUsage?.plan_type) > 0) {
+        availableTrials = Math.max(0, referralTrialCap(currentUsage?.plan_type) - currentTrialsUsed)
       } else {
         availableTrials = Math.max(0, (parseInt(currentUsage?.referral_trials_earned) || 0) - currentTrialsUsed)
       }
@@ -165,10 +164,8 @@ export async function POST(request: Request) {
     let availableTrials = 0
     if (usageData.plan_type.startsWith('premium')) {
       availableTrials = 999 // Unlimited for premium plans
-    } else if (usageData.plan_type === 'referral_75') {
-      availableTrials = Math.max(0, 3 - currentTrialsUsed)
-    } else if (usageData.plan_type === 'referral_200') {
-      availableTrials = Math.max(0, 5 - currentTrialsUsed)
+    } else if (referralTrialCap(usageData.plan_type) > 0) {
+      availableTrials = Math.max(0, referralTrialCap(usageData.plan_type) - currentTrialsUsed)
     } else {
       availableTrials = Math.max(0, (parseInt(usageData.referral_trials_earned) || 0) - currentTrialsUsed)
     }
@@ -181,18 +178,15 @@ export async function POST(request: Request) {
     })
 
     // For referral premium plans, always use referral trials first
-    if (usageData.plan_type === 'referral_75' || usageData.plan_type === 'referral_200') {
+    if (referralTrialCap(usageData.plan_type) > 0) {
       if (availableTrials > 0) {
         // Use a referral trial
         newTrialsUsed = currentTrialsUsed + 1
-        
+
         // Ensure trials used doesn't exceed maximum for the plan
-        if (usageData.plan_type === 'referral_75' && newTrialsUsed > 3) {
-          newTrialsUsed = 3
-        } else if (usageData.plan_type === 'referral_200' && newTrialsUsed > 5) {
-          newTrialsUsed = 5
-        }
-        
+        const cap = referralTrialCap(usageData.plan_type)
+        if (newTrialsUsed > cap) newTrialsUsed = cap
+
         console.log(`Using referral trial for ${usageData.plan_type}: trials_used ${currentTrialsUsed} -> ${newTrialsUsed}`)
       } else {
         // No more trials available, increment usage count
@@ -239,10 +233,8 @@ export async function POST(request: Request) {
     let finalAvailableTrials = 0
     if (usageData.plan_type.startsWith('premium')) {
       finalAvailableTrials = 999 // Unlimited for premium plans
-    } else if (usageData.plan_type === 'referral_75') {
-      finalAvailableTrials = Math.max(0, 3 - newTrialsUsed)
-    } else if (usageData.plan_type === 'referral_200') {
-      finalAvailableTrials = Math.max(0, 5 - newTrialsUsed)
+    } else if (referralTrialCap(usageData.plan_type) > 0) {
+      finalAvailableTrials = Math.max(0, referralTrialCap(usageData.plan_type) - newTrialsUsed)
     } else {
       finalAvailableTrials = Math.max(0, usageData.referral_trials_earned - newTrialsUsed)
     }

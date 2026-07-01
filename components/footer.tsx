@@ -10,11 +10,11 @@ export function Footer() {
           </div>
           
           <div className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6 text-xs sm:text-sm">
-            <Link 
-              href="/nirf-apply-data" 
+            <Link
+              href="/nirf-apply-data"
               className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
             >
-              NIRF Data
+              Data Transparency
             </Link>
             <Link 
               href="/cheatsheet" 

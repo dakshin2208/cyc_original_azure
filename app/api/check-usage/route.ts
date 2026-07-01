@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { referralPlanFor } from '@/lib/plans'
 
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
           user_id: userId,
           email: email,
           usage_count: 0,
-          max_choices: 5,
+          max_choices: 10,
           plan_type: 'freemium',
           referral_trials_earned: 0,
           referral_trials_used: 0
@@ -126,12 +127,10 @@ export async function POST(request: Request) {
 
     // Only apply referral upgrades if user doesn't have a premium plan
     if (!planType.startsWith('premium')) {
-      if (completedReferrals >= 5) {
-        maxChoices = 200
-        planType = 'referral_200'
-      } else if (completedReferrals >= 3) {
-        maxChoices = 75
-        planType = 'referral_75'
+      const earned = referralPlanFor(completedReferrals)
+      if (earned) {
+        maxChoices = earned.maxChoices
+        planType = earned.planType
       }
     }
 
@@ -139,16 +138,19 @@ export async function POST(request: Request) {
     let availableTrials = 0
     const currentTrialsUsed = parseInt(usageData.referral_trials_used) || 0
     const currentTrialsEarned = parseInt(usageData.referral_trials_earned) || 0
-    
+
     if (planType.startsWith('premium')) {
       // Premium plans have unlimited access - show a high number or "Unlimited"
       availableTrials = 999 // Represent unlimited access
     } else if (planType === 'referral_75') {
-      // Referral premium 75 plan has 3 fixed trials
+      // Secure via referral — 3 fixed trials
       availableTrials = Math.max(0, 3 - currentTrialsUsed)
     } else if (planType === 'referral_200') {
-      // Referral premium 200 plan has 5 fixed trials
+      // Annual via referral — 5 fixed trials
       availableTrials = Math.max(0, 5 - currentTrialsUsed)
+    } else if (planType === 'referral_300') {
+      // Annual+ via referral — 10 fixed trials
+      availableTrials = Math.max(0, 10 - currentTrialsUsed)
     } else {
       // For freemium and regular referral plans, calculate from earned trials
       availableTrials = Math.max(0, currentTrialsEarned - currentTrialsUsed)
@@ -177,15 +179,19 @@ export async function POST(request: Request) {
     }
 
     // Map plan type to human-readable name
-    let currentPlan = 'Freemium'
+    let currentPlan = 'Free'
     if (planType === 'premium_199') {
       currentPlan = 'Secure (₹299)'
     } else if (planType === 'premium_299') {
-      currentPlan = 'Assured+ (₹399)'
+      currentPlan = 'Annual (₹399)'
+    } else if (planType === 'premium_499') {
+      currentPlan = 'Annual+ (₹499)'
     } else if (planType === 'referral_75') {
-      currentPlan = 'Referral Premium (75 Choices)'
+      currentPlan = 'Secure (Referral)'
     } else if (planType === 'referral_200') {
-      currentPlan = 'Referral Premium (200 Choices)'
+      currentPlan = 'Annual (Referral)'
+    } else if (planType === 'referral_300') {
+      currentPlan = 'Annual+ (Referral)'
     }
 
     return NextResponse.json({

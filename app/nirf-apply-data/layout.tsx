@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'NIRF Apply Data | ChooseYourCollege',
+  title: 'Data Transparency | ChooseYourCollege',
   description:
-    'View and download Tamil Nadu engineering college NIRF participation lists and colleges with NIRF data on their websites.',
+    'A colour-coded transparency rating of Tamil Nadu engineering colleges based on how openly they publish their NIRF data.',
 }
 
 export default function NirfApplyDataLayout({ children }: { children: React.ReactNode }) {

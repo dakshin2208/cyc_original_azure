@@ -1,75 +1,99 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Download, Printer, Building2, FileText, Globe } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Download, Search, ShieldCheck, AlertTriangle, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  TRANSPARENCY_ROWS,
+  TRANSPARENCY_COUNTS,
+  type Transparency,
+} from './transparency-data'
 
-const DOCUMENTS = [
-  {
-    id: 'tn-engineering',
-    label: 'Total Tamil Nadu Engineering Colleges',
-    shortLabel: 'TN Engineering Colleges',
-    description: 'Complete list of engineering colleges in Tamil Nadu.',
-    path: '/nirf-apply-data/total-tn-engineering-colleges.pdf',
-    downloadName: 'Total-TN-Engineering-Colleges.pdf',
-    icon: Building2,
+type FilterKey = 'all' | Transparency
+
+const STATUS = {
+  Transparent: {
+    label: 'Transparent',
+    dot: 'bg-green-500',
+    badge: 'bg-green-100 text-green-800 border-green-200',
+    icon: ShieldCheck,
+    hint: 'Government college or NIRF data published on its website.',
+    pdf: [220, 252, 231] as [number, number, number],
   },
-  {
-    id: 'nirf-participated',
-    label: 'Total Colleges Participated in NIRF',
-    shortLabel: 'NIRF Participated Colleges',
-    description: 'Tamil Nadu colleges that have participated in NIRF rankings.',
-    path: '/nirf-apply-data/total-nirf-participated-tn-colleges.pdf',
-    downloadName: 'Total-NIRF-Participated-TN-Colleges.pdf',
-    icon: FileText,
+  Suspicious: {
+    label: 'Suspicious',
+    dot: 'bg-yellow-500',
+    badge: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    icon: AlertTriangle,
+    hint: 'Applied to NIRF but data not published on its website.',
+    pdf: [254, 249, 195] as [number, number, number],
   },
-  {
-    id: 'nirf-on-website',
-    label: 'Colleges with NIRF Data on Their Websites',
-    shortLabel: 'NIRF Data on Website',
-    description: 'Colleges that publish NIRF data on their official websites.',
-    path: '/nirf-apply-data/total-colleges-nirf-data-on-website.pdf',
-    downloadName: 'Colleges-with-NIRF-Data-on-Website.pdf',
-    icon: Globe,
+  Avoid: {
+    label: 'Avoid',
+    dot: 'bg-red-500',
+    badge: 'bg-red-100 text-red-800 border-red-200',
+    icon: Ban,
+    hint: 'Never participated in NIRF.',
+    pdf: [254, 226, 226] as [number, number, number],
   },
-] as const
+} as const
 
-type DocumentId = (typeof DOCUMENTS)[number]['id']
+export default function DataTransparencyPage() {
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<FilterKey>('all')
 
-export default function NirfApplyDataPage() {
-  const [activeId, setActiveId] = useState<DocumentId | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return TRANSPARENCY_ROWS.filter((r) => {
+      if (filter !== 'all' && r.t !== filter) return false
+      if (!q) return true
+      return r.name.toLowerCase().includes(q) || String(r.code).toLowerCase().includes(q)
+    })
+  }, [query, filter])
 
-  const activeDoc = DOCUMENTS.find((d) => d.id === activeId)
+  const handleDownloadPdf = async () => {
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
+    const doc = new jsPDF()
 
-  const handleDownload = (path: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = path
-    link.download = filename
-    link.rel = 'noopener'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    doc.setFontSize(16)
+    doc.setTextColor(11, 85, 136)
+    doc.text('Data Transparency — TN Engineering Colleges', 14, 16)
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    doc.text(
+      `Transparent: ${TRANSPARENCY_COUNTS.Transparent}   Suspicious: ${TRANSPARENCY_COUNTS.Suspicious}   Avoid: ${TRANSPARENCY_COUNTS.Avoid}`,
+      14,
+      22,
+    )
+
+    autoTable(doc, {
+      startY: 26,
+      head: [['College Code', 'College Name', 'Data Transparency']],
+      body: rows.map((r) => [r.code, r.name, STATUS[r.t].label]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [11, 85, 136] },
+      columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 34 } },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2) {
+          const t = rows[data.row.index]?.t
+          if (t) data.cell.styles.fillColor = STATUS[t].pdf
+        }
+      },
+    })
+    doc.save('data-transparency.pdf')
   }
 
-  const handlePrint = () => {
-    if (!activeDoc) return
-    const iframe = iframeRef.current
-    if (iframe?.contentWindow) {
-      try {
-        iframe.contentWindow.focus()
-        iframe.contentWindow.print()
-        return
-      } catch {
-        // fall through
-      }
-    }
-    window.open(activeDoc.path, '_blank', 'noopener,noreferrer')
-  }
+  const filterButtons: { key: FilterKey; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: TRANSPARENCY_ROWS.length },
+    { key: 'Transparent', label: 'Transparent', count: TRANSPARENCY_COUNTS.Transparent },
+    { key: 'Suspicious', label: 'Suspicious', count: TRANSPARENCY_COUNTS.Suspicious },
+    { key: 'Avoid', label: 'Avoid', count: TRANSPARENCY_COUNTS.Avoid },
+  ]
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -77,95 +101,113 @@ export default function NirfApplyDataPage() {
       <main className="flex-1 container py-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-3 text-[#0B5588]">NIRF Apply Data</h1>
+            <h1 className="text-4xl font-bold mb-3 text-[#0B5588]">Data Transparency</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Browse official college lists for Tamil Nadu. Select a report below to view, download,
-              or print. Every page includes the ChooseYourCollege logo and branding.
+              A single, colour-coded list of Tamil Nadu engineering colleges by how openly they
+              publish their NIRF data. Search, filter, and download the full list as one PDF.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3 mb-8">
-            {DOCUMENTS.map((doc) => {
-              const Icon = doc.icon
-              const isActive = activeId === doc.id
+          {/* Legend */}
+          <div className="grid gap-3 sm:grid-cols-3 mb-6">
+            {(['Transparent', 'Suspicious', 'Avoid'] as Transparency[]).map((t) => {
+              const s = STATUS[t]
+              const Icon = s.icon
               return (
-                <button
-                  key={doc.id}
-                  type="button"
-                  onClick={() => setActiveId(doc.id)}
-                  className={cn(
-                    'text-left rounded-lg border-2 p-4 transition-all hover:shadow-md',
-                    isActive
-                      ? 'border-[#0B5588] bg-[#0B5588]/5 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-[#0B5588]/40'
-                  )}
-                >
-                  <Icon
-                    className={cn('h-8 w-8 mb-3', isActive ? 'text-[#0B5588]' : 'text-gray-500')}
-                  />
-                  <p className="font-semibold text-[#0B5588] text-sm leading-snug mb-1">
-                    {doc.shortLabel}
-                  </p>
-                  <p className="text-xs text-gray-500">{doc.description}</p>
-                </button>
+                <div key={t} className={cn('rounded-lg border p-4', s.badge)}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="h-5 w-5" />
+                    <span className="font-semibold">
+                      {s.label} ({TRANSPARENCY_COUNTS[t]})
+                    </span>
+                  </div>
+                  <p className="text-xs opacity-90">{s.hint}</p>
+                </div>
               )
             })}
           </div>
 
-          {!activeDoc ? (
-            <Card className="border-dashed">
-              <CardHeader className="text-center">
-                <CardTitle className="text-[#0B5588]">Select a report</CardTitle>
-                <CardDescription>
-                  Choose one of the three buttons above to preview the PDF here.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-xl text-[#0B5588]">{activeDoc.label}</CardTitle>
-                  <CardDescription>{activeDoc.description}</CardDescription>
-                </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    className="bg-[#0B5588] hover:bg-[#094670]"
-                    onClick={() => handleDownload(activeDoc.path, activeDoc.downloadName)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handlePrint}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                  <iframe
-                    ref={iframeRef}
-                    key={activeDoc.id}
-                    src={`${activeDoc.path}#toolbar=0&navpanes=0`}
-                    title={activeDoc.label}
-                    className="w-full h-[min(75vh,800px)] min-h-[420px] border-0"
-                  />
-                </div>
-                <p className="text-center text-sm text-gray-500 mt-3">
-                  Preview not loading?{' '}
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(activeDoc.path, activeDoc.downloadName)}
-                    className="text-[#0B5588] hover:underline font-medium"
-                  >
-                    Download the PDF
-                  </button>
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by college name or code..."
+                className="pl-9"
+              />
+            </div>
+            <Button className="bg-[#0B5588] hover:bg-[#094670] shrink-0" onClick={handleDownloadPdf}>
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filterButtons.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-sm transition-colors',
+                  filter === f.key
+                    ? 'border-[#0B5588] bg-[#0B5588] text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#0B5588]/40',
+                )}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Table */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold text-gray-700 w-32">College Code</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">College Name</th>
+                    <th className="px-4 py-3 font-semibold text-gray-700 w-44">Data Transparency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const s = STATUS[r.t]
+                    return (
+                      <tr key={`${r.code}-${i}`} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-2.5 font-medium text-gray-800">{r.code}</td>
+                        <td className="px-4 py-2.5 text-gray-700">{r.name}</td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                              s.badge,
+                            )}
+                          >
+                            <span className={cn('h-2 w-2 rounded-full', s.dot)} />
+                            {s.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
+                        No colleges match your search.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="text-center text-xs text-gray-400 mt-3">
+            Showing {rows.length} of {TRANSPARENCY_ROWS.length} colleges.
+          </p>
         </div>
       </main>
       <Footer />

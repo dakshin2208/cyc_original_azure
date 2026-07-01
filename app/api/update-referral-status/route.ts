@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { referralPlanFor } from '@/lib/plans'
 
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
@@ -135,19 +136,11 @@ export async function POST(request: Request) {
           console.log(`Referrer has ${completedCount} completed referrals`)
 
           // Update referrer's usage record if they qualify for bonus trials
-          if (completedCount >= 3) {
-            // Determine plan type and max choices based on completed referrals
-            let planType = 'freemium'
-            let maxChoices = 5
+          const earned = referralPlanFor(completedCount)
+          if (earned) {
+            const planType = earned.planType
+            const maxChoices = earned.maxChoices
 
-            if (completedCount >= 5) {
-              planType = 'referral_200'
-              maxChoices = 200
-            } else if (completedCount >= 3) {
-              planType = 'referral_75'
-              maxChoices = 75
-            }
-            
             const { error: usageUpdateError } = await supabaseAdmin
               .from('choice_filling_usage')
               .update({
