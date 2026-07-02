@@ -46,10 +46,17 @@ export default function AddCollegeDataPage() {
           console.log('First college sample:', result.colleges[0])
           console.log('Available properties:', Object.keys(result.colleges[0]))
           
+          // Only show colleges that DON'T already have NIRF data — those are the
+          // ones users can submit data for. Colleges already linked to a NIRF code
+          // (nirf_id present) are excluded from the list.
+          const collegesNeedingData = result.colleges.filter(
+            college => !(college as any).nirf_id,
+          )
+
           // Map the colleges with proper property names and deduplicate based on code
           const uniqueColleges = Array.from(
             new Map(
-              result.colleges.map(college => [
+              collegesNeedingData.map(college => [
                 String(college.CollegeCode), // Use code as key for deduplication
                 {
                   code: String(college.CollegeCode),

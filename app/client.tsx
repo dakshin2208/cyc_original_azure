@@ -12,7 +12,6 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { NEW_PARAMETER_GROUPS } from "@/lib/parameters-catalog"
 
 export default function HomeClient() {
   const router = useRouter()
@@ -79,12 +78,9 @@ export default function HomeClient() {
     PowerScore: true,
   })
 
-  // New computed parameters (faculty/financial/research/etc.) selected by id
-  const [newSelected, setNewSelected] = useState<Set<string>>(new Set())
-
-  // Count selected parameters across both old (12) and new sets
+  // Count selected parameters (the original 12)
   const MAX_PARAMS = 3
-  const selectedCount = Object.values(parameters).filter(Boolean).length + newSelected.size
+  const selectedCount = Object.values(parameters).filter(Boolean).length
 
   const handleParameterChange = (param: keyof typeof parameters) => {
     // If parameter is already selected, allow deselecting
@@ -108,25 +104,11 @@ export default function HomeClient() {
     }))
   }
 
-  // Select/deselect a new computed parameter (shares the same MAX_PARAMS limit)
-  const handleNewParameterChange = (id: string) => {
-    setNewSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        return next
-      }
-      if (selectedCount >= MAX_PARAMS) return prev
-      next.add(id)
-      return next
-    })
-  }
-
   const handleSearch = () => {
-    const oldParams = Object.entries(parameters)
+    const selectedParams = Object.entries(parameters)
       .filter(([_, isSelected]) => isSelected)
       .map(([param]) => param)
-    const selectedParams = [...oldParams, ...newSelected].join(",")
+      .join(",")
 
     const params = new URLSearchParams()
     params.append("location", `district:${district}`)
@@ -426,35 +408,6 @@ export default function HomeClient() {
                   </div>
                 </div>
 
-                {/* New computed parameters (calculated live from NIRF/TNEA data) */}
-                {NEW_PARAMETER_GROUPS.map((group) => (
-                  <div key={group.section} className="space-y-3 pt-2">
-                    <h4 className="text-base font-semibold text-[#0B5588]">{group.sectionLabel}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {group.params.map((p) => {
-                        const checked = newSelected.has(p.id)
-                        const disabled = selectedCount >= MAX_PARAMS && !checked
-                        return (
-                          <div key={p.id} className="flex items-start space-x-3">
-                            <Checkbox
-                              id={p.id}
-                              checked={checked}
-                              onCheckedChange={() => handleNewParameterChange(p.id)}
-                              className="mt-1"
-                              disabled={disabled}
-                            />
-                            <div>
-                              <Label htmlFor={p.id} className={`font-medium ${disabled ? "text-gray-500" : ""}`}>
-                                {p.label}
-                              </Label>
-                              <p className="text-sm text-gray-400">{p.description}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
               </div>
 
               <Button

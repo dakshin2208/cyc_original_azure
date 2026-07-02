@@ -146,10 +146,10 @@ export async function POST(request: Request) {
       // Secure via referral — 3 fixed trials
       availableTrials = Math.max(0, 3 - currentTrialsUsed)
     } else if (planType === 'referral_200') {
-      // Annual via referral — 5 fixed trials
+      // Assured via referral — 5 fixed trials
       availableTrials = Math.max(0, 5 - currentTrialsUsed)
     } else if (planType === 'referral_300') {
-      // Annual+ via referral — 10 fixed trials
+      // Assured+ via referral — 10 fixed trials
       availableTrials = Math.max(0, 10 - currentTrialsUsed)
     } else {
       // For freemium and regular referral plans, calculate from earned trials
@@ -183,15 +183,15 @@ export async function POST(request: Request) {
     if (planType === 'premium_199') {
       currentPlan = 'Secure (₹299)'
     } else if (planType === 'premium_299') {
-      currentPlan = 'Annual (₹399)'
+      currentPlan = 'Assured (₹399)'
     } else if (planType === 'premium_499') {
-      currentPlan = 'Annual+ (₹499)'
+      currentPlan = 'Assured+ (₹699)'
     } else if (planType === 'referral_75') {
       currentPlan = 'Secure (Referral)'
     } else if (planType === 'referral_200') {
-      currentPlan = 'Annual (Referral)'
+      currentPlan = 'Assured (Referral)'
     } else if (planType === 'referral_300') {
-      currentPlan = 'Annual+ (Referral)'
+      currentPlan = 'Assured+ (Referral)'
     }
 
     return NextResponse.json({

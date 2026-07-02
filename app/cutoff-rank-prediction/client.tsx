@@ -141,7 +141,7 @@ const branches = [
 
 export default function CutoffRankPredictionClient() {
   const router = useRouter()
-  const [colleges, setColleges] = useState<{ code: string; name: string }[]>([])
+  const [colleges, setColleges] = useState<{ code: string; name: string; district: string }[]>([])
   const [selectedCategory, setSelectedCategory] = useState("")
   const [value, setValue] = useState("")
   const [selectedDistrict, setSelectedDistrict] = useState("")
@@ -178,15 +178,16 @@ export default function CutoffRankPredictionClient() {
                 // Ensure we have a valid college code
                 const code = college.CollegeCode ? String(college.CollegeCode).trim() : ''
                 const name = college.collegeName ? String(college.collegeName).trim() : 'Unknown College'
-                
+                const district = college.District ? String(college.District).trim() : ''
+
                 if (!code) {
                   console.warn('College without code:', college)
                   return null
                 }
-                
-                return [code, { code, name }] as [string, { code: string; name: string }]
+
+                return [code, { code, name, district }] as [string, { code: string; name: string; district: string }]
               })
-              .filter((entry): entry is [string, { code: string; name: string }] => entry !== null)
+              .filter((entry): entry is [string, { code: string; name: string; district: string }] => entry !== null)
           ).values()
         )
 
@@ -539,10 +540,21 @@ export default function CutoffRankPredictionClient() {
     }
   }
 
-  // Filter colleges based on search query
+  // Filter colleges based on selected district + search query.
+  // When a specific district is chosen, only its colleges appear; "All Districts"
+  // (or no selection) shows the full list.
   const filteredColleges = colleges.filter(college => {
-    if (!collegeSearch) return true; // Show all when search is empty
-    
+    // District filter — restrict to the selected district unless "All Districts"
+    if (
+      selectedDistrict &&
+      selectedDistrict !== "All Districts" &&
+      college.district.toLowerCase() !== selectedDistrict.toLowerCase()
+    ) {
+      return false;
+    }
+
+    if (!collegeSearch) return true; // Show all (within district) when search is empty
+
     const searchTerm = collegeSearch.toLowerCase();
     const collegeName = college.name.toLowerCase();
     const collegeCode = college.code.toLowerCase();
@@ -744,7 +756,13 @@ export default function CutoffRankPredictionClient() {
                   <Label htmlFor="district">District</Label>
                   <Select
                     value={selectedDistrict}
-                    onValueChange={setSelectedDistrict}
+                    onValueChange={(district) => {
+                      setSelectedDistrict(district)
+                      // Reset any college selected from a different district
+                      setSelectedCollegeCode("")
+                      setSelectedCollegeName("")
+                      setCollegeSearch("")
+                    }}
                     required
                   >
                     <SelectTrigger>

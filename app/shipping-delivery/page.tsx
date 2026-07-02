@@ -204,7 +204,7 @@ export default function ShippingDelivery() {
                       If you experience any issues accessing our services or have questions about delivery:
                     </p>
                     <div className="space-y-2">
-                      <p><strong>Email Support:</strong> sganeshan@chooseyourcollege.com</p>
+                      <p><strong>Email Support:</strong> gautam@chooseyourcollege.com</p>
                       <p><strong>Response Time:</strong> Within 24-48 hours during business days</p>
                       <p><strong>Platform Status:</strong> Check our website for any service updates</p>
                     </div>

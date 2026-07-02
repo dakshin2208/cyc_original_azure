@@ -1111,7 +1111,7 @@ export default function ChoiceFilling() {
         }
         
         // Then add the choice type question.
-        // AI (Smartass) method is only offered on the Annual+ plan.
+        // AI (Smartass) method is only offered on the Assured+ plan.
         const choiceTypeMessage: Message = {
           type: 'bot',
           content: 'Do you want Traditional Cutoff based choices or Smartass ai-choices?',
@@ -1136,9 +1136,9 @@ export default function ChoiceFilling() {
     } else if (message.content.includes('Traditional Cutoff based choices or Smartass ai-choices')) {
       const option = response.split(':')[0].trim()
       let choiceType: 'traditional' | 'smart' = option === 'Traditional Method' ? 'traditional' : 'smart'
-      // AI (Smartass) method is available only on the Annual+ plan
+      // AI (Smartass) method is available only on the Assured+ plan
       if (choiceType === 'smart' && !planAllowsAiMethod(usageData?.planType)) {
-        toast.error('AI Method is available on the Annual+ plan — using Traditional Method instead.')
+        toast.error('AI Method is available on the Assured+ plan — using Traditional Method instead.')
         choiceType = 'traditional'
       }
       setUserPreferences(prev => ({
@@ -4218,18 +4218,18 @@ export default function ChoiceFilling() {
                   <div className="text-xs text-gray-500 mb-2">Traditional · 5 aspirational</div>
                   <div className="text-xs text-green-600 font-semibold">3 Referrals</div>
                 </div>
-                {/* Annual Plan */}
+                {/* Assured Plan */}
                 <div className="bg-white border border-blue-200 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
-                  <div className="text-xs font-bold text-blue-700 mb-1">ANNUAL</div>
+                  <div className="text-xs font-bold text-blue-700 mb-1">ASSURED</div>
                   <div className="text-xl font-bold text-blue-700">₹399</div>
                   <div className="text-sm text-gray-700 mb-2">upto 200 Choices</div>
                   <div className="text-xs text-gray-500 mb-2">Traditional · 15 aspirational</div>
                   <div className="text-xs text-blue-600 font-semibold">5 Referrals</div>
                 </div>
-                {/* Annual+ Plan */}
+                {/* Assured+ Plan */}
                 <div className="bg-white border border-purple-300 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
-                  <div className="text-xs font-bold text-purple-700 mb-1">ANNUAL+</div>
-                  <div className="text-xl font-bold text-purple-700">₹499</div>
+                  <div className="text-xs font-bold text-purple-700 mb-1">ASSURED+</div>
+                  <div className="text-xl font-bold text-purple-700">₹699</div>
                   <div className="text-sm text-gray-700 mb-2">upto 300+ Choices</div>
                   <div className="text-xs text-gray-500 mb-2">AI Method · 50 aspirational</div>
                   <div className="text-xs text-purple-600 font-semibold">10 Referrals</div>
@@ -4435,7 +4435,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Annual"
+                                        planName="Assured"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -4570,7 +4570,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Annual"
+                                        planName="Assured"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -4636,7 +4636,7 @@ export default function ChoiceFilling() {
                                       </div>
                                       <PaymentButton
                                         amount={399}
-                                        planName="Annual"
+                                        planName="Assured"
                                         onSuccess={handlePaymentSuccess}
                                         onError={handlePaymentError}
                                         onClick={() => setShowPricingDialog(false)}
@@ -5252,7 +5252,7 @@ export default function ChoiceFilling() {
                       </div>
                       <PaymentButton
                         amount={399}
-                        planName="Annual"
+                        planName="Assured"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
                         onClick={() => setShowUsageModal(false)}
@@ -5473,7 +5473,7 @@ export default function ChoiceFilling() {
                       </div>
                       <PaymentButton
                         amount={399}
-                        planName="Annual"
+                        planName="Assured"
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
                         onClick={() => setShowPricingDialog(false)}

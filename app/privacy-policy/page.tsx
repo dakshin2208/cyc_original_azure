@@ -93,13 +93,13 @@ export default function PrivacyPolicy() {
                 <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                   <h3 className="font-semibold text-lg mb-4">Grievance Officer</h3>
                   <div className="space-y-2">
-                    <p><strong>Phone:</strong> Monday - Friday (9:00 - 18:00)</p>
+                    <p><strong>Phone:</strong> Monday - Friday (9:00 AM - 6:00 PM)</p>
                     <div>
                       <p className="font-medium mb-2">Address:</p>
                       <p>Happi Global Ventures LLP</p>
-                      <p>Prestige sunrise park</p>
-                      <p>Bengaluru Electronics City Phase 1</p>
-                      <p>Bangalore, India</p>
+                      <p>Innov8 Mantri Commercio MIS Deeta</p>
+                      <p>Cnst, No 51 Bellandur</p>
+                      <p>South Karnataka 560103, Bangalore</p>
                     </div>
                   </div>
                 </div>

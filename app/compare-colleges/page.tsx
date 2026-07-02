@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect, Fragment } from "react"
+import { useState, useEffect } from "react"
 import { College, getParameterLabel } from "../../lib/college-data"
 import { supabase } from "../../lib/supabase"
-import { NEW_PARAMETER_GROUPS, NEW_PARAMS, fetchComputedParameters } from "../../lib/parameters-catalog"
 import {
   Select,
   SelectContent,
@@ -26,16 +25,6 @@ import { Search } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Label } from "../../components/ui/label"
 
-// Resolve the link keys for the computed parameters, mirroring lib/college-service.ts:
-//   "NIRF Code" → nirf_id (nirf_* tables);  CollegeCode → counselling_code (tnea_* tables)
-function getCollegeLinks(c: any): { nirfId: string | null; counsellingCode: string | null } {
-  const nirfRaw = c?.["NIRF Code"] ?? c?.["NIRF code"] ?? c?.nirf_id ?? null
-  const nirfId = nirfRaw && String(nirfRaw).trim() ? String(nirfRaw).trim() : null
-  const codeRaw = c?.counselling_code ?? c?.CollegeCode ?? null
-  const counsellingCode = codeRaw && String(codeRaw).trim() ? String(codeRaw).trim() : null
-  return { nirfId, counsellingCode }
-}
-
 export default function CompareColleges() {
   const [colleges, setColleges] = useState<College[]>([])
   const [selectedCollege1, setSelectedCollege1] = useState<College | null>(null)
@@ -43,57 +32,10 @@ export default function CompareColleges() {
   const [loading, setLoading] = useState(true)
   const [collegeSearch, setCollegeSearch] = useState<{ [key: number]: string }>({})
   const [openCollegeSearch, setOpenCollegeSearch] = useState<{ [key: number]: boolean }>({})
-  // Computed (newly added) parameters fetched per college, paramId -> formatted string
-  const [computed1, setComputed1] = useState<Record<string, string>>({})
-  const [computed2, setComputed2] = useState<Record<string, string>>({})
-  const [loadingParams, setLoadingParams] = useState(false)
 
   useEffect(() => {
     loadColleges()
   }, [])
-
-  // Fetch all newly added computed parameters whenever a college is selected
-  useEffect(() => {
-    if (!selectedCollege1) {
-      setComputed1({})
-      return
-    }
-    let cancelled = false
-    const c = selectedCollege1 as any
-    const { nirfId, counsellingCode } = getCollegeLinks(c)
-    setLoadingParams(true)
-    fetchComputedParameters(nirfId, counsellingCode, NEW_PARAMS.map((p) => p.id))
-      .then(({ values }) => {
-        if (!cancelled) setComputed1(values)
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingParams(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [selectedCollege1])
-
-  useEffect(() => {
-    if (!selectedCollege2) {
-      setComputed2({})
-      return
-    }
-    let cancelled = false
-    const c = selectedCollege2 as any
-    const { nirfId, counsellingCode } = getCollegeLinks(c)
-    setLoadingParams(true)
-    fetchComputedParameters(nirfId, counsellingCode, NEW_PARAMS.map((p) => p.id))
-      .then(({ values }) => {
-        if (!cancelled) setComputed2(values)
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingParams(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [selectedCollege2])
 
   const loadColleges = async () => {
     try {
@@ -302,19 +244,6 @@ export default function CompareColleges() {
       {/* Comparison Table - Only show when both colleges are selected */}
       {selectedCollege1 && selectedCollege2 && (
         <div className="mt-6 sm:mt-8 overflow-x-auto">
-          {(() => {
-            const missing = [selectedCollege1, selectedCollege2]
-              .filter((c) => !getCollegeLinks(c).nirfId)
-              .map((c) => c!.collegeName)
-            if (missing.length === 0) return null
-            return (
-              <p className="mb-3 text-xs sm:text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                Note: Faculty, Financial, Research, Student Composition &amp; Infrastructure metrics are sourced from NIRF.{" "}
-                {missing.join(" and ")} {missing.length > 1 ? "have" : "has"} not published NIRF data, so those rows show
-                &quot;-&quot;. (Admissions metrics like Fill Rate are still shown from TNEA data.)
-              </p>
-            )
-          })()}
           <Table className="border-collapse border border-gray-300 min-w-full">
             <TableHeader>
               <TableRow className="bg-gray-100">
@@ -330,27 +259,6 @@ export default function CompareColleges() {
                   <TableCell className="border border-gray-300 px-2 sm:px-4 py-2 text-xs sm:text-sm">{selectedCollege1[param as keyof College] || "N/A"}</TableCell>
                   <TableCell className="border border-gray-300 px-2 sm:px-4 py-2 text-xs sm:text-sm">{selectedCollege2[param as keyof College] || "N/A"}</TableCell>
                 </TableRow>
-              ))}
-
-              {/* Newly added computed parameters, grouped by section */}
-              {NEW_PARAMETER_GROUPS.map((group) => (
-                <Fragment key={group.section}>
-                  <TableRow className="bg-[#0B5588]/10">
-                    <TableCell
-                      colSpan={3}
-                      className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-xs sm:text-sm text-[#0B5588]"
-                    >
-                      {group.sectionLabel}
-                    </TableCell>
-                  </TableRow>
-                  {group.params.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-gray-50">
-                      <TableCell className="border border-gray-300 px-2 sm:px-4 py-2 font-medium text-xs sm:text-sm">{p.label}</TableCell>
-                      <TableCell className="border border-gray-300 px-2 sm:px-4 py-2 text-xs sm:text-sm">{loadingParams && !(p.id in computed1) ? "…" : computed1[p.id] ?? "-"}</TableCell>
-                      <TableCell className="border border-gray-300 px-2 sm:px-4 py-2 text-xs sm:text-sm">{loadingParams && !(p.id in computed2) ? "…" : computed2[p.id] ?? "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </Fragment>
               ))}
             </TableBody>
           </Table>

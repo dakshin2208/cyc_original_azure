@@ -4,12 +4,12 @@
 // Tiers (paid + referral-earned variants of the same tier share limits):
 //   Free      — 10 choices,  AI chat 2,  0 aspirational,  no AI method
 //   Secure    — 75 choices,  AI chat 5,  5 aspirational,  no AI method   (₹299 / 3 referrals)
-//   Annual    — 200 choices, AI chat 8,  15 aspirational, no AI method   (₹399 / 5 referrals)
-//   Annual+   — 300 choices, AI chat 20, 50 aspirational, AI method YES  (₹499 / 10 referrals)
+//   Assured   — 200 choices, AI chat 8,  15 aspirational, no AI method   (₹399 / 5 referrals)
+//   Assured+  — 300 choices, AI chat 20, 50 aspirational, AI method YES  (₹699 / 10 referrals)
 //
 // plan_type keys are stable DB identifiers (kept for backwards compatibility):
-//   premium_199 = Secure, premium_299 = Annual, premium_499 = Annual+
-//   referral_75 = Secure, referral_200 = Annual, referral_300 = Annual+
+//   premium_199 = Secure, premium_299 = Assured, premium_499 = Assured+
+//   referral_75 = Secure, referral_200 = Assured, referral_300 = Assured+
 
 export type PlanType =
   | 'freemium'
@@ -37,11 +37,11 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   freemium:     { name: 'Free',    maxChoices: 10,  aiChatLimit: 2,  aspirationalChoices: 0,  aiMethod: false },
   premium_199:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  aiMethod: false },
-  premium_299:  { name: 'Annual',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
-  premium_499:  { name: 'Annual+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
+  premium_299:  { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
+  premium_499:  { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
   referral_75:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  aiMethod: false },
-  referral_200: { name: 'Annual',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
-  referral_300: { name: 'Annual+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
+  referral_200: { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
+  referral_300: { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
 }
 
 export const DEFAULT_PLAN: PlanType = 'freemium'
@@ -55,7 +55,7 @@ export function getPlanLimits(planType: string | null | undefined): PlanLimits {
 
 export interface PricedPlan {
   /** planName sent to /api/create-payment and /api/update-user-plan */
-  planName: 'Secure' | 'Annual' | 'Annual+'
+  planName: 'Secure' | 'Assured' | 'Assured+'
   planType: Extract<PlanType, 'premium_199' | 'premium_299' | 'premium_499'>
   price: number
   /** Referrals required to earn this tier for free */
@@ -66,8 +66,8 @@ export interface PricedPlan {
 
 export const PRICED_PLANS: PricedPlan[] = [
   { planName: 'Secure',  planType: 'premium_199', price: 299, referralThreshold: 3,  referralPlanType: 'referral_75'  },
-  { planName: 'Annual',  planType: 'premium_299', price: 399, referralThreshold: 5,  referralPlanType: 'referral_200' },
-  { planName: 'Annual+', planType: 'premium_499', price: 499, referralThreshold: 10, referralPlanType: 'referral_300' },
+  { planName: 'Assured',  planType: 'premium_299', price: 399, referralThreshold: 5,  referralPlanType: 'referral_200' },
+  { planName: 'Assured+', planType: 'premium_499', price: 699, referralThreshold: 10, referralPlanType: 'referral_300' },
 ]
 
 /** Map a paid planName (from the payment flow) to its plan_type + choices. */
