@@ -69,10 +69,10 @@ export async function POST(request: Request) {
       // Secure via referral — 3 fixed trials
       availableTrials = Math.max(0, 3 - (usageData?.referral_trials_used || 0))
     } else if (usageData?.plan_type === 'referral_200') {
-      // Annual via referral — 5 fixed trials
+      // Assured via referral — 5 fixed trials
       availableTrials = Math.max(0, 5 - (usageData?.referral_trials_used || 0))
     } else if (usageData?.plan_type === 'referral_300') {
-      // Annual+ via referral — 10 fixed trials
+      // Assured+ via referral — 10 fixed trials
       availableTrials = Math.max(0, 10 - (usageData?.referral_trials_used || 0))
     } else {
       // For freemium and regular referral plans, calculate from earned trials
@@ -89,31 +89,31 @@ export async function POST(request: Request) {
       currentPlan = 'Secure (₹299)'
       maxChoices = 75
     } else if (usageData?.plan_type === 'premium_299') {
-      currentPlan = 'Annual (₹399)'
+      currentPlan = 'Assured (₹399)'
       maxChoices = 200
     } else if (usageData?.plan_type === 'premium_499') {
-      currentPlan = 'Annual+ (₹499)'
+      currentPlan = 'Assured+ (₹699)'
       maxChoices = 300
     } else if (usageData?.plan_type === 'referral_75') {
       currentPlan = 'Secure (Referral)'
       maxChoices = 75
       trialsEarned = 3
     } else if (usageData?.plan_type === 'referral_200') {
-      currentPlan = 'Annual (Referral)'
+      currentPlan = 'Assured (Referral)'
       maxChoices = 200
       trialsEarned = 5
     } else if (usageData?.plan_type === 'referral_300') {
-      currentPlan = 'Annual+ (Referral)'
+      currentPlan = 'Assured+ (Referral)'
       maxChoices = 300
       trialsEarned = 10
     } else {
       // Only apply referral upgrades if user doesn't have a premium plan
       if (completedCount >= 10) {
-        currentPlan = 'Annual+ (10+ referrals)'
+        currentPlan = 'Assured+ (10+ referrals)'
         maxChoices = 300
         trialsEarned = 10
       } else if (completedCount >= 5) {
-        currentPlan = 'Annual (5+ referrals)'
+        currentPlan = 'Assured (5+ referrals)'
         maxChoices = 200
         trialsEarned = 5
       } else if (completedCount >= 3) {

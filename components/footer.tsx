@@ -16,11 +16,17 @@ export function Footer() {
             >
               Data Transparency
             </Link>
-            <Link 
-              href="/cheatsheet" 
+            <Link
+              href="/cheatsheet"
               className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
             >
               Cheat Sheet
+            </Link>
+            <Link
+              href="/letter-to-your-kid"
+              className="text-gray-600 hover:text-[#0B5588] transition-colors duration-200 px-2 py-1"
+            >
+              Letter to Your Kid
             </Link>
             <Link 
               href="/vote" 

@@ -32,7 +32,7 @@ export default function TermsAndConditions() {
                 </p>
 
                 <p>
-                  The Platform is owned by Happi Global Ventures LLP, a company incorporated under the Companies Act, 1956 with its registered office at B6105, Prestige sunrise park, Bengaluru Electronics City Phase 1, Bangalore, India (hereinafter referred to as "Platform Owner", 'we', 'us', 'our').
+                  The Platform is owned by Happi Global Ventures LLP, a company incorporated under the Companies Act, 1956 with its registered office at Innov8 Mantri Commercio MIS Deeta, Cnst, No 51 Bellandur, South Karnataka 560103, Bangalore (hereinafter referred to as "Platform Owner", 'we', 'us', 'our').
                 </p>
 
                 <p>

@@ -21,7 +21,7 @@ const STATUS = {
     dot: 'bg-green-500',
     badge: 'bg-green-100 text-green-800 border-green-200',
     icon: ShieldCheck,
-    hint: 'Government college or NIRF data published on its website.',
+    hint: 'Has published its NIRF data on its website.',
     pdf: [220, 252, 231] as [number, number, number],
   },
   Suspicious: {
@@ -29,7 +29,7 @@ const STATUS = {
     dot: 'bg-yellow-500',
     badge: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     icon: AlertTriangle,
-    hint: 'Applied to NIRF but data not published on its website.',
+    hint: 'Applied to NIRF but has not published the data on its website.',
     pdf: [254, 249, 195] as [number, number, number],
   },
   Avoid: {
@@ -37,7 +37,7 @@ const STATUS = {
     dot: 'bg-red-500',
     badge: 'bg-red-100 text-red-800 border-red-200',
     icon: Ban,
-    hint: 'Never participated in NIRF.',
+    hint: 'No record of applying to NIRF.',
     pdf: [254, 226, 226] as [number, number, number],
   },
 } as const
@@ -146,7 +146,7 @@ export default function DataTransparencyPage() {
 
           {/* Legend */}
           <div className="grid gap-3 sm:grid-cols-3 mb-6">
-            {(['Transparent', 'Suspicious', 'Avoid'] as Transparency[]).map((t) => {
+            {(['Transparent', 'Suspicious', 'Avoid'] as const).map((t) => {
               const s = STATUS[t]
               const Icon = s.icon
               return (

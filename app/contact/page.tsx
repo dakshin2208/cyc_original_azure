@@ -38,10 +38,10 @@ export default function Contact() {
                         For any queries contact us to this e-mail address:
                       </p>
                       <a 
-                        href="mailto:sganeshan@chooseyourcollege.com"
+                        href="mailto:gautam@chooseyourcollege.com"
                         className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors duration-200 break-all"
                       >
-                        sganeshan@chooseyourcollege.com
+                        gautam@chooseyourcollege.com
                       </a>
                     </div>
                   </div>
@@ -61,10 +61,10 @@ export default function Contact() {
                         Call us directly for immediate assistance:
                       </p>
                       <a 
-                        href="tel:+919901965815"
+                        href="tel:+919880012482"
                         className="text-lg font-medium text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors duration-200"
                       >
-                        +91 9901965815
+                        +91 98800 12482
                       </a>
                       <p className="text-sm text-green-600 dark:text-green-400 mt-2">
                         Available: Monday - Friday (9:00 AM - 6:00 PM IST)
@@ -88,9 +88,9 @@ export default function Contact() {
                       <MapPin className="h-6 w-6 text-[#0B5588] mt-1" />
                       <div>
                         <p className="font-medium">Address</p>
-                        <p>Prestige sunrise park</p>
-                        <p>Bengaluru Electronics City Phase 1</p>
-                        <p>Bangalore, India</p>
+                        <p>Innov8 Mantri Commercio MIS Deeta</p>
+                        <p>Cnst, No 51 Bellandur</p>
+                        <p>South Karnataka 560103, Bangalore</p>
                       </div>
                     </div>
                   </div>

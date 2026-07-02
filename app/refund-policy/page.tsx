@@ -90,10 +90,10 @@ export default function CancellationAndRefund() {
                     </p>
                     <div className="space-y-2">
                       <p><strong>Company:</strong> Happi Global Ventures LLP</p>
-                      <p><strong>Address:</strong> Prestige sunrise park, Bengaluru Electronics City Phase 1, Bangalore, India</p>
+                      <p><strong>Address:</strong> Innov8 Mantri Commercio MIS Deeta, Cnst, No 51 Bellandur, South Karnataka 560103, Bangalore</p>
                       <p><strong>Website:</strong> https://chooseyourcollege.com/</p>
-                      <p><strong>Email:</strong> sganeshan@chooseyourcollege.com</p>
-                      <p><strong>Phone:</strong> +91 9901965815</p>
+                      <p><strong>Email:</strong> gautam@chooseyourcollege.com</p>
+                      <p><strong>Phone:</strong> +91 98800 12482</p>
                     </div>
                   </div>
                 </div>

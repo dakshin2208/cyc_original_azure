@@ -25,11 +25,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Map plan names to database plan types (Secure / Annual / Annual+).
-    // 'Assured+' kept as a legacy alias for the Annual tier.
-    const { planType, maxChoices } = planTypeForPlanName(
-      planName === 'Assured+' ? 'Annual' : planName
-    )
+    // Map plan names to database plan types (Secure / Assured / Assured+).
+    // Legacy 'Annual'/'Annual+' names map to their renamed equivalents.
+    const normalizedPlanName =
+      planName === 'Annual+' ? 'Assured+' : planName === 'Annual' ? 'Assured' : planName
+    const { planType, maxChoices } = planTypeForPlanName(normalizedPlanName)
 
     // Update or create usage record
     const { data: existingUsage, error: fetchError } = await supabaseAdmin
