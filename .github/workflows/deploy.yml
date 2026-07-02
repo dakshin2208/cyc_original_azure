@@ -89,6 +89,11 @@ jobs:
             NEXT_PUBLIC_RAZORPAY_KEY_ID=${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
             NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          # Server-only secret needed during `next build` (module-scope Supabase
+          # admin clients). Passed as a BuildKit secret so it is NOT baked into
+          # any image layer or the GHA build cache.
+          secrets: |
+            supabase_service_role_key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Deploy new revision to Azure Container Apps
         run: |

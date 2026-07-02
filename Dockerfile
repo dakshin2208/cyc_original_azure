@@ -47,8 +47,17 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_TELEMETRY_DISABLED=1 \
     NODE_ENV=production
 
+# SUPABASE_SERVICE_ROLE_KEY is required at build time: every API route module
+# (and lib/parameters.ts) constructs a server-side Supabase admin client at
+# module scope, and `next build`'s "collect page data" phase evaluates those
+# modules. It is a TRUE secret (bypasses RLS), so it is provided via a BuildKit
+# secret mount — available only for this RUN, never persisted in an image layer
+# or the build cache, and never copied into the final runner stage.
+#
 # Runs `next build` then the repo's `obfuscate` step (see package.json).
-RUN npm run build
+RUN --mount=type=secret,id=supabase_service_role_key \
+    SUPABASE_SERVICE_ROLE_KEY="$(cat /run/secrets/supabase_service_role_key)" \
+    npm run build
 
 # ---- Stage 3: minimal production runtime -------------------------------
 FROM node:20-alpine AS runner
