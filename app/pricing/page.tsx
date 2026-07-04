@@ -75,9 +75,9 @@ const PLANS: PlanCol[] = [
 // A boolean renders a tick / cross; a string renders as text.
 const FEATURES: { label: string; values: (boolean | string)[] }[] = [
   { label: 'Choices', values: ['upto 10', 'upto 75', 'upto 200', 'upto 300+'] },
-  { label: 'PowerScore', values: [true, true, true, true] },
+  { label: 'PowerScore', values: [false, true, true, true] },
   { label: 'Traditional Method', values: [true, true, true, true] },
-  { label: 'AI Method', values: [false, false, false, true] },
+  { label: 'AI Method', values: [false, false, true, true] },
   { label: 'AI Chat (questions)', values: ['2', '5', '8', '20'] },
   { label: 'Aspirational Choices', values: [false, '5', '15', '50'] },
   { label: 'Unlock via Referrals', values: ['—', '3 referrals', '5 referrals', '10 referrals'] },

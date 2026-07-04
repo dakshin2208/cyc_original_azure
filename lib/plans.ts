@@ -2,10 +2,10 @@
 // Single source of truth for choice-filling plans.
 //
 // Tiers (paid + referral-earned variants of the same tier share limits):
-//   Free      — 10 choices,  AI chat 2,  0 aspirational,  no AI method
-//   Secure    — 75 choices,  AI chat 5,  5 aspirational,  no AI method   (₹299 / 3 referrals)
-//   Assured   — 200 choices, AI chat 8,  15 aspirational, no AI method   (₹399 / 5 referrals)
-//   Assured+  — 300 choices, AI chat 20, 50 aspirational, AI method YES  (₹699 / 10 referrals)
+//   Free      — 10 choices,  AI chat 2,  0 aspirational,  no Power Score, no AI method
+//   Secure    — 75 choices,  AI chat 5,  5 aspirational,  Power Score,    no AI method   (₹299 / 3 referrals)
+//   Assured   — 200 choices, AI chat 8,  15 aspirational, Power Score,    AI method YES  (₹399 / 5 referrals)
+//   Assured+  — 300 choices, AI chat 20, 50 aspirational, Power Score,    AI method YES  (₹699 / 10 referrals)
 //
 // plan_type keys are stable DB identifiers (kept for backwards compatibility):
 //   premium_199 = Secure, premium_299 = Assured, premium_499 = Assured+
@@ -29,19 +29,21 @@ export interface PlanLimits {
   aiChatLimit: number
   /** Number of aspirational (specific-college) picks allowed */
   aspirationalChoices: number
-  /** Whether the AI (Smartass / PowerScore) method is available */
+  /** Whether the Power Score method is available (all paid plans, not Free) */
+  powerScore: boolean
+  /** Whether the AI method is available (Assured and Assured+) */
   aiMethod: boolean
 }
 
 /** Per-plan-type limits. Referral variants mirror their paid tier. */
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
-  freemium:     { name: 'Free',    maxChoices: 10,  aiChatLimit: 2,  aspirationalChoices: 0,  aiMethod: false },
-  premium_199:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  aiMethod: false },
-  premium_299:  { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
-  premium_499:  { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
-  referral_75:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  aiMethod: false },
-  referral_200: { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, aiMethod: false },
-  referral_300: { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, aiMethod: true  },
+  freemium:     { name: 'Free',    maxChoices: 10,  aiChatLimit: 2,  aspirationalChoices: 0,  powerScore: false, aiMethod: false },
+  premium_199:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  powerScore: true,  aiMethod: false },
+  premium_299:  { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, powerScore: true,  aiMethod: true  },
+  premium_499:  { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, powerScore: true,  aiMethod: true  },
+  referral_75:  { name: 'Secure',  maxChoices: 75,  aiChatLimit: 5,  aspirationalChoices: 5,  powerScore: true,  aiMethod: false },
+  referral_200: { name: 'Assured',  maxChoices: 200, aiChatLimit: 8,  aspirationalChoices: 15, powerScore: true,  aiMethod: true  },
+  referral_300: { name: 'Assured+', maxChoices: 300, aiChatLimit: 20, aspirationalChoices: 50, powerScore: true,  aiMethod: true  },
 }
 
 export const DEFAULT_PLAN: PlanType = 'freemium'
@@ -89,7 +91,12 @@ export function referralPlanFor(completedReferrals: number): { planType: PlanTyp
   return { planType: eligible.referralPlanType, maxChoices: PLAN_LIMITS[eligible.referralPlanType].maxChoices }
 }
 
-/** True if the AI (Smartass) method is allowed for this plan_type. */
+/** True if the Power Score method is allowed for this plan_type (all paid plans). */
+export function planAllowsPowerScore(planType: string | null | undefined): boolean {
+  return getPlanLimits(planType).powerScore
+}
+
+/** True if the AI method is allowed for this plan_type (Assured and Assured+). */
 export function planAllowsAiMethod(planType: string | null | undefined): boolean {
   return getPlanLimits(planType).aiMethod
 }

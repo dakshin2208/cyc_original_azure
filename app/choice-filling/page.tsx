@@ -15,7 +15,7 @@ import { jsPDF } from "jspdf"
 import autoTable from 'jspdf-autotable'
 import { toast } from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
-import { planAllowsAiMethod, planAspirationalLimit } from "@/lib/plans"
+import { planAllowsAiMethod, planAllowsPowerScore, planAspirationalLimit } from "@/lib/plans"
 import { LoginForm } from "@/app/components/LoginForm"
 import { useAuth } from "../contexts/AuthContext"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -1114,15 +1114,17 @@ export default function ChoiceFilling() {
           showSelectedOptions: true
         }
         
-        // Then add the choice type question.
-        // Traditional Method and Power Score are available on every plan; the
-        // AI Method is offered only on the Assured+ plan (see pricing page).
+        // Then add the choice type question. Options are gated by plan (see pricing
+        // page): Traditional Method is always available; Power Score on paid plans;
+        // AI Method on Assured and Assured+.
         const choiceTypeMessage: Message = {
           type: 'bot',
           content: 'Which method would you like to use for your choices?',
-          options: planAllowsAiMethod(usageData?.planType)
-            ? ['Traditional Method', 'Power Score', 'AI Method']
-            : ['Traditional Method', 'Power Score']
+          options: [
+            'Traditional Method',
+            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
+            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
+          ]
         }
         
         // Add both messages in sequence
@@ -1144,11 +1146,23 @@ export default function ChoiceFilling() {
       // Power Score and AI Method -> PowerScore-ranked engine ('smart').
       let choiceType: 'traditional' | 'smart' = option === 'Traditional Method' ? 'traditional' : 'smart'
       let choiceMethodLabel = option
-      // AI Method is available only on the Assured+ plan; fall back to Power Score.
+      // Enforce plan gating (defensive — ineligible options are not shown, but a
+      // stale message could still be clicked). AI Method needs Assured or higher;
+      // Power Score needs any paid plan.
       if (option === 'AI Method' && !planAllowsAiMethod(usageData?.planType)) {
-        toast.error('AI Method is available on the Assured+ plan — using Power Score instead.')
-        choiceMethodLabel = 'Power Score'
-        choiceType = 'smart'
+        if (planAllowsPowerScore(usageData?.planType)) {
+          toast.error('AI Method is available on the Assured plan or higher — using Power Score instead.')
+          choiceMethodLabel = 'Power Score'
+          choiceType = 'smart'
+        } else {
+          toast.error('AI Method is available on the Assured plan or higher — using Traditional Method instead.')
+          choiceMethodLabel = 'Traditional Method'
+          choiceType = 'traditional'
+        }
+      } else if (option === 'Power Score' && !planAllowsPowerScore(usageData?.planType)) {
+        toast.error('Power Score is available on paid plans — using Traditional Method instead.')
+        choiceMethodLabel = 'Traditional Method'
+        choiceType = 'traditional'
       }
       setUserPreferences(prev => ({
         ...prev,
@@ -4923,14 +4937,16 @@ export default function ChoiceFilling() {
                                           showSelectedOptions: true
                                         }
                                         
-                                        // Then add the choice type question.
-                                        // Power Score is available to all plans; AI Method only on Assured+.
+                                        // Then add the choice type question, gated by plan:
+                                        // Power Score on paid plans; AI Method on Assured / Assured+.
                                         const choiceTypeMessage: Message = {
                                           type: 'bot',
                                           content: 'Which method would you like to use for your choices?',
-                                          options: planAllowsAiMethod(usageData?.planType)
-                                            ? ['Traditional Method', 'Power Score', 'AI Method']
-                                            : ['Traditional Method', 'Power Score']
+                                          options: [
+                                            'Traditional Method',
+                                            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
+                                            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
+                                          ]
                                         }
                                         
                                         // Add both messages in sequence
