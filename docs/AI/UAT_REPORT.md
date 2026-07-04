@@ -67,6 +67,9 @@
 
 ## Part C — Findings
 
+### F1 — ✅ RESOLVED (2026-07-04, commit `fix(reco): resolve UAT F1`)
+**Fix:** (A) the reputation seed floor now requires a verifiable cutoff, so the empty stub is no longer floored to elite; (B) colleges with unverifiable eligibility are confined to a reserved bottom band of the ranking total, so they can never outrank verified colleges. **Verified:** the stub no longer appears anywhere in the top-50 of state-wide queries; the flagship is byte-identical; **S12/S15/S16/S20 moved Partial → Match** (confidence also improved low → high). A name-slug entity merge was investigated and rejected as unsafe (it would conflate distinct same-named colleges such as the several "Government College of Engineering"); deeper entity dedup is a documented data-integrity item. Full suite 548 pass; 214-scenario invariants remain 100%. *Original finding below, for the record.*
+
 ### F1 (Defect, non-blocking) — Data-less duplicate "Coimbatore Institute of Technology" stub ranks high on state-wide queries
 - **Symptom:** on **no-district** queries (S12, S15, S16, S20) a "Coimbatore Institute of Technology" entry with `[unknown]` eligibility and no data appears near the top (often #1).
 - **Root cause:** CIT exists as **two entities** (the base-warehouse duplicate, D6) — one real record (cutoff 198, district Coimbatore) and one empty stub (no cutoff, no district). The reputation **curated seed** matches the stub's name slug and floors it to the *elite* tier, so its banded total is high even with zero data. In *district* queries the stub is filtered out (null district), which is why S01/S03/S04 are clean — the defect only surfaces state-wide.
@@ -86,10 +89,10 @@
 | Metric | Value |
 |---|---:|
 | Total scenarios | 20 |
-| ✅ Match | 15 |
-| ⚠️ Partial | 5 |
+| ✅ Match | 15 → **19** (after F1 fix) |
+| ⚠️ Partial | 5 → **1** (S08, thin Madurai coverage) |
 | ❌ Fail | 0 |
-| **Full-match rate** | **75%** |
+| **Full-match rate** | 75% → **95%** (after F1 fix) |
 | **No-hard-failure rate** | **100%** |
 
 **Partial scenarios:** S08 (thin Madurai coverage — D1), S12 / S15 / S16 / S20 (phantom-CIT stub on state-wide queries — **all one root cause, F1**).
