@@ -59,6 +59,14 @@ interface Scored {
   readonly tier: ReputationTier
 }
 
+/**
+ * The share of the [0, 1] ranking-total range reserved for colleges whose eligibility
+ * could NOT be verified (no closing cutoff on file). Verified colleges occupy
+ * [RESERVED, 1]; unverified ones [0, RESERVED) — so a verified college always outranks
+ * an unverified one while the total stays a single monotone sort key (UAT F1).
+ */
+const RESERVED_UNVERIFIED = 0.05
+
 /** Deterministic string order (locale-independent). */
 function cmpStr(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
@@ -122,10 +130,25 @@ export function rankProfiles(
     .map((profile) => {
       const raw = ctx.scoring.score(profile, spec.weights)
       const tier = reputationTier(profile, ctx.config.reputation)
-      const score: RecommendationScore = {
-        ...raw,
-        total: tierBandedTotal(tier, raw.total, ctx.config.reputation),
-      }
+      const banded = tierBandedTotal(tier, raw.total, ctx.config.reputation)
+      // Whether the student's eligibility for this college could be VERIFIED (a closing
+      // cutoff was found). When no cutoff+community is supplied there is nothing to
+      // verify, so no college is penalized.
+      const verified =
+        request.studentCutoff === undefined || request.community === undefined
+          ? true
+          : ctx.eligibility.assess({
+              college: profile.college,
+              studentCutoff: request.studentCutoff,
+              community: request.community,
+              branch: request.branch,
+            }).hasData
+      // Confine unverifiable-eligibility colleges to a reserved bottom band of the
+      // total, so a college whose eligibility we CANNOT verify never outranks one we
+      // can — while the total stays monotone, keeping ranking a single stable sort
+      // (UAT finding F1, requirement 3).
+      const total = verified ? RESERVED_UNVERIFIED + banded * (1 - RESERVED_UNVERIFIED) : banded * RESERVED_UNVERIFIED
+      const score: RecommendationScore = { ...raw, total }
       return { profile, score, tier }
     })
     .filter(({ score }) => hasRequired(score))

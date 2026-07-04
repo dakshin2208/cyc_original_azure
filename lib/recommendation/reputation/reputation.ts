@@ -34,9 +34,14 @@ function cutoffTier(cutoff: number | null, bands: ReputationConfig['cutoffBands'
 /** The reputation tier for a college: cutoff-derived, floored by the curated seed. */
 export function reputationTier(profile: CollegeProfile, config: ReputationConfig): ReputationTier {
   let tier = cutoffTier(profile.ocCutoff, config.cutoffBands)
-  const slug = profile.college.nameSlug
-  for (const [seedSlug, seedTier] of config.seed) {
-    if (slug.includes(seedSlug) && TIER_ORDER[seedTier] < TIER_ORDER[tier]) tier = seedTier
+  // The curated elite floor requires a VERIFIABLE closing cutoff: an incomplete record
+  // (no cutoff on file — e.g. a data-less duplicate stub) is never promoted into a
+  // higher reputation tier by name alone (UAT finding F1, requirement 2).
+  if (profile.ocCutoff !== null) {
+    const slug = profile.college.nameSlug
+    for (const [seedSlug, seedTier] of config.seed) {
+      if (slug.includes(seedSlug) && TIER_ORDER[seedTier] < TIER_ORDER[tier]) tier = seedTier
+    }
   }
   return tier
 }
