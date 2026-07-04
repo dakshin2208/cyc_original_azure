@@ -130,3 +130,22 @@ describe('counselor chat service — HTTP + continuity', () => {
     expect(a.answer).toBe(b.answer)
   })
 })
+
+describe('counselor chat service — domain guard (RC6)', () => {
+  it('declines out-of-domain queries with the scope message (no college surfaced)', async () => {
+    const { service } = makeCounselor(createUnavailableProvider('none'))
+    for (const q of ['MBBS in Chennai', 'best law college', 'best arts college', 'BSc physics college', 'agriculture college']) {
+      const body = ok((await service.handle({ message: q })).body)
+      expect(body.answer).toMatch(/only support .*engineering counselling/i)
+      expect(body.citations).toHaveLength(0)
+    }
+  })
+
+  it('does NOT decline engineering queries (no false positive)', async () => {
+    const { service } = makeCounselor(createUnavailableProvider('none'))
+    for (const q of ['recommend the best engineering college', 'best cse college', 'agricultural engineering college']) {
+      const body = ok((await service.handle({ message: q })).body)
+      expect(body.answer).not.toMatch(/only support .*engineering counselling/i)
+    }
+  })
+})

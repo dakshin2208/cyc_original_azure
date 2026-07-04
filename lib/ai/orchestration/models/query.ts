@@ -33,4 +33,9 @@ export interface ParsedQuery {
   readonly studentCutoff: number | null
   /** Location (city/state), when mentioned. */
   readonly location: string | null
+  /**
+   * A non-engineering domain the warehouse does not cover (medical/law/arts/…),
+   * or `null` when the query is in-domain (engineering). Drives a scope decline.
+   */
+  readonly outOfDomain: string | null
 }

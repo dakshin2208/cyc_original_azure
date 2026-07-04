@@ -153,6 +153,23 @@ export const INSTITUTION_WORDS: ReadonlySet<string> = new Set([
   'universities', 'technology', 'polytechnic', 'campus', 'academy', 'school',
 ])
 
+/**
+ * Non-engineering domains the warehouse does NOT cover, keyed to their trigger
+ * keywords (matched as space-delimited substrings of the padded normalized text).
+ * Detection is GUARDED: a query carrying an engineering branch, or the word
+ * "engineering"/"polytechnic", is never treated as out-of-domain (see the parser).
+ * Keywords are deliberately specific to avoid false positives on engineering
+ * queries (e.g. "computer science", "data science", "agricultural engineering").
+ */
+export const OUT_OF_DOMAIN: Readonly<Record<string, readonly string[]>> = {
+  medical: ['mbbs', 'bds', 'medical', 'medicine', 'dental', 'dentist', 'dentistry', 'nursing', 'pharmacy', 'pharm', 'bpharm', 'veterinary', 'physiotherapy', 'bams', 'bhms', 'paramedical'],
+  law: ['llb', 'llm', 'law college', 'law colleges', 'law school', 'law degree', 'legal studies'],
+  arts: ['ba english', 'ba economics', 'ba history', 'ba tamil', 'fine arts', 'journalism', 'arts college', 'arts colleges'],
+  commerce_management: ['mba', 'bba', 'bcom', 'b com', 'commerce college'],
+  science: ['bsc', 'b sc', 'msc', 'm sc'],
+  agriculture: ['agriculture', 'agricultural college', 'horticulture', 'forestry', 'dairy technology'],
+}
+
 /** Minimum resolver score to accept a college mention from free text. */
 export const COLLEGE_MATCH_THRESHOLD = 0.6
 

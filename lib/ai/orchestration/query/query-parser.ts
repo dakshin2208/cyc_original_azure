@@ -11,6 +11,22 @@ import { createEntityExtractor, type EntityExtractor } from './entity-extractor'
 import { createIntentClassifier, type IntentClassifier } from './intent-classifier'
 import { createQuestionNormalizer, type QuestionNormalizer } from './normalizer'
 import type { QueryLexicon } from './lexicon'
+import { OUT_OF_DOMAIN } from './patterns'
+
+/**
+ * Detect a non-engineering domain (medical/law/arts/…) the warehouse cannot serve.
+ * Guarded: an engineering branch, or the word "engineering"/"polytechnic", keeps the
+ * query in-domain so a valid engineering question is never wrongly declined (RC6).
+ */
+function detectOutOfDomain(normalized: string, branch: string | null): string | null {
+  if (branch !== null) return null
+  const padded = ` ${normalized} `
+  if (padded.includes(' engineering ') || padded.includes(' polytechnic ')) return null
+  for (const domain of Object.keys(OUT_OF_DOMAIN)) {
+    if (OUT_OF_DOMAIN[domain].some((kw) => padded.includes(` ${kw} `))) return domain
+  }
+  return null
+}
 
 /** The QueryParser component. */
 export interface QueryParser {
@@ -48,6 +64,7 @@ export function createQueryParser(
       community: extraction.community,
       studentCutoff: extraction.studentCutoff,
       location: extraction.location,
+      outOfDomain: detectOutOfDomain(normalized, extraction.branch),
     }
   }
 

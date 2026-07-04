@@ -50,6 +50,17 @@ export interface OpinionService {
   advise(question: string, options?: OpinionOptions & { priorState?: ConversationState }): Promise<AdviceResult>
 }
 
+/** The fixed scope decline for out-of-domain (non-engineering) queries (RC6). */
+const OUT_OF_DOMAIN_RESPONSE: OpinionResponse = {
+  answer: 'I currently only support Tamil Nadu Engineering counselling.',
+  evidence: [],
+  confidence: 'low',
+  followUps: [],
+  recommendationSummary: [],
+  strategy: 'general_counseling',
+  usedModel: false,
+}
+
 /** Create the opinion service over Phase-1 repositories + the retrieval engine. */
 export function createOpinionService(
   repos: KnowledgeRepositories,
@@ -67,6 +78,11 @@ export function createOpinionService(
   ): Promise<AdviceResult> => {
     // 1. Reuse the Sprint-4 orchestrator (Retriever + Recommendation + Context).
     const orchestration = orchestrator.orchestrate(question, o?.priorState)
+    // Domain guard (RC6): the warehouse only covers TN engineering — decline any
+    // other domain (medical/law/arts/…) instead of returning an engineering college.
+    if (orchestration.parsed.outOfDomain !== null) {
+      return { response: OUT_OF_DOMAIN_RESPONSE, state: orchestration.state }
+    }
     // 2. Deterministic opinion (strategy → dossiers → recommendations → prompt).
     const prepared = engine.prepare(orchestration.parsed, orchestration.context, {
       priorities: o?.priorities,
