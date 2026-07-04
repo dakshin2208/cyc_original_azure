@@ -142,6 +142,17 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])
 
+/**
+ * Institution words. When a known LOCATION token is immediately followed by one
+ * of these, the location is part of a college NAME (e.g. "Coimbatore Institute of
+ * Technology"), not a location filter. A bare district ("... in Coimbatore") is
+ * therefore never resolved to a college. See {@link COLLEGE_MATCH_THRESHOLD}.
+ */
+export const INSTITUTION_WORDS: ReadonlySet<string> = new Set([
+  'college', 'colleges', 'institute', 'institutes', 'institution', 'university',
+  'universities', 'technology', 'polytechnic', 'campus', 'academy', 'school',
+])
+
 /** Minimum resolver score to accept a college mention from free text. */
 export const COLLEGE_MATCH_THRESHOLD = 0.6
 

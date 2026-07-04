@@ -4,7 +4,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { createEntityExtractor, normalizeQuestion, type EntityType } from '@/lib/ai/orchestration'
+import { createEntityExtractor, normalizeQuestion, type EntityType, type QueryLexicon } from '@/lib/ai/orchestration'
+import type { CanonicalCollege, CanonicalCollegeId, CounsellingCode, NirfId } from '@/lib/knowledge'
 import { EMPTY_LEXICON, makeHarness, NAME } from './support'
 
 const extractor = createEntityExtractor(EMPTY_LEXICON)
@@ -81,5 +82,61 @@ describe('entity extractor — college & location resolution (warehouse)', () =>
 
   it('detects a known location', () => {
     expect(r('colleges in coimbatore').location).toBe('coimbatore')
+  })
+})
+
+// RC1 regression — a district must NEVER be resolved as a college. Uses a custom
+// lexicon that mimics the real fuzzy matcher (where "coimbatore" resolves to a
+// college whose name starts with that district), so the bug is reproduced without
+// the full warehouse. Without the Phase-1 fix, the first two tests below fail.
+describe('entity extractor — RC1: a location is not a college', () => {
+  const mkCol = (name: string, city: string): CanonicalCollege => ({
+    id: `col:${name.toLowerCase().replace(/\W+/g, '-')}` as CanonicalCollegeId,
+    name,
+    nameSlug: name.toLowerCase().replace(/\W+/g, '-'),
+    city,
+    state: 'Tamil Nadu',
+    nirfId: null as NirfId | null,
+    counsellingCodes: [] as readonly CounsellingCode[],
+    hasNirfData: false,
+  })
+  const CIT = mkCol('Coimbatore Institute of Technology', 'Coimbatore')
+  const PSG = mkCol('PSG College of Technology', 'Coimbatore')
+  const lexicon: QueryLexicon = {
+    locations: new Set(['coimbatore', 'chennai', 'madurai', 'salem']),
+    resolveColleges: (frag: string) => {
+      const f = frag.toLowerCase()
+      if (f.includes('coimbatore')) return [{ college: CIT, score: 0.85 }]
+      if (f.includes('psg')) return [{ college: PSG, score: 0.95 }]
+      return []
+    },
+  }
+  const ex = createEntityExtractor(lexicon)
+  const r = (q: string) => {
+    const n = normalizeQuestion(q)
+    return ex.extract(n.normalized, n.tokens)
+  }
+
+  it('does NOT resolve a college from a bare "in <district>" filter', () => {
+    const out = r('cse in coimbatore')
+    expect(out.colleges).toHaveLength(0) // RC1: was ["Coimbatore Institute of Technology"]
+    expect(out.location).toBe('coimbatore') // still detected as a location
+  })
+
+  it('does NOT resolve a college for the flagship / district-only queries', () => {
+    expect(r('cse in coimbatore with bc 190').colleges).toHaveLength(0)
+    expect(r('colleges in madurai').colleges).toHaveLength(0)
+  })
+
+  it('STILL resolves a college when a location is followed by an institution word', () => {
+    expect(r('coimbatore institute of technology').colleges.map((c) => c.name)).toContain(
+      'Coimbatore Institute of Technology',
+    )
+  })
+
+  it('STILL resolves a distinctive (non-location) college name', () => {
+    expect(r('placements at psg college of technology').colleges.map((c) => c.name)).toContain(
+      'PSG College of Technology',
+    )
   })
 })

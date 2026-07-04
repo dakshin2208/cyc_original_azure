@@ -22,6 +22,7 @@ import {
   COLLEGE_SKIP_TOKENS,
   CUTOFF_MAX,
   ENTITY_KEYWORDS,
+  INSTITUTION_WORDS,
 } from './patterns'
 
 /** The structured result of entity extraction. */
@@ -88,12 +89,25 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
      * The name is matched from the first distinctive token onward (dropping
      * leading intent words) and, as a fallback, from the distinctive core alone.
      */
+    /**
+     * A token is a college-name SEED when it is distinctive AND not a bare location
+     * filter. A known location seeds a name ONLY when the next token is an
+     * institution word — so "Coimbatore Institute…" resolves, but "… in Coimbatore"
+     * does not. Prevents a district from being mis-parsed as a college (RC1).
+     */
+    const isNameSeed = (words: readonly string[], i: number): boolean => {
+      const t = words[i]
+      if (!isDistinctive(t)) return false
+      if (lexicon.locations.has(t)) return INSTITUTION_WORDS.has(words[i + 1] ?? '')
+      return true
+    }
+
     const best = (frag: string): CanonicalCollege | null => {
       const words = frag.split(' ').filter((t) => t.length > 0)
-      const firstIdx = words.findIndex(isDistinctive)
+      const firstIdx = words.findIndex((_, i) => isNameSeed(words, i))
       if (firstIdx < 0) return null
       const tail = words.slice(firstIdx).join(' ')
-      const core = words.filter(isDistinctive).join(' ')
+      const core = words.filter((_, i) => isNameSeed(words, i)).join(' ')
       const candidates = [
         ...lexicon.resolveColleges(tail, 1),
         ...lexicon.resolveColleges(core, 1),
