@@ -373,3 +373,19 @@ Seams exist (`lib/ai/adapters/telemetry`, an audit/trace module). Define events 
 - **CI-hardening (test-only, behavior-neutral):** `confidence.test.ts`, `district-filter.test.ts`, `eligibility-filter.test.ts` built the warehouse eagerly in the `describe` body and **threw during collection** when `CYC_DATA_DIR` was unset (they failed the file, not individual tests). Converted to the lazy-memoized `setup()` pattern so they skip cleanly in CI.
 - **Verification:** hermetic (no data) **497 pass / 44 skip, 0 fail**; with data **541 pass, 0 fail** (was 529 + 12 golden). App + test typecheck clean.
 - **Scope note:** M1 seeds a high-value curated core (flagship + invariants); the suite grows toward **≥200** as auto-derived eligibility rows come online with the M6 cutoff bridge.
+
+### ✅ M2 — Scoring realism (completed 2026-07-04)
+Fixed-denominator scoring (missing data dilutes, not renormalized) + `selectivity` dimension (OC cutoff as a demand/reputation proxy). Flagship: Nehru #1 → out of top-5; Sri Krishna → #2. 2 golden targets → lock. 541 pass.
+
+### ✅ M6 — Community-aware eligibility cutoffs (completed 2026-07-04)
+Parsed per-college, per-community median closing cutoffs from `Ftnea_cutoffs.csv` (joined via `CollegeCode`); a reserved student is now banded on their OWN community's marks (OC fallback). Selectivity also falls back to the TNEA OC median (fills PSG). Flagship: Kumaraguru #1; CIT/GCT now appear (were OC-dream-filtered). All 4 original targets → lock. 541 pass.
+
+### ✅ M7 — 2026 merge shared-NIRF disambiguation (completed 2026-07-04)
+The merge matched by NIRF code first, so a profile could claim the wrong college on a shared id (SNS-Coimbatore claimed Ponjesly-Kanyakumari → district leak). Now skips NIRF matching for shared ids (falls to exact name). Flagship top-10 became entirely genuine Coimbatore colleges. 541 pass.
+
+### ✅ M3 — Reputation tiers (completed 2026-07-04)
+Deterministic tiers (elite…regional) from OC cutoff + an evidence-justified curated floor for sparse marquee colleges (PSG), embedded as a disjoint band in the ranking total ("tiers dominate; scores refine"). **Flagship now counselor-correct: #1 Kumaraguru, #2 CIT, #3 GCT, #4 PSG-ITAR, #5 PSG, #6 Sri Krishna** — the expected elite set at the top. 3 new golden locks. 544 pass.
+
+**Stop conditions met:** all tests pass; golden set improved (4 targets fixed + 3 new locks); flagship substantially aligned with counselor expectations.
+
+**Remaining gaps (future milestones):** M4 expert-rule engine + comparative "why A>B"; M5 explicit Dream/Target/Safe spread presentation; M8–M11 CIL (Student Understanding, adaptive Strategy, categories/trade-offs, structured evidence + explanation), M9 monitoring; deeper base-warehouse NIRF-id dedup (D5) and duplicate-entity merge (CIT ×2); branch-specific (not college-level) cutoffs; provisioning `CYC_DATA_DIR` in CI to run the real-data golden tier.
