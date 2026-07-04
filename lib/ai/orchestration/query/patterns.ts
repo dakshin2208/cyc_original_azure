@@ -138,6 +138,13 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   'closing', 'marks', 'mark', 'score', 'scored', 'got', 'worth', 'value', 'money',
   'return', 'ranked', 'higher', 'studies', 'admission', 'chances', 'qualify',
   'difference', 'better', 'good',
+  // descriptors (adjectives — never a distinctive college name)
+  'affordable', 'cheap', 'cheapest', 'costly', 'reputed', 'famous', 'popular',
+  'nearby', 'nearest', 'local', 'decent', 'excellent', 'great', 'nice', 'quality',
+  'ideal', 'perfect', 'suitable', 'preferred', 'recommended', 'available',
+  // query vocabulary (not part of a distinctive college name)
+  'community', 'counselling', 'counseling', 'quota', 'reservation', 'seat', 'seats',
+  'category', 'stream', 'course', 'degree', 'department', 'options', 'option',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])

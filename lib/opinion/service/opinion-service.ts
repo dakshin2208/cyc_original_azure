@@ -61,6 +61,17 @@ const OUT_OF_DOMAIN_RESPONSE: OpinionResponse = {
   usedModel: false,
 }
 
+/** The fixed decline for a named-but-unverifiable college (RC7). */
+const UNVERIFIED_COLLEGE_RESPONSE: OpinionResponse = {
+  answer: "I couldn't verify that college from the official warehouse.",
+  evidence: [],
+  confidence: 'low',
+  followUps: [],
+  recommendationSummary: [],
+  strategy: 'general_counseling',
+  usedModel: false,
+}
+
 /** Create the opinion service over Phase-1 repositories + the retrieval engine. */
 export function createOpinionService(
   repos: KnowledgeRepositories,
@@ -82,6 +93,11 @@ export function createOpinionService(
     // other domain (medical/law/arts/…) instead of returning an engineering college.
     if (orchestration.parsed.outOfDomain !== null) {
       return { response: OUT_OF_DOMAIN_RESPONSE, state: orchestration.state }
+    }
+    // Unknown-entity guard (RC7): a named college we could not verify → decline
+    // rather than fuzzy-matching to an arbitrary real college.
+    if (orchestration.parsed.unverifiedCollege) {
+      return { response: UNVERIFIED_COLLEGE_RESPONSE, state: orchestration.state }
     }
     // 2. Deterministic opinion (strategy → dossiers → recommendations → prompt).
     const prepared = engine.prepare(orchestration.parsed, orchestration.context, {

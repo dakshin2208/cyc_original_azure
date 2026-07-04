@@ -27,7 +27,7 @@ function ext(o: {
     hasNirfData: false,
   })) as unknown as CanonicalCollege[]
   const community: CommunityCode | null = o.community ? communityCode(o.community) : null
-  return { entities: [], colleges, branch: o.branch ?? null, community, studentCutoff: o.cutoff ?? null, location: null }
+  return { entities: [], colleges, branch: o.branch ?? null, community, studentCutoff: o.cutoff ?? null, location: null, unverifiedCollege: false }
 }
 
 const intentOf = (q: string, e: ExtractionOutput = ext({})): string =>

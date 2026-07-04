@@ -65,6 +65,7 @@ export function createQueryParser(
       studentCutoff: extraction.studentCutoff,
       location: extraction.location,
       outOfDomain: detectOutOfDomain(normalized, extraction.branch),
+      unverifiedCollege: extraction.unverifiedCollege,
     }
   }
 

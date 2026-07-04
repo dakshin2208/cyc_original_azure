@@ -38,4 +38,10 @@ export interface ParsedQuery {
    * or `null` when the query is in-domain (engineering). Drives a scope decline.
    */
   readonly outOfDomain: string | null
+  /**
+   * True when the query names a college (a distinctive token alongside an
+   * institution word) that could NOT be verified against the warehouse. Drives a
+   * "couldn't verify that college" decline instead of a fuzzy mis-match.
+   */
+  readonly unverifiedCollege: boolean
 }

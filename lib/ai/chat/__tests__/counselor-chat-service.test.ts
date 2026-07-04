@@ -149,3 +149,19 @@ describe('counselor chat service — domain guard (RC6)', () => {
     }
   })
 })
+
+describe('counselor chat service — unknown entity guard (RC7)', () => {
+  it('declines a named college it cannot verify (no fuzzy mis-match)', async () => {
+    const { service } = makeCounselor(createUnavailableProvider('none'))
+    for (const q of ['Hogwarts Engineering College', 'XYZ Institute of Technology', 'Fake University']) {
+      expect(ok((await service.handle({ message: q })).body).answer).toMatch(/couldn't verify that college/i)
+    }
+  })
+
+  it('does NOT decline valid queries (no false positive)', async () => {
+    const { service } = makeCounselor(createUnavailableProvider('none'))
+    for (const q of ['best engineering colleges', 'which colleges can I get with 190 cutoff in OC community', 'affordable engineering college in Coimbatore']) {
+      expect(ok((await service.handle({ message: q })).body).answer).not.toMatch(/couldn't verify that college/i)
+    }
+  })
+})

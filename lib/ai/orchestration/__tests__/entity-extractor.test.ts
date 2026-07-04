@@ -102,12 +102,14 @@ describe('entity extractor — RC1: a location is not a college', () => {
   })
   const CIT = mkCol('Coimbatore Institute of Technology', 'Coimbatore')
   const PSG = mkCol('PSG College of Technology', 'Coimbatore')
+  const HOLYCROSS = mkCol('Holycross Engineering College', 'Trichy')
   const lexicon: QueryLexicon = {
     locations: new Set(['coimbatore', 'chennai', 'madurai', 'salem']),
     resolveColleges: (frag: string) => {
       const f = frag.toLowerCase()
       if (f.includes('coimbatore')) return [{ college: CIT, score: 0.85 }]
       if (f.includes('psg')) return [{ college: PSG, score: 0.95 }]
+      if (f.includes('hogwarts')) return [{ college: HOLYCROSS, score: 0.7 }] // spurious fuzzy match
       return []
     },
   }
@@ -138,5 +140,15 @@ describe('entity extractor — RC1: a location is not a college', () => {
     expect(r('placements at psg college of technology').colleges.map((c) => c.name)).toContain(
       'PSG College of Technology',
     )
+  })
+
+  it('RC7: rejects a fuzzy match that does not reflect the distinctive token', () => {
+    const out = r('hogwarts engineering college')
+    expect(out.colleges).toHaveLength(0) // the Holycross fuzzy match is rejected
+    expect(out.unverifiedCollege).toBe(true) // flagged for a "couldn't verify" decline
+  })
+
+  it('RC7: a resolved college is not flagged as unverified', () => {
+    expect(r('psg college of technology').unverifiedCollege).toBe(false)
   })
 })

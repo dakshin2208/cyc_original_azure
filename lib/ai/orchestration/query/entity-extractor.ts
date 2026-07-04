@@ -9,6 +9,7 @@
  */
 
 import {
+  comparisonKey,
   normalizeBranch,
   normalizeCommunity,
   type CanonicalCollege,
@@ -33,6 +34,8 @@ export interface ExtractionOutput {
   readonly community: CommunityCode | null
   readonly studentCutoff: number | null
   readonly location: string | null
+  /** True when the query names a college that could NOT be verified (RC7). */
+  readonly unverifiedCollege: boolean
 }
 
 /** The EntityExtractor component. */
@@ -114,7 +117,14 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
       ].filter((c) => c.score >= COLLEGE_MATCH_THRESHOLD)
       if (candidates.length === 0) return null
       candidates.sort((a, b) => b.score - a.score)
-      return candidates[0].college
+      const top = candidates[0].college
+      // RC7: the match must reflect a DISTINCTIVE (non-location) query token, not just
+      // generic institution words — else "Hogwarts Engineering College" fuzzy-matches
+      // an arbitrary "… Engineering College". Reject an unverifiable match.
+      const coreTokens = words.filter((w, i) => isNameSeed(words, i) && !lexicon.locations.has(w))
+      const key = comparisonKey(top.name)
+      const reflected = coreTokens.length === 0 || coreTokens.some((t) => key.includes(comparisonKey(t)))
+      return reflected ? top : null
     }
 
     const out: CanonicalCollege[] = []
@@ -221,7 +231,20 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
       entities.push({ type: 'college', value: c.name, normalized: c.name, raw: c.name, confidence: 0.9 })
     }
 
-    return { entities, colleges, branch, community, studentCutoff, location }
+    // RC7: the user named a college — a distinctive, non-location token immediately
+    // preceding an institution word (within a branch word, e.g. "Hogwarts Engineering
+    // College") — but nothing verified in the warehouse → flag for a decline. The
+    // adjacency requirement avoids flagging generic phrases like "which colleges …".
+    const unverifiedCollege =
+      colleges.length === 0 &&
+      tokens.some(
+        (t, i) =>
+          isDistinctive(t) &&
+          !lexicon.locations.has(t) &&
+          (INSTITUTION_WORDS.has(tokens[i + 1] ?? '') || INSTITUTION_WORDS.has(tokens[i + 2] ?? '')),
+      )
+
+    return { entities, colleges, branch, community, studentCutoff, location, unverifiedCollege }
   }
 
   return Object.freeze({ extract })

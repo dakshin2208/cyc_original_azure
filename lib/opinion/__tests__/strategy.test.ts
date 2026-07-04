@@ -21,6 +21,7 @@ function pq(o: Partial<ParsedQuery> & { intent: ParsedQuery['intent'] }): Parsed
     studentCutoff: null,
     location: null,
     outOfDomain: null,
+    unverifiedCollege: false,
     ...o,
   }
 }
