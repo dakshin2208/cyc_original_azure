@@ -35,6 +35,12 @@ export interface CollegeRepository {
   districtOf(id: CanonicalCollegeId): string | null
   /** OC closing cutoff (from the 2026 enrichment dataset) for a college, or `null` if unknown. */
   ocCutoffOf(id: CanonicalCollegeId): number | null
+  /**
+   * College-level median closing cutoff for a specific community (from the TNEA cutoff
+   * dataset), or `null` if unknown. Lets a reserved student be judged on their OWN
+   * community's marks rather than the OC band.
+   */
+  communityCutoffOf(id: CanonicalCollegeId, community: CommunityCode): number | null
 }
 
 /** Access to canonical branches. */

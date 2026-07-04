@@ -15,7 +15,7 @@ import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
-import { createNirf2026CutoffLookup } from '@/lib/recommendation'
+import { createCommunityCutoffLookup } from '@/lib/recommendation'
 import { createOpinionService } from '@/lib/opinion'
 import { createCounselorChatService, createInMemorySessionStore, createNullLogger } from '@/lib/ai/chat'
 
@@ -27,9 +27,7 @@ function setup() {
     const wh = buildWarehouseFromDirectory(DIR as string)
     const repos = createRepositories(wh)
     const retrieval = createRetrievalEngine(repos)
-    const cutoffs = createNirf2026CutoffLookup(
-      new Map([...wh.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])),
-    )
+    const cutoffs = createCommunityCutoffLookup(repos)
     const opinion = createOpinionService(repos, retrieval, { cutoffs }) // deterministic (no provider)
     const svc = createCounselorChatService({
       opinion,

@@ -11,4 +11,5 @@ export {
   createTableCutoffLookup,
 } from './cutoff-lookup'
 export { createNirf2026CutoffLookup } from './nirf2026-cutoff-lookup'
+export { createCommunityCutoffLookup } from './community-cutoff-lookup'
 export { type ProfileProvider, createProfileProvider } from './profile-provider'

@@ -76,15 +76,15 @@ export const REAL_DATA_SCENARIOS: readonly GoldenScenario[] = [
   },
   {
     id: 'flagship-includes-kumaraguru',
-    mode: 'target',
-    note: 'Kumaraguru (OC 195.5) is realistic for a BC-190 student — must not be dream-filtered on the OC cutoff',
+    mode: 'lock', // ✅ fixed by M6 (community cutoffs: BC-median 186 → target) — promoted from target
+    note: 'Kumaraguru is realistic for a BC-190 student on BC marks — must be recommended',
     request: FLAGSHIP_REQUEST,
     expect: { contains: ['Kumaraguru College of Technology'] },
   },
   {
     id: 'flagship-includes-gct',
-    mode: 'target',
-    note: 'Government College of Technology (OC 197.5) must be recommended for BC 190',
+    mode: 'lock', // ✅ fixed by M6 (GCT BC-median 192.5 → reach) — promoted from target
+    note: 'Government College of Technology must be recommended for BC 190 on BC marks',
     request: FLAGSHIP_REQUEST,
     expect: { contains: ['Government College of Technology'] },
   },

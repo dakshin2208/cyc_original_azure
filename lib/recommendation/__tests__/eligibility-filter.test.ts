@@ -14,7 +14,7 @@ import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildWarehouseFromDirectory, createRepositories, type CommunityCode } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
-import { createRecommendationEngine, createNirf2026CutoffLookup } from '@/lib/recommendation'
+import { createRecommendationEngine, createCommunityCutoffLookup } from '@/lib/recommendation'
 
 const DIR = process.env.CYC_DATA_DIR
 const BC = 'BC' as CommunityCode
@@ -22,17 +22,20 @@ const OC = 'OC' as CommunityCode
 
 let cached: {
   reco: ReturnType<typeof createRecommendationEngine>
-  ocOf: (id: string) => number | null
+  /** Effective BC closing cutoff used for banding: community median, else OC. */
+  bcCutoffOf: (id: string) => number | null
 } | null = null
 function setup() {
   if (!cached) {
     const wh = buildWarehouseFromDirectory(DIR as string)
     const repos = createRepositories(wh)
-    const cutoffs = createNirf2026CutoffLookup(
-      new Map([...wh.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])),
-    )
+    const cutoffs = createCommunityCutoffLookup(repos)
     const reco = createRecommendationEngine(repos, createRetrievalEngine(repos), { cutoffs })
-    cached = { reco, ocOf: (id) => wh.nirf2026.byCollege.get(id as never)?.ocCutoff ?? null }
+    cached = {
+      reco,
+      bcCutoffOf: (id) =>
+        repos.colleges.communityCutoffOf(id as never, BC) ?? repos.colleges.ocCutoffOf(id as never),
+    }
   }
   return cached
 }
@@ -45,12 +48,12 @@ describe.skipIf(!DIR || !existsSync(DIR as string))('recommendation — eligibil
     for (const r of recs) expect(r.eligibility?.category).not.toBe('dream')
   })
 
-  it('never surfaces a known OC cutoff far above the student (within reach margin)', () => {
-    const { reco, ocOf } = setup()
+  it('never surfaces a college whose BC cutoff is far above the student (within reach margin)', () => {
+    const { reco, bcCutoffOf } = setup()
     const recs = reco.recommendByCutoff(190, BC, { district: 'Coimbatore', limit: 25 })
     for (const r of recs) {
-      const oc = ocOf(r.college.id)
-      if (oc !== null) expect(oc).toBeLessThanOrEqual(195) // student 190 + reachMargin 5
+      const bc = bcCutoffOf(r.college.id)
+      if (bc !== null) expect(bc).toBeLessThanOrEqual(195) // student 190 + reachMargin 5, on BC marks
     }
   })
 

@@ -17,7 +17,7 @@ import { existsSync } from 'node:fs'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
 import {
-  createNirf2026CutoffLookup,
+  createCommunityCutoffLookup,
   createRecommendationEngine,
   type RecommendationEngine,
 } from '@/lib/recommendation'
@@ -80,9 +80,7 @@ function realReco(): RecommendationEngine {
     const wh = buildWarehouseFromDirectory(DIR as string)
     const repos = createRepositories(wh)
     const retrieval = createRetrievalEngine(repos)
-    const cutoffs = createNirf2026CutoffLookup(
-      new Map([...wh.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])),
-    )
+    const cutoffs = createCommunityCutoffLookup(repos)
     cached = createRecommendationEngine(repos, retrieval, { cutoffs })
   }
   return cached

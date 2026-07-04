@@ -41,6 +41,7 @@ export {
   nullCutoffLookup,
   createTableCutoffLookup,
   createNirf2026CutoffLookup,
+  createCommunityCutoffLookup,
   type ProfileProvider,
   createProfileProvider,
 } from './data'

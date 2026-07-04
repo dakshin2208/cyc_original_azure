@@ -19,7 +19,7 @@
 import { randomUUID } from 'crypto'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
-import { createNirf2026CutoffLookup, type CutoffLookup } from '@/lib/recommendation'
+import { createCommunityCutoffLookup, type CutoffLookup } from '@/lib/recommendation'
 import type { ConversationState } from '@/lib/ai/orchestration'
 import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
 import {
@@ -283,11 +283,9 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
   const provider = options.provider ?? resolveConfiguredProvider(env)
   const systemPrompt = options.systemPrompt ?? composeCounselorSystem()
 
-  // Eligibility (RC4): back the cutoff lookup with the 2026 OC closing cutoffs
-  // (conservative for reserved communities; see createNirf2026CutoffLookup).
-  const cutoffs =
-    options.cutoffs ??
-    createNirf2026CutoffLookup(new Map([...warehouse.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])))
+  // Eligibility (RC4/M6): community-aware closing cutoffs — a reserved student is
+  // banded on their OWN community's TNEA marks, falling back to the OC cutoff.
+  const cutoffs = options.cutoffs ?? createCommunityCutoffLookup(repos)
 
   const opinion = createOpinionService(repos, retrieval, {
     provider,

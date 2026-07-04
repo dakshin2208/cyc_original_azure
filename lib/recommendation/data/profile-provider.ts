@@ -8,7 +8,7 @@
  * (the warehouse is immutable) for deterministic, allocation-light scoring.
  */
 
-import type { CanonicalCollege, KnowledgeRepositories } from '@/lib/knowledge'
+import { communityCode, type CanonicalCollege, type KnowledgeRepositories } from '@/lib/knowledge'
 import type { RetrievalEngine } from '@/lib/retrieval'
 import type { RecommendationConfig } from '../config'
 import type { CollegeProfile } from '../models'
@@ -33,6 +33,7 @@ export function createProfileProvider(
   config: RecommendationConfig,
 ): ProfileProvider {
   const cache = new Map<string, CollegeProfile>()
+  const OC = communityCode('OC')
 
   const assemble = (college: CanonicalCollege): CollegeProfile => {
     const nirf = college.nirfId
@@ -46,7 +47,9 @@ export function createProfileProvider(
       faculty: nirf ? engine.institutions.getFaculty(nirf) : null,
       instituteType: classifyInstituteType(college, institution, config.governmentKeywords),
       district: repos.colleges.districtOf(college.id),
-      ocCutoff: repos.colleges.ocCutoffOf(college.id),
+      // Selectivity signal: the 2026 OC cutoff, falling back to the TNEA OC median so
+      // colleges missing a 2026 cutoff (e.g. PSG) still get a selectivity score.
+      ocCutoff: repos.colleges.ocCutoffOf(college.id) ?? repos.colleges.communityCutoffOf(college.id, OC),
     })
   }
 

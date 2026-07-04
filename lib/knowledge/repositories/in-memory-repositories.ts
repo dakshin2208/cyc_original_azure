@@ -33,6 +33,11 @@ export function createRepositories(warehouse: CanonicalWarehouse): KnowledgeRepo
       list: () => warehouse.colleges,
       districtOf: (id) => warehouse.nirf2026.byCollege.get(id)?.district ?? null,
       ocCutoffOf: (id) => warehouse.nirf2026.byCollege.get(id)?.ocCutoff ?? null,
+      communityCutoffOf: (id, community) => {
+        const code = warehouse.nirf2026.byCollege.get(id)?.collegeCode
+        if (!code) return null
+        return warehouse.communityCutoffs.get(code)?.[community] ?? null
+      },
     },
 
     branches: {

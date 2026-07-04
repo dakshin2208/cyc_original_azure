@@ -27,6 +27,7 @@ import type {
 } from '../models'
 import type { ValidationIssue } from '../validation'
 import type { Nirf2026Dataset } from '../nirf2026'
+import type { CommunityCutoffs } from '../cutoffs/community-cutoffs'
 
 /** Parsed source rows required to build the warehouse. */
 export interface RawSources {
@@ -61,6 +62,11 @@ export interface RawSources {
    * other sources.
    */
   readonly nirf2026?: readonly CsvRow[]
+  /**
+   * `Ftnea_cutoffs.csv` rows — TNEA community/branch closing cutoffs. OPTIONAL:
+   * omitted/empty for hermetic fixtures. Consumed for community-wise eligibility.
+   */
+  readonly cutoffRows?: readonly CsvRow[]
 }
 
 /** Summary counts for a warehouse build. */
@@ -146,9 +152,16 @@ export interface CanonicalWarehouse {
   readonly researchByCollege: ReadonlyMap<CanonicalCollegeId, readonly CanonicalResearch[]>
   readonly financeByCollege: ReadonlyMap<CanonicalCollegeId, readonly CanonicalFinance[]>
 
-  // ── 2026 enrichment (additive; NOT yet consumed by recommendation) ──────────
+  // ── 2026 enrichment (additive) ──────────────────────────────────────────────
   /** The merged 2026 NIRF dataset: profiles, by-college index, and merge audit. */
   readonly nirf2026: Nirf2026Dataset
+
+  /**
+   * Per-college (counselling-code), per-community median closing cutoffs from the
+   * TNEA cutoff dataset. Used for community-aware eligibility banding. Empty when the
+   * cutoff rows are absent.
+   */
+  readonly communityCutoffs: CommunityCutoffs
 
   // ── Metadata ────────────────────────────────────────────────────────────────
   readonly report: BuildReport
