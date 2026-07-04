@@ -22,6 +22,10 @@ export interface NormalizationRefs {
   readonly operatingExpenditureRef: number
   readonly academicPhdScholarsRef: number
   readonly facultySizeRef: number
+  /** Selectivity floor: OC cutoff at/below which selectivity scores 0 (TNEA aggregate marks). */
+  readonly selectivityMinCutoff: number
+  /** Selectivity ceiling: OC cutoff at/above which selectivity scores 1 (TNEA max = 200). */
+  readonly selectivityMaxCutoff: number
 }
 
 /** Eligibility thresholds, expressed in cutoff marks. */
@@ -68,6 +72,9 @@ const BASE_WEIGHTS: DimensionWeights = {
   infrastructure: 1.5,
   financialStrength: 1,
   academicReputation: 2,
+  // Selectivity (OC-cutoff demand proxy) — a strong reputation signal a counselor
+  // weighs heavily; the single biggest corrective to reputation-blind ranking.
+  selectivity: 3,
   nirfPresence: 1,
   availableBranches: 0.5,
   dataCompleteness: 1.5,
@@ -110,6 +117,8 @@ export const defaultConfig: RecommendationConfig = {
     operatingExpenditureRef: 2_000_000_000,
     academicPhdScholarsRef: 500,
     facultySizeRef: 500,
+    selectivityMinCutoff: 100,
+    selectivityMaxCutoff: 200,
   },
   eligibility: { safeMargin: 8, reachMargin: 5 },
   confidence: { highThreshold: 0.75, mediumThreshold: 0.45 },

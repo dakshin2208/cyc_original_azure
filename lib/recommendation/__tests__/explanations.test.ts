@@ -44,7 +44,7 @@ describe('confidence generation', () => {
     const c = reasons.confidence(fakeScore(0.5, 4))
     expect(c.value).toBe(0.5)
     expect(c.dataCompleteness).toBe(0.5)
-    expect(c.basis).toBe('data_completeness=4/9')
+    expect(c.basis).toBe('data_completeness=4/10')
     expect(c.value).toBeGreaterThanOrEqual(0)
     expect(c.value).toBeLessThanOrEqual(1)
   })

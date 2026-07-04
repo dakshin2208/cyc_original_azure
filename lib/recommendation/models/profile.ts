@@ -21,4 +21,6 @@ export interface CollegeProfile {
   readonly instituteType: InstituteType
   /** District (from the 2026 dataset), or `null` when unknown. Used for filtering. */
   readonly district: string | null
+  /** OC closing cutoff (from the 2026 dataset), or `null`. Selectivity / demand signal. */
+  readonly ocCutoff: number | null
 }

@@ -92,6 +92,20 @@ function financialStrength(p: CollegeProfile, refs: NormalizationRefs): RawDimen
   return { raw: opex, value: normalizeToRef(opex, refs.operatingExpenditureRef) }
 }
 
+/**
+ * Selectivity: the OC closing cutoff, normalized between a floor and the 200-mark
+ * ceiling. A higher closing cutoff means stronger demand — a deterministic proxy for
+ * reputation/brand that a counselor weighs heavily. `null` when no cutoff is on file.
+ */
+function selectivity(p: CollegeProfile, refs: NormalizationRefs): RawDimension {
+  const oc = p.ocCutoff
+  if (oc === null) return NO_DATA
+  const lo = refs.selectivityMinCutoff
+  const hi = refs.selectivityMaxCutoff
+  const value = hi > lo ? clamp01((oc - lo) / (hi - lo)) : null
+  return { raw: oc, value }
+}
+
 /** Academic reputation: normalized count of PhD scholars currently pursuing. */
 function academicReputation(p: CollegeProfile, refs: NormalizationRefs): RawDimension {
   const inst = p.institution
@@ -132,6 +146,7 @@ export const EXTRACTORS: Readonly<
   infrastructure,
   financialStrength,
   academicReputation,
+  selectivity,
   nirfPresence: (p) => nirfPresence(p),
   availableBranches: (p) => availableBranches(p),
   dataCompleteness: (p) => dataCompleteness(p),

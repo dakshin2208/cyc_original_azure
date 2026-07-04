@@ -46,6 +46,7 @@ export function createProfileProvider(
       faculty: nirf ? engine.institutions.getFaculty(nirf) : null,
       instituteType: classifyInstituteType(college, institution, config.governmentKeywords),
       district: repos.colleges.districtOf(college.id),
+      ocCutoff: repos.colleges.ocCutoffOf(college.id),
     })
   }
 

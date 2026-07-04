@@ -14,6 +14,7 @@ export const SCORE_DIMENSIONS = [
   'infrastructure',
   'financialStrength',
   'academicReputation',
+  'selectivity',
   'nirfPresence',
   'availableBranches',
   'dataCompleteness',

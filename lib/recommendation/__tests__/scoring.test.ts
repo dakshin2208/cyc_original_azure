@@ -50,17 +50,16 @@ describe('scoring engine', () => {
     }
   })
 
-  it('renormalizes over dimensions WITH data (missing data is not a zero)', () => {
+  it('omits a missing dimension from the numerator but keeps its weight (fixed denominator)', () => {
     const s = scoring.score(delta, defaultConfig.weights)
-    // Master-only college: placement/faculty/research/finance/reputation absent.
+    // Master-only college: placement/faculty/research/finance/reputation absent → 0 contribution.
     for (const d of ['placement', 'faculty', 'research', 'infrastructure', 'financialStrength', 'academicReputation'] as ScoreDimension[]) {
       expect(dim(s.dimensions, d).hasData).toBe(false)
       expect(dim(s.dimensions, d).contribution).toBe(0)
     }
-    // Only always-known signals carry data.
+    // Only always-known signals carry data; both are zero-valued here → total 0.
     expect(dim(s.dimensions, 'nirfPresence').hasData).toBe(true)
     expect(dim(s.dimensions, 'dataCompleteness').hasData).toBe(true)
-    // Both are zero here → total 0, but it is a renormalized average, not a penalty.
     expect(s.total).toBe(0)
   })
 
@@ -71,10 +70,10 @@ describe('scoring engine', () => {
   })
 
   it('reports data completeness as a fraction of dimensions with data', () => {
-    // 8 of 9 dimensions have data for a full college (availableBranches excluded).
-    expect(scoring.score(alpha, defaultConfig.weights).dataCompleteness).toBeCloseTo(8 / 9, 6)
-    // 2 of 9 for a master-only college (nirfPresence + dataCompleteness).
-    expect(scoring.score(delta, defaultConfig.weights).dataCompleteness).toBeCloseTo(2 / 9, 6)
+    // 8 of 10 dimensions have data for a full college (availableBranches + selectivity absent in the fixture).
+    expect(scoring.score(alpha, defaultConfig.weights).dataCompleteness).toBeCloseTo(8 / 10, 6)
+    // 2 of 10 for a master-only college (nirfPresence + dataCompleteness).
+    expect(scoring.score(delta, defaultConfig.weights).dataCompleteness).toBeCloseTo(2 / 10, 6)
   })
 
   it('responds to the weight profile (placement emphasis raises a placement-strong college)', () => {

@@ -90,14 +90,14 @@ export const REAL_DATA_SCENARIOS: readonly GoldenScenario[] = [
   },
   {
     id: 'flagship-nehru-not-first',
-    mode: 'target',
+    mode: 'lock', // ✅ fixed by M2 (fixed-denominator + selectivity) — promoted from target
     note: 'A sparse regional college must not out-rank elite Coimbatore colleges',
     request: FLAGSHIP_REQUEST,
     expect: { top1Not: NEHRU },
   },
   {
     id: 'flagship-srikrishna-over-nehru',
-    mode: 'target',
+    mode: 'lock', // ✅ fixed by M2 — promoted from target
     note: 'Sri Krishna (median salary ₹700k, PowerScore 96.4) must out-rank data-sparse Nehru',
     request: FLAGSHIP_REQUEST,
     expect: { before: [['Sri Krishna College of Engineering and Technology', NEHRU]] },

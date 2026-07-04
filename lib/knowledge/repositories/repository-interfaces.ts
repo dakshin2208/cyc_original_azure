@@ -33,6 +33,8 @@ export interface CollegeRepository {
   list(): readonly CanonicalCollege[]
   /** District (from the 2026 enrichment dataset) for a college, or `null` if unknown. */
   districtOf(id: CanonicalCollegeId): string | null
+  /** OC closing cutoff (from the 2026 enrichment dataset) for a college, or `null` if unknown. */
+  ocCutoffOf(id: CanonicalCollegeId): number | null
 }
 
 /** Access to canonical branches. */

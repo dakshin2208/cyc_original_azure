@@ -46,17 +46,21 @@ export function createScoringEngine(config: RecommendationConfig): ScoringEngine
       }
     })
 
-    // Weighted average over ONLY the dimensions that have data.
+    // Weighted average over the FULL weight of all dimensions: a missing dimension
+    // contributes 0 but its weight stays in the denominator, so sparse data dilutes the
+    // score instead of being renormalized away (which used to reward missing data). A
+    // college is credited only for what it can evidence.
     let weightedSum = 0
-    let activeWeight = 0
+    let totalWeight = 0
     let withData = 0
     for (const d of dimensions) {
-      if (!d.hasData) continue
-      weightedSum += d.contribution
-      activeWeight += d.weight
-      withData += 1
+      totalWeight += d.weight
+      if (d.hasData) {
+        weightedSum += d.contribution
+        withData += 1
+      }
     }
-    const total = activeWeight > 0 ? weightedSum / activeWeight : 0
+    const total = totalWeight > 0 ? weightedSum / totalWeight : 0
 
     return {
       total,

@@ -16,6 +16,7 @@ export const DIMENSION_LABEL: Readonly<Record<ScoreDimension, string>> = {
   infrastructure: 'Infrastructure',
   financialStrength: 'Financial strength',
   academicReputation: 'Academic reputation',
+  selectivity: 'Selectivity',
   nirfPresence: 'NIRF recognition',
   availableBranches: 'Branch availability',
   dataCompleteness: 'Data completeness',
@@ -42,6 +43,11 @@ export const DIMENSION_SUMMARY: Readonly<
     strong: 'Highly reputed academically',
     moderate: 'Well regarded academically',
     weak: 'Emerging academic profile',
+  },
+  selectivity: {
+    strong: 'Highly selective admissions',
+    moderate: 'Competitive admissions',
+    weak: 'Accessible admissions',
   },
   nirfPresence: {
     strong: 'NIRF-ranked institution',
