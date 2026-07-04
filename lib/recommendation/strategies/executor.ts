@@ -89,6 +89,22 @@ export function rankProfiles(
   const inDistrict = (p: CollegeProfile): boolean =>
     !districtWanted || (p.district ?? '').toLowerCase() === districtWanted
 
+  // Eligibility filter (RC4): with the student's cutoff + community known, exclude
+  // colleges they are clearly ineligible for (well below the closing cutoff →
+  // "dream"). Unknown cutoffs are KEPT — we never fabricate ineligibility.
+  const eligible = (p: CollegeProfile): boolean => {
+    if (request.includeIneligible) return true // band strategies select their own band
+    if (request.studentCutoff === undefined || request.community === undefined) return true
+    return (
+      ctx.eligibility.assess({
+        college: p.college,
+        studentCutoff: request.studentCutoff,
+        community: request.community,
+        branch: request.branch,
+      }).category !== 'dream'
+    )
+  }
+
   const hasRequired = (score: RecommendationScore): boolean =>
     spec.requires === undefined ||
     spec.requires.every((dim) => score.dimensions.find((d) => d.dimension === dim)?.hasData === true)
@@ -97,6 +113,7 @@ export function rankProfiles(
     .listProfiles()
     .filter((p) => (spec.accepts ? spec.accepts(p) : true))
     .filter(inDistrict)
+    .filter(eligible)
     .map((profile) => ({ profile, score: ctx.scoring.score(profile, spec.weights) }))
     .filter(({ score }) => hasRequired(score))
     .sort(compareScored)

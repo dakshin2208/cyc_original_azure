@@ -143,6 +143,7 @@ export function createRecommendationEngine(
       community,
       branch: o?.branch,
       district: o?.district,
+      includeIneligible: true, // this method selects the band itself
       limit: Number.MAX_SAFE_INTEGER,
     })
     const filtered = full.filter((r) => r.eligibility?.category === band)

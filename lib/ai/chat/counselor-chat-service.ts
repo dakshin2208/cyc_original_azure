@@ -19,7 +19,7 @@
 import { randomUUID } from 'crypto'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
-import type { CutoffLookup } from '@/lib/recommendation'
+import { createNirf2026CutoffLookup, type CutoffLookup } from '@/lib/recommendation'
 import type { ConversationState } from '@/lib/ai/orchestration'
 import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
 import {
@@ -188,14 +188,21 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     throw new ChatConfigError('warehouse data directory is not configured (set CYC_DATA_DIR)')
   }
 
-  const repos = createRepositories(buildWarehouseFromDirectory(dataDir))
+  const warehouse = buildWarehouseFromDirectory(dataDir)
+  const repos = createRepositories(warehouse)
   const retrieval = createRetrievalEngine(repos)
   const provider = options.provider ?? resolveConfiguredProvider(env)
   const systemPrompt = options.systemPrompt ?? composeCounselorSystem()
 
+  // Eligibility (RC4): back the cutoff lookup with the 2026 OC closing cutoffs
+  // (conservative for reserved communities; see createNirf2026CutoffLookup).
+  const cutoffs =
+    options.cutoffs ??
+    createNirf2026CutoffLookup(new Map([...warehouse.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])))
+
   const opinion = createOpinionService(repos, retrieval, {
     provider,
-    cutoffs: options.cutoffs,
+    cutoffs,
     config: options.opinionConfig,
     systemPrompt,
   })

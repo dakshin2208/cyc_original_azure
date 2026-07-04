@@ -88,11 +88,14 @@ export function createOpinionEngine(deps: {
       baseContext.comparison === null &&
       baseContext.subjects.length === 0
     ) {
-      // Respect the requested district (RC2) even on the quality-baseline fallback,
-      // so an out-of-district college is never surfaced.
+      // Respect district (RC2) AND eligibility (RC4) on the quality-baseline
+      // fallback, so an out-of-district or clearly-ineligible college is never
+      // surfaced. If nothing survives, the response degrades to a safe decline.
       const recommendations = deps.reco.recommendBestCollege({
         limit: config.candidateLimit,
         district: parsed.location ?? undefined,
+        studentCutoff: parsed.studentCutoff ?? undefined,
+        community: parsed.community ?? undefined,
       })
       const evidence = evidenceCollector.collect({ recommendations, comparison: null, facts: [] })
       context = { ...baseContext, recommendations, evidence }
