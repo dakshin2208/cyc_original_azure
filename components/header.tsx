@@ -81,6 +81,11 @@ export function Header() {
       label: "College Predictor"
     },
     {
+      href: "/rank-predictor",
+      icon: LineChart,
+      label: "Rank Predictor"
+    },
+    {
       href: "/compare-colleges",
       icon: Scale,
       label: "Compare Colleges"

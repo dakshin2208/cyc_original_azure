@@ -15,7 +15,7 @@ import { jsPDF } from "jspdf"
 import autoTable from 'jspdf-autotable'
 import { toast } from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
-import { planAllowsAiMethod, planAspirationalLimit } from "@/lib/plans"
+import { planAllowsAiMethod, planAllowsPowerScore, planAspirationalLimit } from "@/lib/plans"
 import { LoginForm } from "@/app/components/LoginForm"
 import { useAuth } from "../contexts/AuthContext"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -60,6 +60,10 @@ type UserPreferences = {
   collegeOption: 'cutoff' | 'cutoff+five' | 'specific' | null
   selectedColleges: string[]
   choiceType: 'traditional' | 'smart' | null
+  // Display label for the chosen method: 'Traditional Method' | 'Power Score' | 'AI Method'.
+  // 'Power Score' and 'AI Method' both run the same 'smart' (PowerScore-ranked) engine;
+  // the label only differs so results/exports read correctly and AI Method can be plan-gated.
+  choiceMethodLabel?: string
   requiredCollegeCount?: number
   resultType: 'cutoff' | 'rank' | null
 }
@@ -805,7 +809,7 @@ export default function ChoiceFilling() {
       const nextMessage: Message = {
         type: 'bot',
         content: 'Do you want the results based on your Cutoff or Rank?',
-        options: ['Cutoff based', 'Rank based']
+        options: ['Cutoff based', 'AI Based']
       }
       setMessages(prev => [...prev, nextMessage])
     }
@@ -1110,14 +1114,17 @@ export default function ChoiceFilling() {
           showSelectedOptions: true
         }
         
-        // Then add the choice type question.
-        // AI (Smartass) method is only offered on the Assured+ plan.
+        // Then add the choice type question. Options are gated by plan (see pricing
+        // page): Traditional Method is always available; Power Score on paid plans;
+        // AI Method on Assured and Assured+.
         const choiceTypeMessage: Message = {
           type: 'bot',
-          content: 'Do you want Traditional Cutoff based choices or Smartass ai-choices?',
-          options: planAllowsAiMethod(usageData?.planType)
-            ? ['Traditional Method', 'Smartass AI - Method']
-            : ['Traditional Method']
+          content: 'Which method would you like to use for your choices?',
+          options: [
+            'Traditional Method',
+            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
+            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
+          ]
         }
         
         // Add both messages in sequence
@@ -1133,17 +1140,34 @@ export default function ChoiceFilling() {
         content: 'Do you have any specific colleges in mind to add it in your choices?',
         options: ['Yes', 'No']
       }
-    } else if (message.content.includes('Traditional Cutoff based choices or Smartass ai-choices')) {
+    } else if (message.content.includes('Which method would you like to use for your choices')) {
       const option = response.split(':')[0].trim()
+      // Engine: Traditional Method -> cutoff/rank sort ('traditional');
+      // Power Score and AI Method -> PowerScore-ranked engine ('smart').
       let choiceType: 'traditional' | 'smart' = option === 'Traditional Method' ? 'traditional' : 'smart'
-      // AI (Smartass) method is available only on the Assured+ plan
-      if (choiceType === 'smart' && !planAllowsAiMethod(usageData?.planType)) {
-        toast.error('AI Method is available on the Assured+ plan — using Traditional Method instead.')
+      let choiceMethodLabel = option
+      // Enforce plan gating (defensive — ineligible options are not shown, but a
+      // stale message could still be clicked). AI Method needs Assured or higher;
+      // Power Score needs any paid plan.
+      if (option === 'AI Method' && !planAllowsAiMethod(usageData?.planType)) {
+        if (planAllowsPowerScore(usageData?.planType)) {
+          toast.error('AI Method is available on the Assured plan or higher — using Power Score instead.')
+          choiceMethodLabel = 'Power Score'
+          choiceType = 'smart'
+        } else {
+          toast.error('AI Method is available on the Assured plan or higher — using Traditional Method instead.')
+          choiceMethodLabel = 'Traditional Method'
+          choiceType = 'traditional'
+        }
+      } else if (option === 'Power Score' && !planAllowsPowerScore(usageData?.planType)) {
+        toast.error('Power Score is available on paid plans — using Traditional Method instead.')
+        choiceMethodLabel = 'Traditional Method'
         choiceType = 'traditional'
       }
       setUserPreferences(prev => ({
         ...prev,
-        choiceType
+        choiceType,
+        choiceMethodLabel
       }))
 
       // Ask about colleges in mind after choice type selection
@@ -1164,7 +1188,7 @@ export default function ChoiceFilling() {
         nextMessage = {
           type: 'bot',
           content: 'Do you want the results based on your Cutoff or Rank?',
-          options: ['Cutoff based', 'Rank based']
+          options: ['Cutoff based', 'AI Based']
         }
       } else if (option === 'Yes') {
         // Show specific college selection options, capped at the plan's aspirational limit
@@ -1190,7 +1214,7 @@ export default function ChoiceFilling() {
         nextMessage = {
           type: 'bot',
           content: 'Do you want the results based on your Cutoff or Rank?',
-          options: ['Cutoff based', 'Rank based']
+          options: ['Cutoff based', 'AI Based']
         }
       }
     } else if (message.content.includes('How many specific colleges would you like to select')) {
@@ -1271,7 +1295,7 @@ export default function ChoiceFilling() {
         nextMessage = {
           type: 'bot',
           content: 'Do you want the results based on your Cutoff or Rank?',
-          options: ['Cutoff based', 'Rank based']
+          options: ['Cutoff based', 'AI Based']
         }
       }
     } else if (isSelectingColleges) {
@@ -1284,7 +1308,7 @@ export default function ChoiceFilling() {
         nextMessage = {
           type: 'bot',
           content: 'Do you want the results based on your Cutoff or Rank?',
-          options: ['Cutoff based', 'Rank based']
+          options: ['Cutoff based', 'AI Based']
         }
       }
     } else if (message.content.includes('college codes')) {
@@ -1296,7 +1320,7 @@ export default function ChoiceFilling() {
       nextMessage = {
         type: 'bot',
         content: 'Do you want the results based on your Cutoff or Rank?',
-        options: ['Cutoff based', 'Rank based']
+        options: ['Cutoff based', 'AI Based']
       }
     } else if (message.content.includes('Do you want the results based on your Cutoff or Rank')) {
       const option = response.split(':')[0].trim()
@@ -2155,8 +2179,8 @@ export default function ChoiceFilling() {
       const resultsMessage: Message = {
         type: 'bot',
         content: hasNullColleges 
-          ? `Based on your rank and last year's TNEA + NIRF data, we've identified colleges that had seats available previously. While it may be a close call, these suggestions are smart backup options to help you explore every possible opportunity with confidence!\n\nHere are your ${userPreferences.choiceType === 'traditional' ? 'traditional' : 'AI-powered'} choice filling results:`
-          : `Here are your ${userPreferences.choiceType === 'traditional' ? 'traditional' : 'AI-powered'} choice filling results:`,
+          ? `Based on your rank and last year's TNEA + NIRF data, we've identified colleges that had seats available previously. While it may be a close call, these suggestions are smart backup options to help you explore every possible opportunity with confidence!\n\nHere are your ${userPreferences.choiceType === 'traditional' ? 'traditional' : (userPreferences.choiceMethodLabel || 'Power Score')} choice filling results:`
+          : `Here are your ${userPreferences.choiceType === 'traditional' ? 'traditional' : (userPreferences.choiceMethodLabel || 'Power Score')} choice filling results:`,
         results: userPreferences.choiceType === 'traditional' ? limitedResults : groupedResults
       }
 
@@ -2729,9 +2753,9 @@ export default function ChoiceFilling() {
       doc.setTextColor(0, 0, 0)
       doc.setFontSize(20)
       doc.setFont('helvetica', 'bold')
-      const title = userPreferences.choiceType === 'smart' 
-        ? 'Smartass AI Choice Filling Results' 
-        : 'Traditional Method Choice Filling Results'
+      const methodName = userPreferences.choiceMethodLabel
+        || (userPreferences.choiceType === 'smart' ? 'Power Score' : 'Traditional Method')
+      const title = `${methodName} Choice Filling Results`
       const titleWidth = doc.getTextWidth(title)
       const titleX = (pageWidth - titleWidth) / 2
       doc.text(title, titleX, 35)
@@ -2844,8 +2868,9 @@ export default function ChoiceFilling() {
         userPreferences.collegeOption ? formatPreference('College Option', userPreferences.collegeOption === 'cutoff' ? 'Colleges that match my Cutoff' :
                                                                       userPreferences.collegeOption === 'specific' ? `Select ${userPreferences.requiredCollegeCount || 5} specific colleges` : userPreferences.collegeOption) : '',
         userPreferences.selectedColleges.length > 0 ? formatPreference('Selected Colleges', userPreferences.selectedColleges.join(', ')) : '',
-        userPreferences.choiceType ? formatPreference('Choice Type', userPreferences.choiceType === 'smart' ? 'Smartass AI - Method' :
-                                                                    userPreferences.choiceType === 'traditional' ? 'Traditional Method' : userPreferences.choiceType) : ''
+        userPreferences.choiceType ? formatPreference('Choice Type', userPreferences.choiceMethodLabel ||
+                                                                    (userPreferences.choiceType === 'smart' ? 'Power Score' :
+                                                                    userPreferences.choiceType === 'traditional' ? 'Traditional Method' : userPreferences.choiceType)) : ''
       ].filter(Boolean)
 
       // Split preferences into two columns and draw them
@@ -3110,9 +3135,12 @@ export default function ChoiceFilling() {
 
       // Save the PDF with appropriate filename
       const timestamp = new Date().toISOString().split('T')[0]
-      const filename = userPreferences.choiceType === 'smart'
-        ? `ai-smart-choices-${timestamp}.pdf`
-        : `cutoff-based-choices-${timestamp}.pdf`
+      const methodSlug = userPreferences.choiceMethodLabel === 'AI Method'
+        ? 'ai-method'
+        : userPreferences.choiceType === 'smart'
+        ? 'power-score'
+        : 'cutoff-based'
+      const filename = `${methodSlug}-choices-${timestamp}.pdf`
       doc.save(filename)
       
       toast.success('PDF downloaded successfully!')
@@ -4909,11 +4937,16 @@ export default function ChoiceFilling() {
                                           showSelectedOptions: true
                                         }
                                         
-                                        // Then add the choice type question
+                                        // Then add the choice type question, gated by plan:
+                                        // Power Score on paid plans; AI Method on Assured / Assured+.
                                         const choiceTypeMessage: Message = {
                                           type: 'bot',
-                                          content: 'Do you want Traditional Cutoff based choices or Smartass ai-choices?',
-                                          options: ['Traditional Method', 'Smartass AI - Method']
+                                          content: 'Which method would you like to use for your choices?',
+                                          options: [
+                                            'Traditional Method',
+                                            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
+                                            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
+                                          ]
                                         }
                                         
                                         // Add both messages in sequence
@@ -5008,7 +5041,7 @@ export default function ChoiceFilling() {
                                         const nextMessage: Message = {
                                           type: 'bot',
                                           content: 'Do you want the results based on your Cutoff or Rank?',
-                                          options: ['Cutoff based', 'Rank based']
+                                          options: ['Cutoff based', 'AI Based']
                                         }
                                         setMessages(prev => [...prev, nextMessage])
                                       }

@@ -283,15 +283,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // User has a profile, proceed with normal flow
+        // User has a profile, proceed with normal flow.
+        // NOTE: we intentionally do NOT redirect here. Supabase re-fires the
+        // `SIGNED_IN` event on session restore, tab refocus and token refresh, so
+        // redirecting on it would keep yanking a logged-in user back to
+        // choice-filling from whatever page they are on. The post-login redirect
+        // is handled by the actual login flows (signIn / LoginForm / login page /
+        // OAuth callback) instead.
         await fetchUserProfile(session.user.id, session.user.email)
-
-        if (event === 'SIGNED_IN') {
-          console.log('User signed in, redirecting to choice-filling...')
-          setTimeout(() => {
-            router.push('/choice-filling')
-          }, 1000)
-        }
       })()
     }, 0)
   })
