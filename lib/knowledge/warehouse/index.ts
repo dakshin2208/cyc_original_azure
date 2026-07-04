@@ -9,4 +9,9 @@ export type {
   BuildReport,
   CanonicalWarehouse,
 } from './warehouse'
-export { buildWarehouse, buildWarehouseFromDirectory, SOURCE_FILES } from './warehouse-builder'
+export {
+  buildWarehouse,
+  buildWarehouseFromDirectory,
+  SOURCE_FILES,
+  NIRF_2026_FILE,
+} from './warehouse-builder'

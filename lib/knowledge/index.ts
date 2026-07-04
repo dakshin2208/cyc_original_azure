@@ -77,7 +77,18 @@ export type {
   BuildReport,
   CanonicalWarehouse,
 } from './warehouse'
-export { buildWarehouse, buildWarehouseFromDirectory, SOURCE_FILES } from './warehouse'
+export { buildWarehouse, buildWarehouseFromDirectory, SOURCE_FILES, NIRF_2026_FILE } from './warehouse'
+
+// ── 2026 NIRF enrichment dataset (additive; not yet used by recommendation) ──
+export type {
+  Nirf2026Profile,
+  Nirf2026Dataset,
+  Nirf2026MergeReport,
+  Nirf2026Unmatched,
+  Nirf2026Duplicate,
+  MergeMethod,
+} from './nirf2026'
+export { parseNirf2026, mergeNirf2026, NIRF2026_HEADERS } from './nirf2026'
 
 // ── Repositories ─────────────────────────────────────────────────────────────
 export type {

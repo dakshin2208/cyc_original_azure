@@ -26,6 +26,7 @@ import type {
   CanonicalResearch,
 } from '../models'
 import type { ValidationIssue } from '../validation'
+import type { Nirf2026Dataset } from '../nirf2026'
 
 /** Parsed source rows required to build the warehouse. */
 export interface RawSources {
@@ -53,6 +54,13 @@ export interface RawSources {
   readonly financialOperational: readonly CsvRow[]
   /** `financial_capital.csv` rows. */
   readonly financialCapital: readonly CsvRow[]
+  /**
+   * `2026_final_NIRF_data.csv` rows — the 2026 canonical enrichment dataset.
+   * OPTIONAL: omitted/empty when the file is absent, so existing data directories
+   * still build. It is merged onto colleges additively and never overwrites the
+   * other sources.
+   */
+  readonly nirf2026?: readonly CsvRow[]
 }
 
 /** Summary counts for a warehouse build. */
@@ -137,6 +145,10 @@ export interface CanonicalWarehouse {
   readonly facultyByCollege: ReadonlyMap<CanonicalCollegeId, readonly CanonicalFaculty[]>
   readonly researchByCollege: ReadonlyMap<CanonicalCollegeId, readonly CanonicalResearch[]>
   readonly financeByCollege: ReadonlyMap<CanonicalCollegeId, readonly CanonicalFinance[]>
+
+  // ── 2026 enrichment (additive; NOT yet consumed by recommendation) ──────────
+  /** The merged 2026 NIRF dataset: profiles, by-college index, and merge audit. */
+  readonly nirf2026: Nirf2026Dataset
 
   // ── Metadata ────────────────────────────────────────────────────────────────
   readonly report: BuildReport

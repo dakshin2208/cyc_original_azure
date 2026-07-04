@@ -7,7 +7,9 @@
  * `buildWarehouseFromDirectory` that adds the filesystem load.
  */
 
-import { loadCsvDirectory } from '../csv'
+import { join } from 'path'
+import { loadCsvDirectory, loadCsvFile, type CsvRow } from '../csv'
+import { parseNirf2026, mergeNirf2026 } from '../nirf2026'
 import type { CanonicalBranchId, CanonicalCollegeId, CommunityCode, NirfId } from '../ids'
 import { buildCrosswalk } from '../mapping'
 import type {
@@ -71,6 +73,13 @@ export const SOURCE_FILES = {
 } as const
 
 /**
+ * The 2026 canonical enrichment dataset. Loaded OPTIONALLY by
+ * {@link buildWarehouseFromDirectory} (via try/catch) so directories that do not
+ * ship it still build. Merged onto the college catalog, never overwriting sources.
+ */
+export const NIRF_2026_FILE = '2026_final_NIRF_data.csv'
+
+/**
  * Build the canonical warehouse from parsed source rows. Deterministic and I/O-free.
  */
 export function buildWarehouse(sources: RawSources): CanonicalWarehouse {
@@ -99,6 +108,11 @@ export function buildWarehouse(sources: RawSources): CanonicalWarehouse {
 
   const colleges: readonly CanonicalCollege[] = collegesOut.items
   const institutions: readonly CanonicalInstitution[] = institutionsOut.items
+
+  // 2026 enrichment: parse + merge onto the college catalog. Additive — the merge
+  // never mutates a college and yields a full audit. Empty when the file is absent.
+  const parsed2026 = parseNirf2026(sources.nirf2026 ?? [])
+  const nirf2026 = mergeNirf2026(parsed2026.profiles, colleges, parsed2026.skipped)
   const branches: readonly CanonicalBranch[] = buildBranchCatalog(sources.tneaBranches)
   const communities: readonly CanonicalCommunity[] = buildCommunityCatalog()
 
@@ -202,6 +216,7 @@ export function buildWarehouse(sources: RawSources): CanonicalWarehouse {
     facultyByCollege: groupByCollege(faculty),
     researchByCollege: groupByCollege(research),
     financeByCollege: groupByCollege(finance),
+    nirf2026,
     report: { statistics, coverage, issues },
   }
 }
@@ -220,6 +235,13 @@ export function buildWarehouseFromDirectory(directory: string): CanonicalWarehou
   const counsellingCodes = [
     ...new Set(cutoffRows.map((r) => r.counselling_code).filter((c) => c && c.trim() !== '')),
   ]
+  // Optional 2026 enrichment: present in current data dirs, absent in older ones.
+  let nirf2026Rows: readonly CsvRow[] = []
+  try {
+    nirf2026Rows = loadCsvFile(join(directory, NIRF_2026_FILE)).rows
+  } catch {
+    /* file not present — the 2026 enrichment is optional */
+  }
   return buildWarehouse({
     master: rows(SOURCE_FILES.master),
     institutions: rows(SOURCE_FILES.institutions),
@@ -233,5 +255,6 @@ export function buildWarehouseFromDirectory(directory: string): CanonicalWarehou
     phdGraduated: rows(SOURCE_FILES.phd),
     financialOperational: rows(SOURCE_FILES.financialOperational),
     financialCapital: rows(SOURCE_FILES.financialCapital),
+    nirf2026: nirf2026Rows,
   })
 }
