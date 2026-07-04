@@ -19,7 +19,12 @@
 import type { KnowledgeRepositories } from '@/lib/knowledge'
 import type { RetrievalEngine } from '@/lib/retrieval'
 import type { CutoffLookup } from '@/lib/recommendation'
-import { createAIOrchestrator, type ConversationState } from '@/lib/ai/orchestration'
+import {
+  createAIOrchestrator,
+  type ConfidenceLevel,
+  type ConversationState,
+  type ParsedQuery,
+} from '@/lib/ai/orchestration'
 import { createLLMAdapter, createUnavailableProvider, type LLMAdapter, type LLMProvider } from '@/lib/ai/llm'
 import type { OpinionConfig } from '../config'
 import { createOpinionEngine, type OpinionEngine } from '../engine/opinion-engine'
@@ -72,6 +77,30 @@ const UNVERIFIED_COLLEGE_RESPONSE: OpinionResponse = {
   usedModel: false,
 }
 
+/**
+ * Confidence (RC5): HIGH only when the answer is well-constrained AND warehouse-
+ * grounded — a clear intent, a matched district, and verified eligibility (cutoff +
+ * community supplied, so the eligibility filter ran), with cited evidence and real
+ * recommendations. Otherwise medium (grounded but generic) or low. This decouples
+ * confidence from mere data completeness, so it tracks the ANSWER's quality.
+ */
+function deriveConfidence(parsed: ParsedQuery, response: OpinionResponse): ConfidenceLevel {
+  const hasRecs = response.recommendationSummary.some((s) => s.colleges.length > 0)
+  const grounded = response.evidence.length > 0
+  if (!hasRecs || !grounded) return 'low'
+  // "understood" = a clear intent OR strong parsed entities — a constraint-only query
+  // like "Mechanical in Salem SC 180" is understood even if no intent keyword scored.
+  const understood =
+    (parsed.intent !== 'unknown' && parsed.intentConfidence >= 0.5) ||
+    parsed.branch !== null ||
+    parsed.studentCutoff !== null ||
+    parsed.location !== null
+  const districtMatched = parsed.location !== null // the engine guarantees in-district recs
+  const eligibilityVerified = parsed.studentCutoff !== null && parsed.community !== null
+  if (understood && districtMatched && eligibilityVerified) return 'high'
+  return understood ? 'medium' : 'low'
+}
+
 /** Create the opinion service over Phase-1 repositories + the retrieval engine. */
 export function createOpinionService(
   repos: KnowledgeRepositories,
@@ -111,7 +140,9 @@ export function createOpinionService(
     const llm = await adapter.respond(prepared.prompt, prepared.groundingContext)
     // 4. Validate + format (deterministic fallback if the model is unusable).
     const response = engine.complete(prepared, orchestration.context.followUpQuestions, llm)
-    return { response, state: orchestration.state }
+    // Confidence (RC5): reflect the ANSWER's quality, not just data completeness.
+    const confidence = deriveConfidence(orchestration.parsed, response)
+    return { response: { ...response, confidence }, state: orchestration.state }
   }
 
   return Object.freeze({ engine, advise })
