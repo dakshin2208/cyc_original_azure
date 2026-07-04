@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
   Area,
@@ -35,7 +35,7 @@ interface Metrics {
     sessions?: number
     users?: number
     pageviews?: number
-    series?: { date: string; sessions: number; users: number }[]
+    series?: { date: string; sessions: number; users: number; pageviews: number }[]
   }
   users: {
     paidTotal: number
@@ -109,6 +109,14 @@ function shortDate(d: string) {
   }
 }
 
+function longDate(d: string) {
+  try {
+    return format(parseISO(d), 'EEE, d MMM yyyy')
+  } catch {
+    return d
+  }
+}
+
 // ── KPI tile ──────────────────────────────────────────────────────────────
 function Kpi({
   label,
@@ -168,6 +176,7 @@ export default function InsightsDashboard() {
   const [data, setData] = useState<Metrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState('')
 
   const load = useCallback(async (r: string) => {
     setLoading(true)
@@ -189,6 +198,51 @@ export default function InsightsDashboard() {
   useEffect(() => {
     load(range)
   }, [range, load])
+
+  // ── Single-day drill-down: index the daily series by date ─────────────────
+  const signupByDate = useMemo(
+    () => new Map((data?.signupsSeries || []).map((d) => [d.date, d.count])),
+    [data]
+  )
+  const actionByDate = useMemo(
+    () => new Map((data?.actionsSeries || []).map((d) => [d.date, d])),
+    [data]
+  )
+  const trafficByDate = useMemo(
+    () => new Map((data?.traffic?.series || []).map((d) => [d.date, d])),
+    [data]
+  )
+  // Bound the picker to the intersection of the sources (GA history runs back
+  // further than the signups/actions series), so no day shows a misleading 0.
+  const dayBounds = useMemo(() => {
+    const seriesDates: string[][] = []
+    if (data?.signupsSeries?.length) seriesDates.push(data.signupsSeries.map((d) => d.date))
+    if (data?.actionsSeries?.length) seriesDates.push(data.actionsSeries.map((d) => d.date))
+    if (data?.traffic?.series?.length) seriesDates.push(data.traffic.series.map((d) => d.date))
+    if (!seriesDates.length) return { min: '', max: '' }
+    let min = ''
+    let max = ''
+    for (const dates of seriesDates) {
+      const sorted = [...dates].sort()
+      const smin = sorted[0]
+      const smax = sorted[sorted.length - 1]
+      if (!min || smin > min) min = smin // latest start across sources
+      if (!max || smax < max) max = smax // earliest end across sources
+    }
+    return min > max ? { min: max, max } : { min, max }
+  }, [data])
+
+  // Default the picker to the latest day; re-clamp when the range changes.
+  useEffect(() => {
+    if (!dayBounds.max) return
+    setSelectedDate((cur) =>
+      cur && cur >= dayBounds.min && cur <= dayBounds.max ? cur : dayBounds.max
+    )
+  }, [dayBounds])
+
+  const daySignups = signupByDate.get(selectedDate) ?? 0
+  const dayActions = actionByDate.get(selectedDate)
+  const dayTraffic = trafficByDate.get(selectedDate)
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -223,6 +277,17 @@ export default function InsightsDashboard() {
             <Button variant="outline" size="icon" onClick={() => load(range)} disabled={loading}>
               <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
             </Button>
+            {data && dayBounds.max && (
+              <input
+                type="date"
+                aria-label="Select a day to drill into"
+                value={selectedDate}
+                min={dayBounds.min || undefined}
+                max={dayBounds.max || undefined}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1.5 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+              />
+            )}
           </div>
         </div>
 
@@ -361,6 +426,45 @@ export default function InsightsDashboard() {
                 sub={data.actions.bySource.votes.unavailable ? 'Sheet not connected' : undefined}
               />
             </div>
+
+            {/* Single-day drill-down */}
+            <Card className="mt-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  Day view{selectedDate ? ` — ${longDate(selectedDate)}` : ''}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedDate ? (
+                  <>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Pick a date from the selector in the top-right to change the day.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                      <Kpi label="Signups" value={num(daySignups)} accent={COLORS.signups} />
+                      <Kpi label="Site Visits" value={dayTraffic ? num(dayTraffic.sessions) : '—'} accent={COLORS.visits} />
+                      <Kpi label="Unique Visitors" value={dayTraffic ? num(dayTraffic.users) : '—'} accent={COLORS.uniques} />
+                      <Kpi label="Pageviews" value={dayTraffic ? num(dayTraffic.pageviews) : '—'} accent={COLORS.pageviews} />
+                      <Kpi label="Actions" value={num(dayActions?.total ?? 0)} accent={COLORS.choiceFilling} />
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span>Choice-filling: <b className="text-foreground">{num(dayActions?.choiceFilling ?? 0)}</b></span>
+                      <span>Rank predictor: <b className="text-foreground">{num(dayActions?.rankPredictor ?? 0)}</b></span>
+                      <span>Referrals: <b className="text-foreground">{num(dayActions?.referrals ?? 0)}</b></span>
+                      <span>Votes: <b className="text-foreground">{num(dayActions?.votes ?? 0)}</b></span>
+                    </div>
+                    {dayBounds.min && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Selectable range follows the filter above ({longDate(dayBounds.min)} – {longDate(dayBounds.max)}).
+                        Switch to “All” to reach older days.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No daily data in this range.</p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Charts */}
             <div className="mt-6 grid gap-4 lg:grid-cols-2">

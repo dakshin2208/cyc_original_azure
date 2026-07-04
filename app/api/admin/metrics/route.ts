@@ -117,7 +117,7 @@ interface TrafficResult {
   sessions?: number
   users?: number
   pageviews?: number
-  series?: { date: string; sessions: number; users: number }[]
+  series?: { date: string; sessions: number; users: number; pageviews: number }[]
 }
 
 async function fetchTraffic(range: Range): Promise<TrafficResult> {
@@ -150,7 +150,7 @@ async function fetchTraffic(range: Range): Promise<TrafficResult> {
         requestBody: {
           dateRanges,
           dimensions: [{ name: 'date' }],
-          metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
+          metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'screenPageViews' }],
           orderBys: [{ dimension: { dimensionName: 'date' } }],
           limit: '100000',
         },
@@ -166,6 +166,7 @@ async function fetchTraffic(range: Range): Promise<TrafficResult> {
       date: gaDate(r.dimensionValues?.[0]?.value || ''),
       sessions: Number(r.metricValues?.[0]?.value || 0),
       users: Number(r.metricValues?.[1]?.value || 0),
+      pageviews: Number(r.metricValues?.[2]?.value || 0),
     }))
 
     return { unavailable: false, sessions, users, pageviews, series }
