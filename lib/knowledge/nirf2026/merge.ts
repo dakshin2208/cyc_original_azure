@@ -56,6 +56,17 @@ export function mergeNirf2026(
   const byNirf = new Map<string, CanonicalCollege>()
   const byCode = new Map<string, CanonicalCollege>()
   const byName = new Map<string, CanonicalCollege>()
+  // Count colleges per NIRF id: a SHARED id (held by >1 distinct college — the base
+  // warehouse's nirf-conflict defect) is ambiguous, so we must NOT match a profile to
+  // it by nirf alone (it would attach the wrong college's district/cutoff — e.g. an
+  // SNS-Coimbatore profile claiming Ponjesly-Kanyakumari). Such profiles fall through
+  // to the unambiguous NAME match instead.
+  const nirfCollegeCount = new Map<string, number>()
+  for (const c of colleges) {
+    if (!c.nirfId) continue
+    const k = String(c.nirfId).toUpperCase()
+    nirfCollegeCount.set(k, (nirfCollegeCount.get(k) ?? 0) + 1)
+  }
   for (const c of colleges) {
     if (c.nirfId && !byNirf.has(c.nirfId)) byNirf.set(String(c.nirfId).toUpperCase(), c)
     for (const code of c.counsellingCodes) {
@@ -69,8 +80,8 @@ export function mergeNirf2026(
   }
 
   const match = (p: Nirf2026Profile): { college: CanonicalCollege; method: MergeMethod } | null => {
-    if (p.nirfCode) {
-      const c = byNirf.get(p.nirfCode)
+    if (p.nirfCode && (nirfCollegeCount.get(p.nirfCode.toUpperCase()) ?? 0) === 1) {
+      const c = byNirf.get(p.nirfCode.toUpperCase())
       if (c) return { college: c, method: 'nirf' }
     }
     if (p.collegeCode) {
