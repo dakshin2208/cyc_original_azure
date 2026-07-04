@@ -66,8 +66,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME=0.0.0.0 \
-    CYC_DATA_DIR=/app/data
+    HOSTNAME=0.0.0.0
 
 # Run as an unprivileged user.
 RUN addgroup --system --gid 1001 nodejs \
@@ -79,11 +78,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # to the paths the standalone server expects.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Warehouse CSVs — the AI counselor's single source of truth. Baked into the
-# image so /api/chat can build the warehouse offline at CYC_DATA_DIR (=/app/data).
-# The 11 canonical files (SOURCE_FILES) are required; the rest are harmless.
-COPY --chown=nextjs:nodejs data ./data
 
 USER nextjs
 EXPOSE 3000
