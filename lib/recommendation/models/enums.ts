@@ -22,6 +22,13 @@ export const SCORE_DIMENSIONS = [
 /** A single scoring dimension. */
 export type ScoreDimension = (typeof SCORE_DIMENSIONS)[number]
 
+/** Reputation tiers, most prestigious first. A counselor reasons in tiers: a higher
+ *  tier that is attainable generally outranks a lower one regardless of marginal
+ *  score differences ("tiers dominate; scores refine"). */
+export const REPUTATION_TIERS = ['elite', 'strong', 'good', 'emerging', 'regional'] as const
+/** A single reputation tier. */
+export type ReputationTier = (typeof REPUTATION_TIERS)[number]
+
 /** The recommendation intents / strategy categories. */
 export const RECOMMENDATION_CATEGORIES = [
   'best_overall',

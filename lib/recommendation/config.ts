@@ -7,7 +7,7 @@
  * partial override that is deep-merged onto {@link defaultConfig}.
  */
 
-import type { ScoreDimension } from './models/enums'
+import type { ReputationTier, ScoreDimension } from './models/enums'
 
 /** Per-dimension weights (relative; the scorer normalizes by the active sum). */
 export type DimensionWeights = Readonly<Record<ScoreDimension, number>>
@@ -36,6 +36,34 @@ export interface EligibilityThresholds {
   readonly reachMargin: number
 }
 
+/**
+ * Reputation-tier configuration. A college's tier is derived from its OC closing
+ * cutoff (a strong demand/reputation proxy) and floored by a curated, evidence-
+ * justified seed for well-known colleges whose data is too sparse to tier correctly.
+ * The tier is embedded as a disjoint band in the ranking total so higher tiers
+ * dominate marginal score differences ("tiers dominate; scores refine").
+ */
+export interface ReputationConfig {
+  /** OC-cutoff thresholds (TNEA marks, 0–200) at each tier boundary. */
+  readonly cutoffBands: {
+    readonly elite: number
+    readonly strong: number
+    readonly good: number
+    readonly emerging: number
+  }
+  /** Base of each tier's score band (disjoint, descending). */
+  readonly bandBase: Readonly<Record<ReputationTier, number>>
+  /** Width of each tier band; within a band the raw score refines the rank. */
+  readonly bandSpan: number
+  /**
+   * Curated floor: `[nameSlug fragment, minimum tier]`. Lifts known colleges whose
+   * data is too sparse to tier by cutoff alone (e.g. PSG's blank 2026 row). Each entry
+   * is justified by external evidence (multi-year top-percentile closing cutoffs +
+   * NIRF standing + established placement). NEVER demotes — a floor only.
+   */
+  readonly seed: readonly (readonly [string, ReputationTier])[]
+}
+
 /** Confidence banding thresholds (over data completeness in [0, 1]). */
 export interface ConfidenceConfig {
   readonly highThreshold: number
@@ -56,6 +84,7 @@ export interface RecommendationConfig {
   readonly strategyWeights: Readonly<Record<string, DimensionWeights>>
   readonly normalization: NormalizationRefs
   readonly eligibility: EligibilityThresholds
+  readonly reputation: ReputationConfig
   readonly confidence: ConfidenceConfig
   readonly reasons: ReasonThresholds
   /** Name fragments (lowercase) that classify a college as government. */
@@ -121,6 +150,22 @@ export const defaultConfig: RecommendationConfig = {
     selectivityMaxCutoff: 200,
   },
   eligibility: { safeMargin: 8, reachMargin: 5 },
+  reputation: {
+    cutoffBands: { elite: 194, strong: 184, good: 168, emerging: 150 },
+    bandBase: { elite: 0.8, strong: 0.6, good: 0.4, emerging: 0.2, regional: 0.0 },
+    bandSpan: 0.19,
+    // Evidence-justified floors for marquee colleges whose 2026 rows are sparse/blank.
+    // Justification: each has sat in the top TNEA closing-cutoff percentile for years,
+    // is NIRF-ranked, and has an established placement/brand record.
+    seed: [
+      ['psg-college-of-technology', 'elite'],
+      ['coimbatore-institute-of-technology', 'elite'],
+      ['college-of-engineering-guindy', 'elite'],
+      ['thiagarajar-college-of-engineering', 'elite'],
+      ['sri-sivasubramaniya-nadar-college-of-engineering', 'elite'],
+      ['madras-institute-of-technology', 'strong'],
+    ],
+  },
   confidence: { highThreshold: 0.75, mediumThreshold: 0.45 },
   reasons: { strong: 0.75, moderate: 0.5 },
   governmentKeywords: [
@@ -145,6 +190,7 @@ export function resolveConfig(override?: DeepPartial<RecommendationConfig>): Rec
     } as Readonly<Record<string, DimensionWeights>>,
     normalization: { ...defaultConfig.normalization, ...override.normalization },
     eligibility: { ...defaultConfig.eligibility, ...override.eligibility },
+    reputation: { ...defaultConfig.reputation, ...override.reputation },
     confidence: { ...defaultConfig.confidence, ...override.confidence },
     reasons: { ...defaultConfig.reasons, ...override.reasons },
     governmentKeywords: override.governmentKeywords ?? defaultConfig.governmentKeywords,

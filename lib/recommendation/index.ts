@@ -58,6 +58,9 @@ export {
   createScoringEngine,
 } from './scoring'
 
+// ── Reputation tiers ─────────────────────────────────────────────────────────
+export { TIER_ORDER, reputationTier, tierBandedTotal } from './reputation'
+
 // ── Eligibility (Module 3) ───────────────────────────────────────────────────
 export {
   type EligibilityEngine,

@@ -102,4 +102,30 @@ export const REAL_DATA_SCENARIOS: readonly GoldenScenario[] = [
     request: FLAGSHIP_REQUEST,
     expect: { before: [['Sri Krishna College of Engineering and Technology', NEHRU]] },
   },
+  {
+    id: 'flagship-includes-psg',
+    mode: 'lock', // ✅ M3: reputation floor lifts PSG (sparse 2026 row) into the elite tier
+    note: 'PSG College of Technology — an elite Coimbatore college — must be recommended for a strong BC student',
+    request: FLAGSHIP_REQUEST,
+    expect: { contains: ['PSG College of Technology'] },
+  },
+  {
+    id: 'flagship-cit-in-top3',
+    mode: 'lock', // ✅ M3: elite tier dominates — CIT ranks in the top spread
+    note: 'Coimbatore Institute of Technology (elite) must appear in the top 3',
+    request: FLAGSHIP_REQUEST,
+    expect: { top3: ['COIMBATORE INSTITUTE OF TECHNOLOGY'] },
+  },
+  {
+    id: 'flagship-elite-over-midtier',
+    mode: 'lock', // ✅ M3: tiers dominate — an elite college outranks a mid-tier one
+    note: 'Elite colleges (CIT) must out-rank strong/mid-tier ones (Sri Krishna, Sri Eshwar)',
+    request: FLAGSHIP_REQUEST,
+    expect: {
+      before: [
+        ['COIMBATORE INSTITUTE OF TECHNOLOGY', 'Sri Krishna College of Engineering and Technology'],
+        ['PSG College of Technology', 'Sri Eshwar College of Engineering'],
+      ],
+    },
+  },
 ]

@@ -12,6 +12,7 @@ import type { DimensionWeights, RecommendationConfig } from '../config'
 import type { CutoffLookup, ProfileProvider } from '../data'
 import type { EligibilityEngine } from '../eligibility'
 import type { ReasonGenerator } from '../reasons'
+import { reputationTier, tierBandedTotal } from '../reputation'
 import type { ScoringEngine } from '../scoring'
 import {
   type CollegeProfile,
@@ -20,6 +21,7 @@ import {
   type RecommendationRequest,
   type RecommendationResult,
   type RecommendationScore,
+  type ReputationTier,
   type ScoreDimension,
 } from '../models'
 
@@ -54,6 +56,7 @@ export interface RankSpec {
 interface Scored {
   readonly profile: CollegeProfile
   readonly score: RecommendationScore
+  readonly tier: ReputationTier
 }
 
 /** Deterministic string order (locale-independent). */
@@ -109,12 +112,22 @@ export function rankProfiles(
     spec.requires === undefined ||
     spec.requires.every((dim) => score.dimensions.find((d) => d.dimension === dim)?.hasData === true)
 
+  // Reputation tier is embedded as a disjoint band in the total (tiers dominate;
+  // scores refine), so the ranking stays a single stable, monotone sort.
   const scored: Scored[] = ctx.profiles
     .listProfiles()
     .filter((p) => (spec.accepts ? spec.accepts(p) : true))
     .filter(inDistrict)
     .filter(eligible)
-    .map((profile) => ({ profile, score: ctx.scoring.score(profile, spec.weights) }))
+    .map((profile) => {
+      const raw = ctx.scoring.score(profile, spec.weights)
+      const tier = reputationTier(profile, ctx.config.reputation)
+      const score: RecommendationScore = {
+        ...raw,
+        total: tierBandedTotal(tier, raw.total, ctx.config.reputation),
+      }
+      return { profile, score, tier }
+    })
     .filter(({ score }) => hasRequired(score))
     .sort(compareScored)
 
