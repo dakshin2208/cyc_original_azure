@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { referralPlanFor } from '@/lib/plans'
+import { referralPlanFor, getPlanLimits } from '@/lib/plans'
 
 // Create a Supabase client with the service role key
 const supabaseAdmin = createClient(
@@ -121,18 +121,20 @@ export async function POST(request: Request) {
 
     const completedReferrals = referrals?.length || 0
     
-    // Determine max choices based on plan and referrals
-    let maxChoices = usageData.max_choices
+    // Determine the effective plan (apply referral upgrades for non-premium users)
     let planType = usageData.plan_type
 
     // Only apply referral upgrades if user doesn't have a premium plan
     if (!planType.startsWith('premium')) {
       const earned = referralPlanFor(completedReferrals)
       if (earned) {
-        maxChoices = earned.maxChoices
         planType = earned.planType
       }
     }
+
+    // Max choices is authoritative from lib/plans.ts (the single source of truth
+    // that also drives the pricing page) — not the value stored on the row.
+    const maxChoices = getPlanLimits(planType).maxChoices
 
     // Calculate available trials based on plan type
     let availableTrials = 0
