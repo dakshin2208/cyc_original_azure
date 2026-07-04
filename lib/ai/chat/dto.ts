@@ -7,6 +7,7 @@
  */
 
 import type { ConfidenceLevel, FollowUpQuestion, ResponseCitation } from '@/lib/ai/orchestration'
+import type { StudentProfileView } from './profile'
 
 /** The request body accepted by `POST /api/chat`. */
 export interface ChatRequest {
@@ -21,6 +22,10 @@ export interface ChatResponse {
   readonly confidence: ConfidenceLevel
   readonly followUps: readonly FollowUpQuestion[]
   readonly conversationId: string
+  /** The student profile captured so far — for the UI checklist (backend-driven). */
+  readonly profile?: StudentProfileView
+  /** Conversation stage: still `collecting` the profile, or `ready` to answer. */
+  readonly stage?: 'collecting' | 'ready'
 }
 
 /** An error response body — safe, structured, never a stack trace. */

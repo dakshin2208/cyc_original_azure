@@ -52,6 +52,8 @@ export interface AdviceResult {
 /** The counselor-grade opinion service. */
 export interface OpinionService {
   readonly engine: OpinionEngine
+  /** Deterministic query understanding only (no recommendation/LLM) — for slot-filling. */
+  parse(question: string): ParsedQuery
   advise(question: string, options?: OpinionOptions & { priorState?: ConversationState }): Promise<AdviceResult>
 }
 
@@ -117,7 +119,7 @@ export function createOpinionService(
     o?: OpinionOptions & { priorState?: ConversationState },
   ): Promise<AdviceResult> => {
     // 1. Reuse the Sprint-4 orchestrator (Retriever + Recommendation + Context).
-    const orchestration = orchestrator.orchestrate(question, o?.priorState)
+    const orchestration = orchestrator.orchestrate(question, o?.priorState, o?.overrides)
     // Domain guard (RC6): the warehouse only covers TN engineering — decline any
     // other domain (medical/law/arts/…) instead of returning an engineering college.
     if (orchestration.parsed.outOfDomain !== null) {
@@ -145,5 +147,5 @@ export function createOpinionService(
     return { response: { ...response, confidence }, state: orchestration.state }
   }
 
-  return Object.freeze({ engine, advise })
+  return Object.freeze({ engine, parse: (q) => orchestrator.parse(q), advise })
 }

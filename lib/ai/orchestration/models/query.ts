@@ -45,3 +45,16 @@ export interface ParsedQuery {
    */
   readonly unverifiedCollege: boolean
 }
+
+/**
+ * Profile-derived defaults that fill fields the CURRENT message did not specify
+ * (e.g. a stored student profile). A field the message states always wins; these
+ * only fill gaps. Used by the conversational layer — the recommendation engine is
+ * unchanged and simply receives the merged query.
+ */
+export interface QueryOverrides {
+  readonly studentCutoff?: number | null
+  readonly community?: CommunityCode | null
+  readonly branch?: string | null
+  readonly location?: string | null
+}

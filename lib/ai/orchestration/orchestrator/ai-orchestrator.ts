@@ -34,6 +34,7 @@ import type {
   ContextPackage,
   ConversationState,
   ParsedQuery,
+  QueryOverrides,
   PromptPackage,
   QueryIntent,
   RetrievedFact,
@@ -63,8 +64,15 @@ export interface AIOrchestrator {
   readonly reco: RecommendationEngine
   /** Deterministically parse a question (query understanding only). */
   parse(question: string): ParsedQuery
-  /** Full pipeline: parse → engines → evidence → context → prompt (+ state). */
-  orchestrate(question: string, priorState?: ConversationState): OrchestrationResult
+  /**
+   * Full pipeline: parse → engines → evidence → context → prompt (+ state).
+   * `overrides` fill fields the message did not state (e.g. a stored profile).
+   */
+  orchestrate(
+    question: string,
+    priorState?: ConversationState,
+    overrides?: QueryOverrides,
+  ): OrchestrationResult
 }
 
 /** Internal aggregate of what the engines produced for one query. */
@@ -152,7 +160,12 @@ export function createAIOrchestrator(
     const category = parsed.entities.find((e) => e.type === 'category')?.value
     const isGov = category === 'government' || category === 'govt'
     const isPriv = category === 'private'
-    const opts = { limit, district: parsed.location ?? undefined }
+    const opts = {
+      limit,
+      district: parsed.location ?? undefined,
+      studentCutoff: parsed.studentCutoff ?? undefined,
+      community: parsed.community ?? undefined,
+    }
 
     switch (parsed.intent) {
       case 'recommend_college':
@@ -217,8 +230,25 @@ export function createAIOrchestrator(
     return { subjects, recommendations, comparison, facts, notes }
   }
 
-  const orchestrate = (question: string, priorState?: ConversationState): OrchestrationResult => {
-    const parsed = parser.parse(question)
+  // Fill fields the message did not state from the (profile) overrides; a value the
+  // message states always wins. Only the recommendation-driving fields are merged.
+  const applyOverrides = (parsed: ParsedQuery, o?: QueryOverrides): ParsedQuery =>
+    o
+      ? {
+          ...parsed,
+          studentCutoff: parsed.studentCutoff ?? o.studentCutoff ?? null,
+          community: parsed.community ?? o.community ?? null,
+          branch: parsed.branch ?? o.branch ?? null,
+          location: parsed.location ?? o.location ?? null,
+        }
+      : parsed
+
+  const orchestrate = (
+    question: string,
+    priorState?: ConversationState,
+    overrides?: QueryOverrides,
+  ): OrchestrationResult => {
+    const parsed = applyOverrides(parser.parse(question), overrides)
     const eng = runEngines(parsed)
     const evidence = collector.collect({
       recommendations: eng.recommendations,

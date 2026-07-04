@@ -3,7 +3,12 @@
  * The opinion response contract + per-call request options.
  */
 
-import type { ConfidenceLevel, FollowUpQuestion, ResponseCitation } from '@/lib/ai/orchestration'
+import type {
+  ConfidenceLevel,
+  FollowUpQuestion,
+  QueryOverrides,
+  ResponseCitation,
+} from '@/lib/ai/orchestration'
 import type { OpinionStrategy, Priority, RecommendationKind } from './enums'
 
 /** One condensed line of the deterministic recommendation summary. */
@@ -42,4 +47,6 @@ export interface OpinionOptions {
   readonly history?: readonly ConversationTurn[]
   /** Optional system-prompt override for the counselor LLM (default: the built-in). */
   readonly systemPrompt?: string
+  /** Profile-derived defaults that fill fields the message did not state. */
+  readonly overrides?: QueryOverrides
 }

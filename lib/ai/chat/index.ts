@@ -62,3 +62,23 @@ export {
   createCounselorChatService,
   buildCounselorChatService,
 } from './counselor-chat-service'
+
+// ── Conversational student-profile layer ─────────────────────────────────────
+export {
+  PROFILE_SLOTS,
+  type ProfileSlot,
+  type StudentProfile,
+  type StudentProfileView,
+  type ProfileStore,
+  type InMemoryProfileStoreOptions,
+  emptyProfile,
+  isComplete,
+  nextMissingSlot,
+  profilesEqual,
+  mergeMessage,
+  toOverrides,
+  toView,
+  slotPrompt,
+  profileSummary,
+  createInMemoryProfileStore,
+} from './profile'

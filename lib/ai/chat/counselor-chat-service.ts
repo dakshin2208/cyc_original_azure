@@ -33,6 +33,20 @@ import type { ChatOutcome, ChatResponse } from './dto'
 import { ChatConfigError, HTTP_STATUS, SAFE_MESSAGE, TimeoutError, type ChatErrorCode } from './errors'
 import { createConsoleLogger, type ChatLogger } from './logger'
 import { createInMemorySessionStore, type SessionStore } from './session-store'
+import {
+  createInMemoryProfileStore,
+  emptyProfile,
+  isComplete,
+  mergeMessage,
+  nextMissingSlot,
+  profileSummary,
+  profilesEqual,
+  slotPrompt,
+  toOverrides,
+  toView,
+  type ProfileStore,
+  type StudentProfile,
+} from './profile'
 
 type Env = Record<string, string | undefined>
 
@@ -40,6 +54,13 @@ type Env = Record<string, string | undefined>
 export interface CounselorChatServiceDeps {
   readonly opinion: OpinionService
   readonly sessionStore: SessionStore
+  /**
+   * When present, the service runs the conversational profile layer: it collects
+   * the student profile (cutoff → community → district → branch) before answering,
+   * then uses the stored profile on every later question. When absent, the service
+   * answers immediately (the original behavior).
+   */
+  readonly profileStore?: ProfileStore
   readonly logger: ChatLogger
   readonly clock: () => number
   readonly idGenerator: () => string
@@ -53,6 +74,14 @@ export interface CounselorChatServiceDeps {
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/**
+ * Whether a message ASKS something (vs. merely providing a profile slot value or a
+ * profile update). Uses explicit question markers so a bare slot answer ("cse",
+ * "190") or an update ("my cutoff is 187") is NOT treated as a question.
+ */
+const QUESTION_RE =
+  /\?|\b(what|which|who|where|how|why|recommend|recommendation|recommendations|suggest|compare|versus|best|top|placement|placements|salary|package|roi|research|faculty|nirf|eligib|can i (get|join)|will i (get|join)|should i)\b/i
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   if (!ms || ms <= 0) return promise
@@ -98,6 +127,57 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     body: { error: SAFE_MESSAGE[code], code, conversationId },
   })
 
+  /** Answer via the reasoning pipeline (optionally with a profile's overrides). */
+  const answer = async (
+    message: string,
+    id: string,
+    priorState: ConversationState | undefined,
+    priorHistory: readonly ConversationTurn[],
+    profile: StudentProfile | undefined,
+  ): Promise<ChatOutcome> => {
+    const startedAt = deps.clock()
+    let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
+    try {
+      advised = await withTimeout(
+        deps.opinion.advise(message, {
+          priorState,
+          history: priorHistory,
+          overrides: profile ? toOverrides(profile) : undefined,
+        }),
+        deps.timeoutMs,
+      )
+    } catch (e) {
+      const code: ChatErrorCode = e instanceof TimeoutError ? 'timeout' : 'internal_error'
+      deps.logger.log({ event: 'error', conversationId: id, code, latencyMs: deps.clock() - startedAt, httpStatus: HTTP_STATUS[code] })
+      return errorOutcome(code, id)
+    }
+    const latencyMs = deps.clock() - startedAt
+
+    await deps.sessionStore.set(id, advised.state)
+    rememberTurn(id, message, advised.response.answer)
+    deps.logger.log({
+      event: 'llm',
+      conversationId: id,
+      llmStatus: advised.response.usedModel ? 'model' : 'deterministic',
+      intent: advised.response.strategy,
+      fallback: !advised.response.usedModel,
+      latencyMs,
+    })
+
+    const body: ChatResponse = {
+      answer: advised.response.answer,
+      citations: advised.response.evidence,
+      confidence: advised.response.confidence,
+      followUps: advised.response.followUps,
+      conversationId: id,
+      ...(profile
+        ? { profile: toView(profile), stage: isComplete(profile) ? ('ready' as const) : ('collecting' as const) }
+        : {}),
+    }
+    deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: advised.response.usedModel ? 'model' : 'deterministic' })
+    return { httpStatus: 200, body }
+  }
+
   const handle = async (payload: unknown): Promise<ChatOutcome> => {
     // 1. Validate.
     if (!isRecord(payload) || typeof payload.message !== 'string') {
@@ -118,41 +198,48 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     const priorHistory = history.get(id) ?? []
     deps.logger.log({ event: 'request', conversationId: id, messageLength: message.length })
 
-    // 3. Reason (Retriever → Recommendation → Opinion → LLM), with a backstop timeout.
-    const startedAt = deps.clock()
-    let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
-    try {
-      advised = await withTimeout(deps.opinion.advise(message, { priorState, history: priorHistory }), deps.timeoutMs)
-    } catch (e) {
-      const code: ChatErrorCode = e instanceof TimeoutError ? 'timeout' : 'internal_error'
-      deps.logger.log({ event: 'error', conversationId: id, code, latencyMs: deps.clock() - startedAt, httpStatus: HTTP_STATUS[code] })
-      return errorOutcome(code, id)
+    // 3a. No profile store → answer immediately (original behavior; existing callers).
+    if (!deps.profileStore) return answer(message, id, priorState, priorHistory, undefined)
+
+    // 3b. Conversational profile layer: collect the profile, then answer using it.
+    const priorProfile = (conversationId ? await deps.profileStore.get(conversationId) : undefined) ?? emptyProfile()
+    const parsed = deps.opinion.parse(message)
+
+    // Domain / unknown-entity guards apply at ANY stage — decline immediately rather
+    // than collecting a profile for a query the warehouse cannot serve.
+    if (parsed.outOfDomain !== null || parsed.unverifiedCollege) {
+      return answer(message, id, priorState, priorHistory, priorProfile)
     }
-    const latencyMs = deps.clock() - startedAt
 
-    // 4. Persist session + history.
-    await deps.sessionStore.set(id, advised.state)
-    rememberTurn(id, message, advised.response.answer)
+    const profile = mergeMessage(priorProfile, parsed, message)
+    await deps.profileStore.set(id, profile)
 
-    deps.logger.log({
-      event: 'llm',
-      conversationId: id,
-      llmStatus: advised.response.usedModel ? 'model' : 'deterministic',
-      intent: advised.response.strategy,
-      fallback: !advised.response.usedModel,
-      latencyMs,
-    })
-
-    // 5. Map the OpinionResponse to the chat HTTP contract (citations preserved).
-    const body: ChatResponse = {
-      answer: advised.response.answer,
-      citations: advised.response.evidence,
-      confidence: advised.response.confidence,
-      followUps: advised.response.followUps,
-      conversationId: id,
+    const finish = (text: string, stage: 'collecting' | 'ready'): ChatOutcome => {
+      rememberTurn(id, message, text)
+      deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: 'profile' })
+      return {
+        httpStatus: 200,
+        body: { answer: text, citations: [], confidence: 'low', followUps: [], conversationId: id, profile: toView(profile), stage },
+      }
     }
-    deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: advised.response.usedModel ? 'model' : 'deterministic' })
-    return { httpStatus: 200, body }
+
+    // Still missing a required slot → ask for it (never re-ask an answered slot).
+    const missing = nextMissingSlot(profile)
+    if (missing) return finish(slotPrompt(missing), 'collecting')
+
+    const wasComplete = isComplete(priorProfile)
+    const hasQuestion = QUESTION_RE.test(parsed.normalized)
+    // Profile just completed via a slot answer → confirm and invite a question.
+    if (!wasComplete && !hasQuestion) {
+      return finish(`Your profile is complete.\n${profileSummary(profile)}\n\nWhat would you like to know?`, 'ready')
+    }
+    // A profile UPDATE only (no question) → acknowledge the change.
+    if (wasComplete && !hasQuestion && !profilesEqual(priorProfile, profile)) {
+      return finish(`Got it — updated your profile.\n${profileSummary(profile)}\n\nWhat would you like to know?`, 'ready')
+    }
+
+    // 4. Answer the question using the stored profile.
+    return answer(message, id, priorState, priorHistory, profile)
   }
 
   return Object.freeze({ handle })
@@ -164,6 +251,8 @@ export interface BuildCounselorChatServiceOptions {
   readonly env?: Env
   readonly cutoffs?: CutoffLookup
   readonly sessionStore?: SessionStore
+  /** Per-conversation profile store (default: in-memory). Enables the profile layer. */
+  readonly profileStore?: ProfileStore
   readonly logger?: ChatLogger
   readonly clock?: () => number
   readonly idGenerator?: () => string
@@ -213,6 +302,7 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
   return createCounselorChatService({
     opinion,
     sessionStore: options.sessionStore ?? createInMemorySessionStore(),
+    profileStore: options.profileStore ?? createInMemoryProfileStore(),
     logger: options.logger ?? createConsoleLogger(),
     clock: options.clock ?? Date.now,
     idGenerator: options.idGenerator ?? (() => randomUUID()),

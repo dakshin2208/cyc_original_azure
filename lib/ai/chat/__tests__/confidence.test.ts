@@ -3,16 +3,37 @@
  *
  * Phase 6 (RC5) — confidence tracks the ANSWER's quality, not data completeness.
  * HIGH only when intent + district + eligibility + warehouse grounding all hold.
- * Gated on the real warehouse (district/eligibility need the 2026 data).
+ * Built WITHOUT the profile layer to isolate the answer-pipeline confidence; the
+ * conversational-flow tests cover confidence through the profile. Gated on the real
+ * warehouse (district/eligibility need the 2026 data).
  */
 
 import { describe, expect, it } from 'vitest'
-import { buildCounselorChatService } from '@/lib/ai/chat'
+import { buildWarehouseFromDirectory, createRepositories, type CommunityCode } from '@/lib/knowledge'
+import { createRetrievalEngine } from '@/lib/retrieval'
+import { createNirf2026CutoffLookup } from '@/lib/recommendation'
+import { createOpinionService } from '@/lib/opinion'
+import { createCounselorChatService, createInMemorySessionStore, createNullLogger } from '@/lib/ai/chat'
 
 const DIR = process.env.CYC_DATA_DIR
 
 describe.skipIf(!DIR)('counselor chat service — confidence (RC5)', () => {
-  const svc = buildCounselorChatService({ dataDir: DIR as string })
+  const wh = buildWarehouseFromDirectory(DIR as string)
+  const repos = createRepositories(wh)
+  const retrieval = createRetrievalEngine(repos)
+  const cutoffs = createNirf2026CutoffLookup(
+    new Map([...wh.nirf2026.byCollege].map(([id, p]) => [id, p.ocCutoff])),
+  )
+  const opinion = createOpinionService(repos, retrieval, { cutoffs }) // deterministic (no provider)
+  const svc = createCounselorChatService({
+    opinion,
+    sessionStore: createInMemorySessionStore(),
+    logger: createNullLogger(),
+    clock: () => 0,
+    idGenerator: () => 'conf',
+    timeoutMs: 5000,
+    // no profileStore → immediate-answer mode
+  })
   const conf = async (q: string) =>
     ((await svc.handle({ message: q })).body as { confidence: string }).confidence
 
