@@ -31,6 +31,7 @@ export function createRepositories(warehouse: CanonicalWarehouse): KnowledgeRepo
         return warehouse.colleges.filter((c) => c.nameSlug.includes(needle))
       },
       list: () => warehouse.colleges,
+      districtOf: (id) => warehouse.nirf2026.byCollege.get(id)?.district ?? null,
     },
 
     branches: {

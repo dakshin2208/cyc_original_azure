@@ -152,7 +152,7 @@ export function createAIOrchestrator(
     const category = parsed.entities.find((e) => e.type === 'category')?.value
     const isGov = category === 'government' || category === 'govt'
     const isPriv = category === 'private'
-    const opts = { limit }
+    const opts = { limit, district: parsed.location ?? undefined }
 
     switch (parsed.intent) {
       case 'recommend_college':
@@ -193,7 +193,10 @@ export function createAIOrchestrator(
       case 'cutoff_query':
         if (parsed.studentCutoff !== null && parsed.community !== null) {
           const full = safe('by_cutoff', () =>
-            reco.recommendByCutoff(parsed.studentCutoff as number, parsed.community!, { limit: 1000 }),
+            reco.recommendByCutoff(parsed.studentCutoff as number, parsed.community!, {
+              limit: 1000,
+              district: parsed.location ?? undefined,
+            }),
           [])
           recommendations =
             subjects.length > 0 ? full.filter((r) => subjectIds.has(r.college.id)) : full.slice(0, limit)

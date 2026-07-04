@@ -19,4 +19,6 @@ export interface CollegeProfile {
   readonly research: ResearchSummary | null
   readonly faculty: FacultySummary | null
   readonly instituteType: InstituteType
+  /** District (from the 2026 dataset), or `null` when unknown. Used for filtering. */
+  readonly district: string | null
 }

@@ -18,4 +18,6 @@ export interface RecommendationRequest {
   readonly studentCutoff?: number
   /** The student's reservation community (enables eligibility). */
   readonly community?: CommunityCode
+  /** District filter — matched case-insensitively against the college's district. */
+  readonly district?: string
 }

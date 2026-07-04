@@ -31,6 +31,8 @@ export interface CollegeRepository {
   /** Substring/slug search over college names. */
   search(query: string): readonly CanonicalCollege[]
   list(): readonly CanonicalCollege[]
+  /** District (from the 2026 enrichment dataset) for a college, or `null` if unknown. */
+  districtOf(id: CanonicalCollegeId): string | null
 }
 
 /** Access to canonical branches. */

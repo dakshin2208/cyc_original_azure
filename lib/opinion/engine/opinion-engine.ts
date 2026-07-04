@@ -88,7 +88,12 @@ export function createOpinionEngine(deps: {
       baseContext.comparison === null &&
       baseContext.subjects.length === 0
     ) {
-      const recommendations = deps.reco.recommendBestCollege({ limit: config.candidateLimit })
+      // Respect the requested district (RC2) even on the quality-baseline fallback,
+      // so an out-of-district college is never surfaced.
+      const recommendations = deps.reco.recommendBestCollege({
+        limit: config.candidateLimit,
+        district: parsed.location ?? undefined,
+      })
       const evidence = evidenceCollector.collect({ recommendations, comparison: null, facts: [] })
       context = { ...baseContext, recommendations, evidence }
     }

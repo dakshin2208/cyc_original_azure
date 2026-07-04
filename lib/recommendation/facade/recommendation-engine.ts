@@ -39,6 +39,8 @@ export interface RecommendationOptions {
   readonly branch?: string
   readonly studentCutoff?: number
   readonly community?: CommunityCode
+  /** District filter — candidates outside this district are excluded before ranking. */
+  readonly district?: string
 }
 
 /** The public Recommendation Engine API. */
@@ -126,6 +128,7 @@ export function createRecommendationEngine(
     branch: o?.branch,
     studentCutoff: o?.studentCutoff,
     community: o?.community,
+    district: o?.district,
   })
 
   /** Rank across all colleges by overall quality, then keep one eligibility band. */
@@ -139,6 +142,7 @@ export function createRecommendationEngine(
       studentCutoff,
       community,
       branch: o?.branch,
+      district: o?.district,
       limit: Number.MAX_SAFE_INTEGER,
     })
     const filtered = full.filter((r) => r.eligibility?.category === band)
@@ -171,10 +175,10 @@ export function createRecommendationEngine(
     recommendPrivateColleges: (o) => run('private_college', forward(o)),
 
     recommendByBranch: (branch, o) =>
-      run('by_branch', { branch, limit: o?.limit, studentCutoff: o?.studentCutoff, community: o?.community }),
+      run('by_branch', { branch, district: o?.district, limit: o?.limit, studentCutoff: o?.studentCutoff, community: o?.community }),
 
     recommendByCutoff: (studentCutoff, community, o) =>
-      run('by_cutoff', { studentCutoff, community, branch: o?.branch, limit: o?.limit }),
+      run('by_cutoff', { studentCutoff, community, branch: o?.branch, district: o?.district, limit: o?.limit }),
 
     recommendSafeColleges: (studentCutoff, community, o) => byBand(studentCutoff, community, 'safe', o),
     recommendDreamColleges: (studentCutoff, community, o) => byBand(studentCutoff, community, 'dream', o),

@@ -83,6 +83,12 @@ export function rankProfiles(
   const limit = request.limit ?? ctx.config.defaultLimit
   const canAssess = request.studentCutoff !== undefined && request.community !== undefined
 
+  // District filter (RC2): candidates outside the requested district are removed
+  // BEFORE scoring — the engine never ranks or recommends an out-of-district college.
+  const districtWanted = request.district?.trim().toLowerCase()
+  const inDistrict = (p: CollegeProfile): boolean =>
+    !districtWanted || (p.district ?? '').toLowerCase() === districtWanted
+
   const hasRequired = (score: RecommendationScore): boolean =>
     spec.requires === undefined ||
     spec.requires.every((dim) => score.dimensions.find((d) => d.dimension === dim)?.hasData === true)
@@ -90,6 +96,7 @@ export function rankProfiles(
   const scored: Scored[] = ctx.profiles
     .listProfiles()
     .filter((p) => (spec.accepts ? spec.accepts(p) : true))
+    .filter(inDistrict)
     .map((profile) => ({ profile, score: ctx.scoring.score(profile, spec.weights) }))
     .filter(({ score }) => hasRequired(score))
     .sort(compareScored)
