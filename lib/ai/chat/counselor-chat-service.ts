@@ -1,0 +1,215 @@
+/**
+ * @module lib/ai/chat/counselor-chat-service
+ *
+ * The counselor-grade chat service — the integration that routes `/api/chat`
+ * through the full pipeline WITH the LLM as the final reasoning layer:
+ *
+ *   validate → load session/history → OpinionService.advise
+ *     ( Retriever → Recommendation Engine → Opinion Engine → LLM reasoning )
+ *   → persist session/history → map to the chat HTTP contract
+ *
+ * It implements the SAME {@link ChatService} interface as the Sprint-6 service, so
+ * the route/container are unchanged. It DELEGATES all business logic to the reused
+ * {@link OpinionService} (Sprint 8) — it duplicates none. Because the opinion layer
+ * always returns a grounded answer (LLM-reasoned, or a deterministic fallback when
+ * the model is unavailable/hallucinates), this path returns HTTP 200 with a safe
+ * answer rather than the Sprint-6 503. No AI logic lives here — only HTTP glue.
+ */
+
+import { randomUUID } from 'crypto'
+import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
+import { createRetrievalEngine } from '@/lib/retrieval'
+import type { CutoffLookup } from '@/lib/recommendation'
+import type { ConversationState } from '@/lib/ai/orchestration'
+import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
+import {
+  createOpinionService,
+  type ConversationTurn,
+  type OpinionConfig,
+  type OpinionService,
+} from '@/lib/opinion'
+import type { ChatService } from './chat-service'
+import type { ChatOutcome, ChatResponse } from './dto'
+import { ChatConfigError, HTTP_STATUS, SAFE_MESSAGE, TimeoutError, type ChatErrorCode } from './errors'
+import { createConsoleLogger, type ChatLogger } from './logger'
+import { createInMemorySessionStore, type SessionStore } from './session-store'
+
+type Env = Record<string, string | undefined>
+
+/** Dependencies for the counselor chat service. */
+export interface CounselorChatServiceDeps {
+  readonly opinion: OpinionService
+  readonly sessionStore: SessionStore
+  readonly logger: ChatLogger
+  readonly clock: () => number
+  readonly idGenerator: () => string
+  readonly timeoutMs: number
+  readonly maxMessageLength?: number
+  /** Turn-text history kept in memory per conversation (default 6 turns). */
+  readonly maxHistoryTurns?: number
+  /** Max conversations to retain turn-text history for (default 1000). */
+  readonly maxHistoryConversations?: number
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  if (!ms || ms <= 0) return promise
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError(ms)), ms)
+    promise.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
+}
+
+/** Create the counselor chat service (delegates reasoning to the Opinion Engine). */
+export function createCounselorChatService(deps: CounselorChatServiceDeps): ChatService {
+  const maxLen = deps.maxMessageLength ?? 2000
+  const maxTurns = deps.maxHistoryTurns ?? 6
+  const maxConversations = deps.maxHistoryConversations ?? 1000
+  // In-memory, request/session-scoped turn-text history (no database).
+  const history = new Map<string, ConversationTurn[]>()
+
+  const rememberTurn = (id: string, userText: string, assistantText: string): void => {
+    const prior = history.get(id) ?? []
+    const next = [...prior, { role: 'user', content: userText }, { role: 'assistant', content: assistantText }].slice(
+      -maxTurns * 2,
+    ) as ConversationTurn[]
+    history.delete(id)
+    history.set(id, next)
+    while (history.size > maxConversations) {
+      const oldest = history.keys().next().value
+      if (oldest === undefined) break
+      history.delete(oldest)
+    }
+  }
+
+  const errorOutcome = (code: ChatErrorCode, conversationId: string | null): ChatOutcome => ({
+    httpStatus: HTTP_STATUS[code],
+    body: { error: SAFE_MESSAGE[code], code, conversationId },
+  })
+
+  const handle = async (payload: unknown): Promise<ChatOutcome> => {
+    // 1. Validate.
+    if (!isRecord(payload) || typeof payload.message !== 'string') {
+      deps.logger.log({ event: 'error', code: 'invalid_request', httpStatus: 400 })
+      return errorOutcome('invalid_request', null)
+    }
+    const message = payload.message.trim()
+    const conversationId =
+      typeof payload.conversationId === 'string' && payload.conversationId.trim().length > 0
+        ? payload.conversationId.trim()
+        : null
+    if (message.length === 0) return errorOutcome('empty_message', conversationId)
+    if (message.length > maxLen) return errorOutcome('message_too_long', conversationId)
+
+    // 2. Load session + turn history.
+    const id = conversationId ?? deps.idGenerator()
+    const priorState = conversationId ? await deps.sessionStore.get(conversationId) : undefined
+    const priorHistory = history.get(id) ?? []
+    deps.logger.log({ event: 'request', conversationId: id, messageLength: message.length })
+
+    // 3. Reason (Retriever → Recommendation → Opinion → LLM), with a backstop timeout.
+    const startedAt = deps.clock()
+    let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
+    try {
+      advised = await withTimeout(deps.opinion.advise(message, { priorState, history: priorHistory }), deps.timeoutMs)
+    } catch (e) {
+      const code: ChatErrorCode = e instanceof TimeoutError ? 'timeout' : 'internal_error'
+      deps.logger.log({ event: 'error', conversationId: id, code, latencyMs: deps.clock() - startedAt, httpStatus: HTTP_STATUS[code] })
+      return errorOutcome(code, id)
+    }
+    const latencyMs = deps.clock() - startedAt
+
+    // 4. Persist session + history.
+    await deps.sessionStore.set(id, advised.state)
+    rememberTurn(id, message, advised.response.answer)
+
+    deps.logger.log({
+      event: 'llm',
+      conversationId: id,
+      llmStatus: advised.response.usedModel ? 'model' : 'deterministic',
+      intent: advised.response.strategy,
+      fallback: !advised.response.usedModel,
+      latencyMs,
+    })
+
+    // 5. Map the OpinionResponse to the chat HTTP contract (citations preserved).
+    const body: ChatResponse = {
+      answer: advised.response.answer,
+      citations: advised.response.evidence,
+      confidence: advised.response.confidence,
+      followUps: advised.response.followUps,
+      conversationId: id,
+    }
+    deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: advised.response.usedModel ? 'model' : 'deterministic' })
+    return { httpStatus: 200, body }
+  }
+
+  return Object.freeze({ handle })
+}
+
+/** Options for building the counselor chat service. */
+export interface BuildCounselorChatServiceOptions {
+  readonly dataDir?: string
+  readonly env?: Env
+  readonly cutoffs?: CutoffLookup
+  readonly sessionStore?: SessionStore
+  readonly logger?: ChatLogger
+  readonly clock?: () => number
+  readonly idGenerator?: () => string
+  readonly opinionConfig?: Partial<OpinionConfig>
+  /** Override the LLM provider (tests). Defaults to the env-configured OpenAI provider. */
+  readonly provider?: LLMProvider
+  readonly systemPrompt?: string
+  readonly timeoutMs?: number
+  readonly maxMessageLength?: number
+}
+
+/**
+ * Compose the counselor chat service: Warehouse → Repositories → Retrieval →
+ * Opinion Service (Recommendation + Opinion + LLM). Throws {@link ChatConfigError}
+ * on misconfiguration. Uses the env-configured OpenAI provider; with no key it
+ * degrades to the deterministic grounded answer.
+ */
+export function buildCounselorChatService(options: BuildCounselorChatServiceOptions = {}): ChatService {
+  const env = options.env ?? process.env
+  const dataDir = options.dataDir ?? env.CYC_DATA_DIR
+  if (!dataDir) {
+    throw new ChatConfigError('warehouse data directory is not configured (set CYC_DATA_DIR)')
+  }
+
+  const repos = createRepositories(buildWarehouseFromDirectory(dataDir))
+  const retrieval = createRetrievalEngine(repos)
+  const provider = options.provider ?? resolveConfiguredProvider(env)
+  const systemPrompt = options.systemPrompt ?? composeCounselorSystem()
+
+  const opinion = createOpinionService(repos, retrieval, {
+    provider,
+    cutoffs: options.cutoffs,
+    config: options.opinionConfig,
+    systemPrompt,
+  })
+
+  const parsedTimeout = Number(env.COUNSELOR_TIMEOUT_MS)
+  const timeoutMs = options.timeoutMs ?? (Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 45_000)
+
+  return createCounselorChatService({
+    opinion,
+    sessionStore: options.sessionStore ?? createInMemorySessionStore(),
+    logger: options.logger ?? createConsoleLogger(),
+    clock: options.clock ?? Date.now,
+    idGenerator: options.idGenerator ?? (() => randomUUID()),
+    timeoutMs,
+    maxMessageLength: options.maxMessageLength,
+  })
+}

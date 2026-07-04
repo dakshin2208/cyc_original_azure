@@ -6,6 +6,7 @@ import Script from "next/script"
 import { Providers } from "./providers"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "./contexts/AuthContext"
+import { ChatWidget } from "@/components/chat"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -55,6 +56,7 @@ export default function RootLayout({
         <AuthProvider>
         <Providers>
           {children}
+          <ChatWidget />
         </Providers>
         <Toaster richColors closeButton />
         </AuthProvider>
