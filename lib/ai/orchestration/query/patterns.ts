@@ -159,6 +159,9 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   // recruiter vocabulary (company NAMES are not in the dataset; rate/salary are)
   'company', 'companies', 'recruiter', 'recruiters', 'recruit', 'recruiting', 'recruits',
   'firm', 'firms', 'hire', 'hiring', 'hires', 'placed',
+  // deictic / reference words (a pronoun like "there" must never fuzzy-match a college
+  // — "recruit there" once resolved to "St. Mother THEREsa Engineering College")
+  'there', 'here', 'them', 'they', 'their', 'these', 'those', 'this', 'that', 'then', 'than',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])

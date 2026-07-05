@@ -85,6 +85,17 @@ describe('StudentProfile — slot filling', () => {
     expect(isComplete(p)).toBe(true)
   })
 
+  it('accepts third-person "he hasn\'t decided" as an undecided branch (parent phrasing)', () => {
+    let p = emptyProfile()
+    p = mergeMessage(p, pq({ studentCutoff: 178 }), '178')
+    p = mergeMessage(p, pq({ community: 'MBC' as CommunityCode }), 'mbc')
+    p = mergeMessage(p, pq({}), 'anywhere in tamil nadu') // district
+    p = mergeMessage(p, pq({}), "he hasn't decided the branch yet") // was NOT matched before
+    expect(p.answered.branch).toBe(true)
+    expect(p.branch).toBeNull()
+    expect(isComplete(p)).toBe(true)
+  })
+
   it('maps the profile to query overrides', () => {
     const p: StudentProfile = {
       cutoff: 190,
@@ -341,6 +352,51 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     const out = await make().handle({ message: 'Tell me about PSG College of Technology' })
     expect(b(out).answer).not.toMatch(/([A-Z][\w. ]+) — \1:/) // "Name — Name:"
     expect(b(out).answer).not.toMatch(/ — \.\s|—\s*$/) // no dangling "— ."
+  })
+
+  it('a parent using third person completes the profile and gets the reassuring intro (#4)', async () => {
+    const svc = make()
+    let out = await svc.handle({ message: 'I am looking for a college for my son, he got 178 cutoff' })
+    const cid = b(out).conversationId
+    out = await svc.handle({ message: 'MBC', conversationId: cid })
+    out = await svc.handle({ message: 'anywhere in Tamil Nadu', conversationId: cid })
+    out = await svc.handle({ message: "he hasn't decided the branch yet", conversationId: cid })
+    expect(b(out).profile?.complete).toBe(true)
+    expect(b(out).profile?.branch).toBeNull()
+    expect(b(out).answer).toMatch(/your child|feels big|realistic/i) // reassuring parent intro
+  })
+
+  it('answers a third-person eligibility question with the band view, never "share your cutoff"', async () => {
+    const svc = make()
+    const cid = await complete(svc, '178 MBC Tamil Nadu CSE')
+    const out = await svc.handle({ message: 'will he definitely get a seat somewhere?', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/share your cutoff|don't have enough to go on/i)
+    expect(b(out).answer).toMatch(/safe|realistic|ambitious|balanced|choices/i)
+  })
+
+  it('asks for a full name when a comparison names an unresolvable abbreviation', async () => {
+    const svc = make()
+    const cid = await complete(svc, '182 BC Chennai ECE')
+    const out = await svc.handle({ message: 'compare SSN and Sri Venkateswara College of Engineering', conversationId: cid })
+    expect(b(out).answer).toMatch(/full name|could only identify|abbreviation/i)
+    expect(b(out).answer).not.toMatch(/my top recommendation/i) // must not silently recommend one
+  })
+
+  it('routes a stated priority ("I care most about placements") to the engine (#3)', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    const out = await svc.handle({ message: 'I care most about placements', conversationId: cid })
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).answer).toMatch(/placement/i)
+    expect(b(out).answer).not.toMatch(/what matters most/i) // acted on the priority, didn't re-ask
+  })
+
+  it('never invents a college for a deictic "recruit there" question', async () => {
+    const svc = make()
+    const cid = await complete(svc, '150 BC Salem Mechanical')
+    const out = await svc.handle({ message: 'which companies recruit there', conversationId: cid })
+    expect(b(out).answer).toMatch(/recruiter|company|companies|salary|placement/i)
+    expect(b(out).answer).not.toMatch(/Theresa/i) // "there" must not fuzzy-match a college
   })
 
   it('a bare question after completion never re-collects or mutates the profile', async () => {

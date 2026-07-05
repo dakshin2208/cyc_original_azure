@@ -72,8 +72,12 @@ export function profilesEqual(a: StudentProfile, b: StudentProfile): boolean {
 // "no district preference" rather than a literal district. Matched against the RAW
 // (lowercased) message — the parser's normalizer turns "haven't" into "haven t".
 const STATE_TOKENS = new Set(['tamil nadu', 'tamilnadu', 'tn'])
-const ANYWHERE = /\banywhere\b|\bany (district|city|where|place|location)\b|\bno preference\b|\btamil ?nadu\b|\ball over\b/i
-const UNDECIDED = /haven'?t decided|not decided|undecided|not sure|any branch|open to|no preference|don'?t know|any course|not yet/i
+const ANYWHERE =
+  /\banywhere\b|\bany (district|city|where|place|location)\b|\bno (preference|specific|particular)\b|\bdoesn'?t matter\b|\btamil ?nadu\b|\ball over\b/i
+// Undecided branch — accepts first- AND third-person phrasing, because a PARENT often
+// answers for the student ("he hasn't decided", "she doesn't mind", "not sure yet").
+const UNDECIDED =
+  /\b(haven'?t|hasn'?t|have not|has not|not|never|didn'?t) (decided|chosen|fixed|picked|sure|thought)\b|\bundecided\b|\bnot sure\b|\bany (branch|stream|course|department)\b|\bopen to (any|anything|all|options)\b|\bno (preference|specific|particular)\b|\bdon'?t (know|mind|care)\b|\bdoesn'?t (know|mind|care|matter)\b|\bnot yet\b|\bno idea\b|\bflexible\b|\bwhatever\b/i
 
 // Common colloquial district names → the canonical NIRF spelling (lowercased; the
 // district filter compares case-insensitively). Lets a student say "Trichy".

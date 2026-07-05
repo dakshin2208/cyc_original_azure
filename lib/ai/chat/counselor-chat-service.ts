@@ -104,6 +104,12 @@ const PRIVATE_RE = /\bprivate\b|\bself[ -]?financ\w*\b|\bdeemed\b/i
 const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguaranteed\b|\bwithin reach\b|\blow[ -]?risk\b/i
 const REMOVE_RE =
   /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
+const COMPARE_RE = /\b(compare|comparison|versus|difference between|better between)\b|\bvs\.?\b/i
+// Eligibility ("will he get a seat?", "chances?", "can she get admission?") — matches
+// first- AND third-person, since a parent asks on the student's behalf. Routed to the
+// safe/target/reach band view so a complete profile is never told "share your cutoff".
+const ELIGIBILITY_RE =
+  /\b(will|can|could|would|does|do)\s+(i|he|she|they|we|my (son|daughter|child|kid|ward))\s+(get|join|make it|get in|get into|qualify)\b|\b(get|getting)\s+(a\s+)?(seat|admission)\b|\bchances?\b|\bdefinitely get\b|\beligib\w*\b|\bqualify\b|\bsafe seat\b/i
 const FEE_RE = /\b(cheap(?:er|est)?|afford\w*|budget|low(?:er)?[ -]?fees?|fees?|tuition|scholarships?|cost\w*)\b/i
 const HOSTEL_RE = /\b(hostel|accommodation|mess|campus life|dining|food|canteen)\b/i
 // Recruiter NAMES aren't in the dataset (placement RATE and median salary ARE) — so
@@ -127,6 +133,25 @@ function refinementTrigger(message: string, parsed: ParsedQuery): { trigger: str
   }
   if (SAFER_RE.test(message)) {
     return { trigger: 'which colleges can I safely get into', intro: "Let's look at how realistic each seat is for your rank — safest bets first:" }
+  }
+  if (ELIGIBILITY_RE.test(message)) {
+    return { trigger: 'which colleges can I safely get into', intro: "Here's how realistic each option is for that rank — the safe bets first, then the stretches:" }
+  }
+  // Stated PRIORITY (#3 → thread to the engine): a preference like "I care most about
+  // placements" re-ranks by that dimension via the matching engine strategy. "recruit"
+  // is deliberately excluded here so "which companies recruit" gets the honest
+  // recruiter-names decline instead.
+  if (/\b(placement|placements|job|jobs|package|salary|highest paying)\b/i.test(message)) {
+    return { trigger: 'which colleges have the best placements', intro: 'Since placements matter most to you, here they are ranked by placement strength:' }
+  }
+  if (/\b(roi|return on invest|value for money|worth it)\b/i.test(message)) {
+    return { trigger: 'best return on investment colleges', intro: 'Ranking these by return on investment:' }
+  }
+  if (/\b(research|innovation|higher studies|for ms|do ms|phd)\b/i.test(message)) {
+    return { trigger: 'colleges with the best research', intro: 'Ranking by research strength:' }
+  }
+  if (/\b(reputation|brand|prestige|well[ -]?known|nirf|overall ranking)\b/i.test(message)) {
+    return { trigger: 'the best overall colleges', intro: 'Ranking by overall reputation:' }
   }
   return null
 }
@@ -334,8 +359,18 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
       return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
     }
-    // A scope refinement on the SAME student — government/private only, or a safety
-    // view — re-counsel without restarting; the stored profile is preserved (#5).
+    // Comparison intent but fewer than two colleges were identified (often an
+    // abbreviation the warehouse doesn't carry) — ask for the full name instead of
+    // silently recommending the one we DID find.
+    if (COMPARE_RE.test(message) && parsed.colleges.length < 2) {
+      const found = parsed.colleges[0]
+      const msg = found
+        ? `I can compare two colleges side by side, but I could only identify ${found} from that. What's the other one's full name? (I sometimes miss abbreviations like "SSN" or "CIT" — the full name works best.)`
+        : `Happy to compare two colleges side by side — give me both full names, e.g. "compare PSG College of Technology and Kumaraguru College of Technology".`
+      return finish(msg, 'ready')
+    }
+    // A scope refinement on the SAME student — government/private, a safety view, or a
+    // stated priority — re-counsel without restarting; the stored profile is preserved (#5/#3).
     const refine = refinementTrigger(message, parsed)
     if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, refine.intro)
     // Fees / hostel / recruiter names — honestly absent from the official dataset
