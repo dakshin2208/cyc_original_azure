@@ -64,6 +64,20 @@ export function bearerToken(request: Request): string | null {
   return match ? match[1].trim() : null
 }
 
+/**
+ * The daily usage bucket: `YYYY-MM-DD` in IST (Asia/Kolkata). Limits reset at IST
+ * midnight — the natural day boundary for Tamil Nadu students during counselling.
+ * Computed here (not from the DB clock) so the "day" is identical across queries.
+ */
+export function usageDay(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
+
 // ── Injectable data adapter (the only part that touches Supabase) ─────────────
 
 /** The store operations the guard needs — a seam so the logic is testable. */
@@ -115,12 +129,18 @@ export function createChatUsageGuard(store: ChatUsageStore): ChatUsageGuard {
 /** The `ai_chat_usage` table — a mirror of `choice_filling_usage` for chat questions. */
 const USAGE_TABLE = 'ai_chat_usage'
 
-/** Create the Supabase-backed store using the service-role key (like choice-filling). */
-export function createSupabaseChatUsageStore(admin: SupabaseClient): ChatUsageStore {
+/**
+ * Create the Supabase-backed store using the service-role key (like choice-filling).
+ * Usage is tracked PER DAY (IST): reads and increments are scoped to today's
+ * `usage_date` row, so a plan's question allowance resets at IST midnight.
+ * `now` is injectable so the daily boundary is testable.
+ */
+export function createSupabaseChatUsageStore(admin: SupabaseClient, now: () => Date = () => new Date()): ChatUsageStore {
   const num = (v: unknown): number => {
     const n = typeof v === 'number' ? v : parseInt(String(v ?? ''), 10)
     return Number.isFinite(n) ? n : 0
   }
+  const today = (): string => usageDay(now())
   return {
     async verifyUser(token) {
       if (!token) return null
@@ -149,42 +169,38 @@ export function createSupabaseChatUsageStore(admin: SupabaseClient): ChatUsageSt
       }
       return planType
     },
-    async readUsed(userId, email, planType) {
+    async readUsed(userId) {
+      // Questions consumed by this user TODAY (IST). No row yet → 0 (the row is created
+      // lazily on the first increment). A real DB error (missing table / bad key) must
+      // FAIL CLOSED — never silently return 0, which would disable enforcement.
       const { data, error } = await admin
         .from(USAGE_TABLE)
         .select('questions_used')
         .eq('user_id', userId)
-        .order('created_at', { ascending: true })
+        .eq('usage_date', today())
         .limit(1)
-      // A real DB error (e.g. the table is missing) must FAIL CLOSED — never silently
-      // return 0, which would disable enforcement and grant unlimited paid calls.
       if (error) throw new Error(`ai_chat_usage read failed: ${error.message}`)
-      if (data && data.length > 0) return num(data[0].questions_used)
-      // No row yet → lazily create it on first use (exactly like check-usage does).
-      const { error: insertError } = await admin
-        .from(USAGE_TABLE)
-        .insert({ user_id: userId, email, questions_used: 0, plan_type: planType })
-      if (insertError) throw new Error(`ai_chat_usage insert failed: ${insertError.message}`)
-      return 0
+      return data && data.length > 0 ? num(data[0].questions_used) : 0
     },
     async increment(userId, email, planType) {
+      const day = today()
       const { data, error } = await admin
         .from(USAGE_TABLE)
         .select('id, questions_used')
         .eq('user_id', userId)
-        .order('created_at', { ascending: true })
+        .eq('usage_date', day)
         .limit(1)
       if (error) throw new Error(`ai_chat_usage read failed: ${error.message}`)
       if (data && data.length > 0) {
         const { error: updateError } = await admin
           .from(USAGE_TABLE)
-          .update({ questions_used: num(data[0].questions_used) + 1, plan_type: planType, updated_at: new Date().toISOString() })
+          .update({ questions_used: num(data[0].questions_used) + 1, plan_type: planType, email, updated_at: now().toISOString() })
           .eq('id', data[0].id)
         if (updateError) throw new Error(`ai_chat_usage update failed: ${updateError.message}`)
       } else {
         const { error: insertError } = await admin
           .from(USAGE_TABLE)
-          .insert({ user_id: userId, email, questions_used: 1, plan_type: planType })
+          .insert({ user_id: userId, email, usage_date: day, questions_used: 1, plan_type: planType })
         if (insertError) throw new Error(`ai_chat_usage insert failed: ${insertError.message}`)
       }
     },
