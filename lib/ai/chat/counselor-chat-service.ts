@@ -89,6 +89,8 @@ const WELCOME =
   "Hi! I'm your Tamil Nadu Engineering admission counsellor — I'll help you find colleges that fit your rank and goals. Let's start with a few quick details."
 /** Recommendation query used to counsel the moment the profile is complete/updated. */
 const RECOMMEND_TRIGGER = 'recommend the best colleges for me'
+/** A parent (rather than the student) is talking — switch to a reassuring tone. */
+const PARENT_RE = /\bmy (son|daughter|child|kid|ward|boy|girl)\b|\bour (son|daughter|child|kid)\b|\bfor my\b|\bwe are (planning|looking)\b/i
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   if (!ms || ms <= 0) return promise
@@ -245,17 +247,25 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       return finish(prompt, 'collecting')
     }
 
+    // Parent mode (#4): a reassuring tone when a parent is talking, in this message or
+    // earlier in the conversation.
+    const isParent = PARENT_RE.test(message) || priorHistory.some((t) => t.role === 'user' && PARENT_RE.test(t.content))
+    const summary = profileSummary(profile).replace(/\n/g, ' · ')
+
     // Profile complete → act like a counselor (#4): give guidance immediately instead of
     // asking "what would you like to know?".
     if (!wasComplete) {
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile,
-        `Thanks — that's everything I need. Here's my guidance for you (${profileSummary(profile).replace(/\n/g, ' · ')}):`)
+      const intro = isParent
+        ? `Thanks for sharing your child's details — I know this decision feels big. Here's how I'd guide them (${summary}). I'll flag which colleges are realistic, which are a reach, and a couple of safe backups:`
+        : `Thanks — that's everything I need. Here's my guidance for you (${summary}):`
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
     }
     // A real follow-up question with a complete profile → answer it directly.
     if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)
     // An explicit profile change (no question) → re-counsel with the updated profile.
     if (!profilesEqual(priorProfile, profile)) {
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, `Got it — I've updated that. Here's my revised guidance:`)
+      const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
     }
     // Complete, no question, no change (e.g. "ok", "thanks").
     return finish(`Happy to help further — ask about placements, compare two colleges, or I can suggest safer backup options.`, 'ready')

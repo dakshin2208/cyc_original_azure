@@ -61,7 +61,7 @@ const prompt = buildOpinionPrompt({
 describe('buildOpinionPrompt', () => {
   it('embeds the counselor persona + anti-hallucination + uncertainty policy', () => {
     const sys = prompt.system.toLowerCase()
-    expect(sys).toMatch(/counselor/)
+    expect(sys).toMatch(/counsell?or/) // "counselor" or "counsellor"
     expect(sys).toMatch(/never invent/)
     expect(sys).toMatch(/insufficient|clarifying/) // explicit uncertainty
     expect(sys).toMatch(/unavailable/)

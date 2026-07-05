@@ -103,6 +103,30 @@ function deriveConfidence(parsed: ParsedQuery, response: OpinionResponse): Confi
   return understood ? 'medium' : 'low'
 }
 
+/**
+ * An honest, one-line explanation of WHY the confidence is what it is — the data that
+ * backs the recommendation vs. what the official dataset simply does not carry (#7).
+ * Never fabricated: it reflects exactly which evidence was present.
+ */
+function confidenceRationale(parsed: ParsedQuery, response: OpinionResponse, level: ConfidenceLevel): string {
+  const have: string[] = []
+  const missing: string[] = []
+  if (parsed.studentCutoff !== null && parsed.community !== null) {
+    have.push('your community closing-cutoff (so I could check eligibility)')
+  } else {
+    missing.push('your cutoff and community to confirm eligibility')
+  }
+  if (response.evidence.some((e) => /salary|placement/i.test(e.label))) have.push('placement and salary figures')
+  else missing.push('placement figures for these colleges')
+  missing.push('fee, hostel, recruiter and branch-level cutoff data (not in the official dataset)')
+
+  const lead =
+    level === 'high' ? "I'm fairly confident here" : level === 'medium' ? "I'm moderately confident" : "I'm not fully confident yet"
+  const haveStr = have.length > 0 ? ` — I have ${have.join(' and ')}` : ''
+  const missStr = missing.length > 0 ? `. I don't have ${missing.join('; ')}, so weigh those separately.` : '.'
+  return `Confidence: ${lead}${haveStr}${missStr}`
+}
+
 /** Create the opinion service over Phase-1 repositories + the retrieval engine. */
 export function createOpinionService(
   repos: KnowledgeRepositories,
@@ -144,7 +168,14 @@ export function createOpinionService(
     const response = engine.complete(prepared, orchestration.context.followUpQuestions, llm)
     // Confidence (RC5): reflect the ANSWER's quality, not just data completeness.
     const confidence = deriveConfidence(orchestration.parsed, response)
-    return { response: { ...response, confidence }, state: orchestration.state }
+    // On the DETERMINISTIC path, append an honest confidence explanation (#7). When the
+    // model answered, it explains its own confidence per the counselor system prompt.
+    const hasRecs = response.recommendationSummary.some((s) => s.colleges.length > 0)
+    const answer =
+      !response.usedModel && hasRecs
+        ? `${response.answer}\n\n${confidenceRationale(orchestration.parsed, response, confidence)}`
+        : response.answer
+    return { response: { ...response, answer, confidence }, state: orchestration.state }
   }
 
   return Object.freeze({ engine, parse: (q) => orchestrator.parse(q), advise })

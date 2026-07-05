@@ -39,6 +39,12 @@ function lakh(rupees: number): string {
   return `${l % 1 === 0 ? l.toFixed(0) : l.toFixed(1)}L`
 }
 
+/** Render a normalized [0,1] score as a 5-star rating (min 1 star when data is present). */
+function stars(normalized: number): string {
+  const filled = Math.max(1, Math.min(5, Math.round(normalized * 5)))
+  return '★'.repeat(filled) + '☆'.repeat(5 - filled)
+}
+
 /** Concrete, grounded reasons for a single college — concise fact fragments a
  *  counselor would actually say (no per-cohort/patent noise). */
 function reasonsFor(dossier: CollegeDossier): string[] {
@@ -125,33 +131,38 @@ function comparisonRecommendation(context: OpinionContext): OpinionRecommendatio
   const cmp = context.comparison
   if (!cmp || cmp.colleges.length < 2) return null
   const names = cmp.colleges.map((c) => c.name)
-  const dimWins = cmp.dimensions.filter((d) => d.winner && SUBSTANTIVE_DIMENSIONS.includes(d.dimension))
+  const short = (n: string): string => n.split(/\s+/).slice(0, 2).join(' ')
+  const reasoning: string[] = []
 
-  // Each college's winning dimensions, stated ONCE (no per-dimension + grouped repeat).
-  const winsBy = new Map<string, string[]>()
-  for (const d of dimWins) {
-    const arr = winsBy.get(d.winner!.name) ?? []
-    arr.push(DIMENSION_LABEL[d.dimension].toLowerCase())
-    winsBy.set(d.winner!.name, arr)
+  // Star ratings per student-facing dimension — only where BOTH colleges have data.
+  const STAR_DIMS = new Set<string>(['placement', 'faculty', 'academicReputation', 'research', 'infrastructure'])
+  for (const dc of cmp.dimensions) {
+    if (!STAR_DIMS.has(dc.dimension) || dc.values.length < 2 || !dc.values.every((v) => v.hasData)) continue
+    reasoning.push(`${DIMENSION_LABEL[dc.dimension]}:  ${dc.values.map((v) => `${short(v.college.name)} ${stars(v.normalized)}`).join('   ')}`)
   }
-  const reasoning: string[] = [...winsBy.entries()].map(([name, dims]) => `${name} is stronger on ${dims.join(', ')}.`)
 
-  // Admission difficulty from the historical closing cutoffs (higher = harder to get).
-  const cutoffs = new Map<string, number>()
+  // Admission difficulty (band) per college — a student cares about this most.
+  const bandByName = new Map<string, string>()
   for (const d of context.candidates) {
-    if (d.eligibility?.closingCutoff != null) cutoffs.set(d.college.name, d.eligibility.closingCutoff)
+    if (names.includes(d.college.name) && d.eligibility?.category) bandByName.set(d.college.name, d.eligibility.category)
   }
-  if (cutoffs.size === 2) {
-    const [[na, ca], [nb, cb]] = [...cutoffs.entries()]
-    if (ca !== cb) reasoning.push(`${ca > cb ? na : nb} is harder to get into (higher closing cutoff).`)
+  if (bandByName.size === 2) {
+    reasoning.push(`Admission difficulty:  ${[...bandByName].map(([n, b]) => `${short(n)} ${b}`).join('   ')}`)
   }
 
-  // Clear verdict.
-  reasoning.push(
-    cmp.winner
-      ? `On balance I'd lean towards ${cmp.winner.name}, though ${names.find((n) => n !== cmp.winner!.name)} is a strong alternative.`
-      : 'The two are closely matched — either is a sound choice.',
-  )
+  // Priority-tied verdict.
+  if (cmp.winner) {
+    const loser = names.find((n) => n !== cmp.winner!.name)
+    const wins = cmp.dimensions
+      .filter((d) => d.winner?.name === cmp.winner!.name && SUBSTANTIVE_DIMENSIONS.includes(d.dimension))
+      .map((d) => DIMENSION_LABEL[d.dimension].toLowerCase())
+    const leadOn = wins.length > 0 ? ` — it leads on ${wins.slice(0, 3).join(', ')}` : ''
+    reasoning.push(
+      `On balance I'd lean towards ${cmp.winner.name}${leadOn}. If those matter most to you, go with ${short(cmp.winner.name)}; otherwise ${short(loser!)} is a strong, often more accessible alternative.`,
+    )
+  } else {
+    reasoning.push('The two are very close — either is a sound choice; decide by location and campus fit.')
+  }
 
   const noData = cmp.dimensions
     .filter((d) => !d.winner && SUBSTANTIVE_DIMENSIONS.includes(d.dimension))
