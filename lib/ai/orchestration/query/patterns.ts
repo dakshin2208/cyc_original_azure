@@ -122,10 +122,10 @@ export const NAME_STOPWORDS: ReadonlySet<string> = new Set([
  */
 export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   ...NAME_STOPWORDS,
-  // generic institution words
-  'college', 'colleges', 'institute', 'institutes', 'institution', 'university',
-  'universities', 'technology', 'technologies', 'engineering', 'tech', 'polytechnic',
-  'arts', 'sciences',
+  // generic institution words (incl. the common "collage" misspelling of "college")
+  'college', 'colleges', 'collage', 'collages', 'institute', 'institutes', 'institution',
+  'university', 'universities', 'technology', 'technologies', 'engineering', 'tech',
+  'polytechnic', 'arts', 'sciences',
   // branch words
   'computer', 'science', 'artificial', 'intelligence', 'data', 'machine', 'learning',
   'electronics', 'communication', 'electrical', 'mechanical', 'civil', 'information',
@@ -162,6 +162,8 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   // deictic / reference words (a pronoun like "there" must never fuzzy-match a college
   // — "recruit there" once resolved to "St. Mother THEREsa Engineering College")
   'there', 'here', 'them', 'they', 'their', 'these', 'those', 'this', 'that', 'then', 'than',
+  // quantifiers (never a distinctive name — "any college" is not a college called "Any")
+  'any', 'some', 'few', 'many', 'all', 'each', 'every', 'more', 'other', 'others', 'name', 'names',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])

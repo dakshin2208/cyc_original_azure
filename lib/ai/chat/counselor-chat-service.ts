@@ -107,6 +107,9 @@ const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguarant
 const REMOVE_RE =
   /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
 const COMPARE_RE = /\b(compare|comparison|versus|difference between|better between)\b|\bvs\.?\b/i
+// A pure social / acknowledgement message — the ONLY complete-profile input that should
+// NOT produce a recommendation. Everything else is treated as a counselling question.
+const SOCIAL_RE = /^(ok(ay)?|k|thanks?|thank you|thx|cool|nice|great|good|got ?it|fine|hmm+|hi+|hello|hey|yo|bye|done|sure|yes|yeah|yep|no|nope|👍|🙏)[\s!.]*$/i
 // Eligibility ("will he get a seat?", "chances?", "can she get admission?") — matches
 // first- AND third-person, since a parent asks on the student's behalf. Routed to the
 // safe/target/reach band view so a complete profile is never told "share your cutoff".
@@ -236,12 +239,13 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // happens when a vague/unparseable message ("???", "hmm") yields insufficient
     // evidence. Re-orient to what we CAN do instead of asking for details already given.
     if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
+      const where = profile.district ? ` in ${profile.district}` : ''
       advised = {
         ...advised,
         response: {
           ...advised.response,
           answer:
-            "I've got your details — cutoff, community, district and branch. I can share my top picks, compare two colleges head-to-head, show safer backups, or filter to government/private. What would help most?",
+            `I have your details saved (cutoff, community, district and branch). Ask me "which colleges can I get?", to compare two colleges, or about placements — and if you'd like more options${where ? ` beyond${where}` : ''}, say "anywhere in Tamil Nadu" to widen the search and I'll pull them from the data.`,
         },
       }
     }
@@ -411,11 +415,20 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         )
       }
     }
-    // A real follow-up question with a complete profile → answer it directly, using the
-    // stored profile (echoed) so the student never repeats their details (V2).
+    // A keyworded follow-up question → answer it directly, using the stored profile.
     if (hasQuestion) return answer(message, id, priorState, priorHistory, profile, echo)
-    // Complete, no question, no change (e.g. "ok", "thanks").
-    return finish(`Happy to help further — ask about placements, compare two colleges, or say "show government colleges" or "safer options".`, 'ready')
+    // A pure social / acknowledgement message ("ok", "thanks", "hi") → a light nudge,
+    // no recommendation.
+    if (SOCIAL_RE.test(message.trim())) {
+      return finish(
+        `Happy to help — ask me "which colleges can I get?", to compare two colleges, or about placements, and I'll use your profile.`,
+        'ready',
+      )
+    }
+    // ANYTHING ELSE from a student with a complete profile is a counselling request
+    // ("give me colleges", "college names", "options for me", …) → ANSWER it as a
+    // counsellor with warehouse-grounded recommendations. Never deflect a real ask.
+    return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, echo)
   }
 
   return Object.freeze({ handle })

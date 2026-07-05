@@ -413,7 +413,7 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     const cid = await complete(svc)
     const out = await svc.handle({ message: '???', conversationId: cid })
     expect(b(out).answer).not.toMatch(/share your cutoff|don't have enough to go on/i)
-    expect(b(out).answer).toMatch(/top picks|compare|backups|government|what would help/i)
+    expect(b(out).answer).toMatch(/which colleges can i get|compare|placements|widen/i)
   })
 
   it('resolves a colloquial district ("Trichy") inside a bulk one-shot profile', async () => {
@@ -545,5 +545,27 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
       expect(b(out).answer).not.toMatch(/what is your cutoff|which community do you belong/i)
       expect(b(out).profile?.complete).toBe(true)
     }
+  })
+
+  it('✓ ANSWERS every counselling ask with real colleges — never deflects (the objective)', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    // Generic / keyword-free / misspelled asks must all return warehouse colleges.
+    for (const q of ['give me colleges', 'give me the college name', 'any college', 'any collage', 'college names with my cutoff', 'options for me']) {
+      const out = await svc.handle({ message: q, conversationId: cid })
+      expect(b(out).answer, `"${q}" should answer with colleges`).toMatch(/based on your profile/i)
+      expect(b(out).answer).not.toMatch(/couldn't verify|happy to help further|what would help most/i)
+      expect(b(out).answer.length).toBeGreaterThan(60)
+    }
+  })
+
+  it('✓ a pure social message ("thanks") gets a nudge, not a recommendation', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const out = await svc.handle({ message: 'thanks', conversationId: cid })
+    expect(b(out).answer).toMatch(/happy to help/i)
+    expect(b(out).answer).not.toMatch(/my top recommendation/i)
   })
 })
