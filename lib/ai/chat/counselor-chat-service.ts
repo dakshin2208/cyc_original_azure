@@ -105,7 +105,10 @@ const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguarant
 const REMOVE_RE =
   /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
 const FEE_RE = /\b(cheap(?:er|est)?|afford\w*|budget|low(?:er)?[ -]?fees?|fees?|tuition|scholarships?|cost\w*)\b/i
-const HOSTEL_RE = /\b(hostel|accommodation|mess|campus life|dining|food)\b/i
+const HOSTEL_RE = /\b(hostel|accommodation|mess|campus life|dining|food|canteen)\b/i
+// Recruiter NAMES aren't in the dataset (placement RATE and median salary ARE) — so
+// "which companies recruit" is honestly declined, while "placements"/"salary" is answered.
+const RECRUITER_RE = /\brecruit\w*\b|\b(which|what|name|list|top)\b[^.?]{0,24}\bcompan\w*|\bfirms?\b|\bplacement partners?\b/i
 
 /**
  * A complete-profile message that RE-SCOPES the search to a college TYPE or a
@@ -261,7 +264,14 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     }
 
     const wasComplete = isComplete(priorProfile)
-    const hasQuestion = QUESTION_RE.test(parsed.normalized)
+    // A message is a QUESTION when it ends with "?", uses a question keyword, OR is an
+    // inverted question ("Does PSG have…", "Is CIT good?"). The inversion/"?" checks use
+    // the RAW message because the parser's normalizer strips "?" — without them a
+    // "Does X have hostels?" is mis-read as a statement and mutates the profile.
+    const hasQuestion =
+      message.includes('?') ||
+      QUESTION_RE.test(parsed.normalized) ||
+      /^(is|are|does|do|did|has|have|can|could|will|would|should)\b/i.test(message.trim())
     // Profile protection: once the profile is complete, a QUESTION never mutates it —
     // EXCEPT when it carries explicit change-intent ("switch to ECE", "actually my
     // cutoff is 187", "Chennai instead"), which must update the slot AND be remembered
@@ -328,19 +338,30 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // view — re-counsel without restarting; the stored profile is preserved (#5).
     const refine = refinementTrigger(message, parsed)
     if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, refine.intro)
-    // Fees / hostel / campus-life — honestly absent from the official dataset: say so
-    // and steer to what we CAN help with, rather than guessing (#5, honesty).
-    if (parsed.colleges.length === 0 && FEE_RE.test(message)) {
-      return finish(
-        "I don't have tuition-fee data in the official dataset, so I won't pretend to rank by cost. Government colleges are usually the most affordable — say \"show government colleges\" and I'll pull those for your rank. For any specific college, check its official fee structure.",
-        'ready',
-      )
-    }
-    if (parsed.colleges.length === 0 && HOSTEL_RE.test(message)) {
-      return finish(
-        "Hostel and campus-life details aren't in my official dataset, so I can't compare those reliably. I can still help with placements, cutoffs, eligibility, or comparing two colleges head-to-head.",
-        'ready',
-      )
+    // Fees / hostel / recruiter names — honestly absent from the official dataset
+    // (whether or not a college is named): say so and steer to what we CAN help with,
+    // rather than guessing (#5, honesty). Skipped for a two-college comparison, which
+    // has its own head-to-head handling.
+    if (!parsed.hasMultipleColleges) {
+      const who = parsed.colleges[0] ? `${parsed.colleges[0]}'s ` : ''
+      if (FEE_RE.test(message)) {
+        return finish(
+          `I don't have ${who}tuition-fee data in the official dataset, so I won't guess. Government colleges are generally the most affordable — say "show government colleges" for your rank, and check any specific college's official fee structure.`,
+          'ready',
+        )
+      }
+      if (HOSTEL_RE.test(message)) {
+        return finish(
+          `I don't have ${who}hostel or campus-life details in the official dataset, so I can't compare those reliably. I can still help with placements, cutoffs, eligibility, or comparing two colleges head-to-head.`,
+          'ready',
+        )
+      }
+      if (RECRUITER_RE.test(message)) {
+        return finish(
+          `The official dataset doesn't list ${who ? `${who}specific recruiters` : 'specific recruiter names'} — I have placement rate and median salary, but not the company names. Ask me about ${who ? 'its ' : ''}placements or median package and I'll give you the figures I do have.`,
+          'ready',
+        )
+      }
     }
     // A real follow-up question with a complete profile → answer it directly.
     if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)

@@ -39,8 +39,11 @@ function deterministicAnswer(result: OpinionResult): string {
     )
   }
   const recs = result.recommendations
+  // Strip a leading "College Name:" (with or without a trailing space — the generator
+  // trims the line, so an empty-reason line becomes a bare "Name:") and return what's
+  // left. Empty means there was no substantive reason to show.
   const stripName = (line: string, name: string): string =>
-    line.startsWith(`${name}: `) ? line.slice(name.length + 2) : line
+    line.startsWith(name) ? line.slice(name.length).replace(/^:\s*/, '').trim() : line.trim()
 
   // Head-to-head comparison.
   const cmp = recs.find((r) => r.kind === 'comparison')
@@ -56,17 +59,18 @@ function deterministicAnswer(result: OpinionResult): string {
   const top = recs.find((r) => r.kind === 'top_pick')
   if (top && top.colleges.length > 0) {
     const name = top.colleges[0]
-    const why = top.reasoning[0] ? ` — ${stripName(top.reasoning[0], name)}` : ''
-    parts.push(`My top recommendation is ${name}${why}.`)
-    const cautions = [...top.tradeoffs.map((t) => stripName(t, name)), ...top.risks]
+    const whyText = top.reasoning[0] ? stripName(top.reasoning[0], name) : ''
+    parts.push(`My top recommendation is ${name}${whyText ? ` — ${whyText}` : ''}.`)
+    const cautions = [...top.tradeoffs.map((t) => stripName(t, name)), ...top.risks].filter((c) => c.length > 0)
     if (cautions.length > 0) parts.push(`Just note: ${cautions.join(' ')}`)
   }
   const alt = recs.find((r) => r.kind === 'alternative')
   if (alt && alt.colleges.length > 0) {
     parts.push('\nOther strong options for you:')
     for (const name of alt.colleges) {
-      const line = alt.reasoning.find((r) => r.startsWith(`${name}: `))
-      parts.push(`• ${name}${line ? ` — ${stripName(line, name)}` : ''}`)
+      const line = alt.reasoning.find((r) => r.startsWith(name))
+      const whyText = line ? stripName(line, name) : ''
+      parts.push(`• ${name}${whyText ? ` — ${whyText}` : ''}`)
     }
   }
   // Band buckets (safe / moderate / dream) for "which colleges can I get" queries.

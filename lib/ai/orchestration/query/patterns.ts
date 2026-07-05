@@ -149,6 +149,16 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   'help', 'need', 'want', 'choose', 'choosing', 'looking', 'searching', 'search',
   'find', 'select', 'pick', 'decide', 'deciding', 'guide', 'guidance', 'start',
   'hi', 'hello', 'hey', 'please', 'thanks', 'thank', 'greetings',
+  // question auxiliaries (a "does X have…" question wraps the name — not part of it)
+  'does', 'do', 'did', 'have', 'has', 'had', 'was', 'were', 'would', 'could', 'been',
+  'offer', 'offers', 'provide', 'provides',
+  // facility / campus / infrastructure vocabulary (query topics, never a college name)
+  'hostel', 'hostels', 'facility', 'facilities', 'accommodation', 'mess', 'canteen',
+  'dining', 'campus', 'infrastructure', 'library', 'lab', 'labs', 'sports', 'gym',
+  'transport', 'wifi', 'internet', 'life',
+  // recruiter vocabulary (company NAMES are not in the dataset; rate/salary are)
+  'company', 'companies', 'recruiter', 'recruiters', 'recruit', 'recruiting', 'recruits',
+  'firm', 'firms', 'hire', 'hiring', 'hires', 'placed',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])

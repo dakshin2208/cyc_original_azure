@@ -315,7 +315,32 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     expect(b(out).answer).toMatch(/government/i) // steers to the affordable set we DO have
     out = await svc.handle({ message: 'what about hostel facilities', conversationId: cid })
     expect(b(out).answer).toMatch(/hostel|campus/i)
-    expect(b(out).answer).toMatch(/not in|can't compare|isn't in/i)
+    expect(b(out).answer).toMatch(/don't have|can't compare/i)
+  })
+
+  it('answers "Does <college> have hostels/fees/recruiters?" honestly, not "couldn\'t verify"', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    // A real college wrapped in a "Does X have…?" question must resolve (parser fix) and
+    // get an honest missing-data answer — never the "couldn't verify that college" decline.
+    let out = await svc.handle({ message: 'Does Kumaraguru College of Technology have hostel facilities?', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/couldn't verify/i)
+    expect(b(out).answer).toMatch(/hostel|campus/i)
+    expect(b(out).profile?.branch).toMatch(/computer/i) // a question never mutated the profile
+    out = await svc.handle({ message: 'What is the fee at PSG College of Technology?', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/couldn't verify/i)
+    expect(b(out).answer).toMatch(/fee/i)
+    out = await svc.handle({ message: 'which companies recruit at Coimbatore Institute of Technology', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/couldn't verify/i)
+    expect(b(out).answer).toMatch(/recruit|compan|salary|placement/i)
+  })
+
+  it('cleanly renders a single named college with no dangling reasoning (formatter fix)', async () => {
+    // A query that yields a top pick with no substantive reason must NOT double the
+    // name ("PSG — PSG:"); the reasoning is simply omitted.
+    const out = await make().handle({ message: 'Tell me about PSG College of Technology' })
+    expect(b(out).answer).not.toMatch(/([A-Z][\w. ]+) — \1:/) // "Name — Name:"
+    expect(b(out).answer).not.toMatch(/ — \.\s|—\s*$/) // no dangling "— ."
   })
 
   it('a bare question after completion never re-collects or mutates the profile', async () => {
