@@ -25,4 +25,6 @@ export {
   type ProfileStore,
   type InMemoryProfileStoreOptions,
   createInMemoryProfileStore,
+  createSupabaseProfileStore,
+  createConfiguredProfileStore,
 } from './profile-store'

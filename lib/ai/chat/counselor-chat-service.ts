@@ -34,6 +34,7 @@ import { ChatConfigError, HTTP_STATUS, SAFE_MESSAGE, TimeoutError, type ChatErro
 import { createConsoleLogger, type ChatLogger } from './logger'
 import { createInMemorySessionStore, type SessionStore } from './session-store'
 import {
+  createConfiguredProfileStore,
   createInMemoryProfileStore,
   emptyProfile,
   isComplete,
@@ -475,7 +476,10 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
   return createCounselorChatService({
     opinion,
     sessionStore: options.sessionStore ?? createInMemorySessionStore(),
-    profileStore: options.profileStore ?? createInMemoryProfileStore(),
+    // Persist the profile in Supabase when configured, so onboarding survives across
+    // Container App replicas / cold-starts (no more restart loop). Degrades to
+    // in-memory automatically when Supabase isn't configured (tests/local).
+    profileStore: options.profileStore ?? createConfiguredProfileStore(env) ?? createInMemoryProfileStore(),
     logger: options.logger ?? createConsoleLogger(),
     clock: options.clock ?? Date.now,
     idGenerator: options.idGenerator ?? (() => randomUUID()),

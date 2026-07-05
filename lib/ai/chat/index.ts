@@ -98,4 +98,6 @@ export {
   slotPrompt,
   profileSummary,
   createInMemoryProfileStore,
+  createSupabaseProfileStore,
+  createConfiguredProfileStore,
 } from './profile'
