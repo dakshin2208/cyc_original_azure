@@ -39,8 +39,9 @@ import {
   isComplete,
   mergeMessage,
   nextMissingSlot,
+  onboardingSummary,
   PROFILE_SLOTS,
-  profileSummary,
+  profileEcho,
   profilesEqual,
   slotPrompt,
   toOverrides,
@@ -84,9 +85,9 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 const QUESTION_RE =
   /\?|\b(what|which|who|where|how|why|recommend|recommendation|recommendations|suggest|compare|versus|best|top|placement|placements|salary|package|roi|research|faculty|nirf|eligib|can i (get|join)|will i (get|join)|should i)\b/i
 
-/** Warm first-contact greeting (shown once, before the first slot prompt). */
+/** Warm first-contact greeting (shown once, before the first slot prompt) — V2. */
 const WELCOME =
-  "Hi! I'm your Tamil Nadu Engineering admission counsellor — I'll help you find colleges that fit your rank and goals. Let's start with a few quick details."
+  "👋 Welcome to ChooseYourCollege AI Counselor.\n\nI'll help you find the best engineering colleges based on your profile.\n\nLet's first understand your preferences."
 /** Recommendation query used to counsel the moment the profile is complete/updated. */
 const RECOMMEND_TRIGGER = 'recommend the best colleges for me'
 /** A parent (rather than the student) is talking — switch to a reassuring tone. */
@@ -342,18 +343,15 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // Parent mode (#4): a reassuring tone when a parent is talking, in this message or
     // earlier in the conversation.
     const isParent = PARENT_RE.test(message) || priorHistory.some((t) => t.role === 'user' && PARENT_RE.test(t.content))
-    const summary = profileSummary(profile).replace(/\n/g, ' · ')
+    // The stored profile drives every answer below — echo it so the student sees their
+    // onboarding details are being used and never has to repeat them (V2).
+    const echo = profileEcho(profile)
 
-    // Profile complete → act like a counselor (#4): give guidance immediately instead of
-    // asking "what would you like to know?". On this FIRST hand-off, invite the one
-    // preference that will most tailor the advice (#3 — light, asked once).
+    // Onboarding just completed → confirm the collected profile and INVITE a question.
+    // We do NOT auto-answer here (V2): the student asks next, and every answer then uses
+    // this stored profile automatically.
     if (!wasComplete) {
-      const intro = isParent
-        ? `Thanks for sharing your child's details — I know this decision feels big. Here's how I'd guide them (${summary}). I'll flag which colleges are realistic, which are a reach, and a couple of safe backups:`
-        : `Thanks — that's everything I need. Here's my guidance for you (${summary}):`
-      const outro =
-        "One quick thing so I can tailor this — what matters most to you: strong placements, a seat you're sure to get, staying near home, or overall reputation? Or tell me to show only government or private colleges."
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro, outro)
+      return finish(onboardingSummary(profile), 'ready')
     }
     // Exclusion (#5): "remove / drop / not interested in <college>" — remember it and
     // re-counsel without that college. The profile itself is unchanged (the mention of
@@ -371,7 +369,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // updated, remembered profile (#5).
     if (!profilesEqual(priorProfile, profile)) {
       const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, `${echo}\n\n${intro}`)
     }
     // Comparison intent but fewer than two colleges were identified (often an
     // abbreviation the warehouse doesn't carry) — ask for the full name instead of
@@ -386,7 +384,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // A scope refinement on the SAME student — government/private, a safety view, or a
     // stated priority — re-counsel without restarting; the stored profile is preserved (#5/#3).
     const refine = refinementTrigger(message, parsed)
-    if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, refine.intro)
+    if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, `${echo}\n\n${refine.intro}`)
     // Fees / hostel / recruiter names — honestly absent from the official dataset
     // (whether or not a college is named): say so and steer to what we CAN help with,
     // rather than guessing (#5, honesty). Skipped for a two-college comparison, which
@@ -412,8 +410,9 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         )
       }
     }
-    // A real follow-up question with a complete profile → answer it directly.
-    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)
+    // A real follow-up question with a complete profile → answer it directly, using the
+    // stored profile (echoed) so the student never repeats their details (V2).
+    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile, echo)
     // Complete, no question, no change (e.g. "ok", "thanks").
     return finish(`Happy to help further — ask about placements, compare two colleges, or say "show government colleges" or "safer options".`, 'ready')
   }

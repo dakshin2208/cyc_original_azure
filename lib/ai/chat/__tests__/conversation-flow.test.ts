@@ -130,7 +130,7 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     expect(b(out).profile?.answered.cutoff).toBe(false)
   })
 
-  it('collects the profile in order, then counsels immediately once complete', async () => {
+  it('collects the profile in order, then shows the summary and invites a question (V2)', async () => {
     const svc = make()
     let out = await svc.handle({ message: 'What is the best college?' }) // begins collecting
     const cid = b(out).conversationId
@@ -138,16 +138,21 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     out = await svc.handle({ message: '190', conversationId: cid })
     expect(b(out).answer).toMatch(/community/i)
     out = await svc.handle({ message: 'BC', conversationId: cid })
-    expect(b(out).answer).toMatch(/district|city/i)
+    expect(b(out).answer).toMatch(/district|location/i)
     out = await svc.handle({ message: 'Coimbatore', conversationId: cid })
     expect(b(out).answer).toMatch(/branch/i)
     out = await svc.handle({ message: 'CSE', conversationId: cid })
-    // Profile just completed → the counselor gives guidance immediately (not "what would you like to know?").
-    expect(b(out).answer).toMatch(/guidance|recommend/i)
-    expect(b(out).answer.length).toBeGreaterThan(50)
+    // V2: onboarding complete → confirm the profile and INVITE a question (do NOT auto-answer).
+    expect(b(out).answer).toMatch(/your profile/i)
+    expect(b(out).answer).toMatch(/ask me anything/i)
+    expect(b(out).answer).toMatch(/cutoff: 190/i)
     expect(b(out).stage).toBe('ready')
     expect(b(out).profile?.complete).toBe(true)
-    expect(b(out).confidence).toBe('high') // grounded recommendation, not the low-confidence prompt
+    // Now the student asks → the answer uses the stored profile (echoed) and recommends.
+    out = await svc.handle({ message: 'Which colleges can I get?', conversationId: cid })
+    expect(b(out).answer).toMatch(/based on your profile/i)
+    expect(b(out).confidence).toBe('high')
+    expect(b(out).answer.length).toBeGreaterThan(50)
   })
 
   it('asks ONLY the missing slot (cutoff) and never re-asks answered ones', async () => {
@@ -270,12 +275,15 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     return b(out).conversationId as string
   }
 
-  it('first complete-profile guidance invites ONE tailoring preference (#3)', async () => {
+  it('shows the onboarding summary (not an auto-answer) when the profile completes (V2)', async () => {
     const out = await make().handle({ message: '190 BC Coimbatore CSE' })
-    expect(b(out).answer).toMatch(/what matters most|tailor/i)
-    // and it explains its confidence honestly (#7)
-    expect(b(out).answer).toMatch(/confiden/i)
-    expect(b(out).answer).toMatch(/don't have|weigh those/i)
+    expect(b(out).answer).toMatch(/your profile/i)
+    expect(b(out).answer).toMatch(/ask me anything/i)
+    expect(b(out).answer).toMatch(/cutoff: 190/i)
+    expect(b(out).answer).toMatch(/community: BC/i)
+    expect(b(out).answer).toMatch(/coimbatore/i)
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).profile?.complete).toBe(true)
   })
 
   it('"show only government colleges" re-scopes without restarting (#5)', async () => {
@@ -354,7 +362,7 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     expect(b(out).answer).not.toMatch(/ — \.\s|—\s*$/) // no dangling "— ."
   })
 
-  it('a parent using third person completes the profile and gets the reassuring intro (#4)', async () => {
+  it('a parent using third person ("he hasn\'t decided") completes onboarding → summary (V2)', async () => {
     const svc = make()
     let out = await svc.handle({ message: 'I am looking for a college for my son, he got 178 cutoff' })
     const cid = b(out).conversationId
@@ -362,8 +370,9 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     out = await svc.handle({ message: 'anywhere in Tamil Nadu', conversationId: cid })
     out = await svc.handle({ message: "he hasn't decided the branch yet", conversationId: cid })
     expect(b(out).profile?.complete).toBe(true)
-    expect(b(out).profile?.branch).toBeNull()
-    expect(b(out).answer).toMatch(/your child|feels big|realistic/i) // reassuring parent intro
+    expect(b(out).profile?.branch).toBeNull() // third-person "hasn't decided" recognised
+    expect(b(out).answer).toMatch(/your profile/i) // onboarding summary
+    expect(b(out).answer).toMatch(/branch: undecided/i)
   })
 
   it('answers a third-person eligibility question with the band view, never "share your cutoff"', async () => {
@@ -421,5 +430,120 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     expect(b(out).profile?.cutoff).toBe(190) // untouched
     expect(b(out).profile?.branch).toMatch(/computer/i) // still CSE
     expect(b(out).answer).not.toMatch(/what is your cutoff/i)
+  })
+})
+
+// ── AI Counselor V2 — structured onboarding, end to end (real warehouse) ─────
+describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
+  const make = () => {
+    let n = 0
+    return buildCounselorChatService({
+      dataDir: DIR,
+      logger: createNullLogger(),
+      provider: createUnavailableProvider('none'),
+      idGenerator: () => `v2-${(n += 1)}`,
+    })
+  }
+  const b = (o: { body: unknown }) => o.body as ChatResponse
+
+  it('✓ New conversation: greets and asks the cutoff first (does NOT answer immediately)', async () => {
+    const out = await make().handle({ message: 'hi' })
+    expect(b(out).answer).toMatch(/welcome to chooseyourcollege ai counselor/i)
+    expect(b(out).answer).toMatch(/what is your cutoff mark/i)
+    expect(b(out).stage).toBe('collecting')
+  })
+
+  it('✓ Onboarding asks ONE question at a time, in order, with MBC/DNC option', async () => {
+    const svc = make()
+    let out = await svc.handle({ message: 'hi' })
+    const cid = b(out).conversationId
+    out = await svc.handle({ message: '190', conversationId: cid })
+    expect(b(out).answer).toMatch(/which community do you belong to/i)
+    expect(b(out).answer).toMatch(/MBC\/DNC/)
+    out = await svc.handle({ message: 'BC', conversationId: cid })
+    expect(b(out).answer).toMatch(/district or location/i)
+    out = await svc.handle({ message: 'Coimbatore', conversationId: cid })
+    expect(b(out).answer).toMatch(/engineering branch/i)
+  })
+
+  it('✓ Complete onboarding → profile summary + "ask me anything" (no auto-answer)', async () => {
+    const out = await make().handle({ message: '190 BC Coimbatore CSE' })
+    expect(b(out).answer).toMatch(/your profile/i)
+    expect(b(out).answer).toMatch(/cutoff: 190/i)
+    expect(b(out).answer).toMatch(/community: BC/i)
+    expect(b(out).answer).toMatch(/preferred location: coimbatore/i)
+    expect(b(out).answer).toMatch(/perfect! now ask me anything/i)
+    expect(b(out).profile?.complete).toBe(true)
+  })
+
+  it('✓ Partial onboarding → asks only the next missing slot (does not restart)', async () => {
+    const svc = make()
+    const out = await svc.handle({ message: 'I have 190 cutoff, BC' }) // cutoff+community only
+    expect(b(out).profile?.answered.cutoff).toBe(true)
+    expect(b(out).profile?.answered.community).toBe(true)
+    expect(b(out).answer).toMatch(/district or location/i) // asks the next slot, not cutoff again
+  })
+
+  it('✓ Missing branch: asks ONLY for the branch, not the whole onboarding', async () => {
+    const svc = make()
+    let out = await svc.handle({ message: '190 BC Coimbatore' }) // branch missing
+    const cid = b(out).conversationId
+    expect(b(out).answer).toMatch(/engineering branch/i)
+    out = await svc.handle({ message: 'suggest colleges', conversationId: cid }) // still no branch
+    expect(b(out).answer).toMatch(/engineering branch/i) // asks branch only
+    expect(b(out).answer).not.toMatch(/what is your cutoff/i) // never restarts
+  })
+
+  it('✓ Session memory: the stored profile is echoed and used on every answer', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const out = await svc.handle({ message: 'Which college has the best placements?', conversationId: cid })
+    expect(b(out).answer).toMatch(/based on your profile/i)
+    expect(b(out).answer).toMatch(/190/)
+    expect(b(out).answer).toMatch(/coimbatore/i)
+    expect(b(out).profile?.cutoff).toBe(190) // never asked again
+  })
+
+  it('✓ Change location only: "I want Chennai" updates location, keeps the rest', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const out = await svc.handle({ message: 'I changed my mind. I want Chennai', conversationId: cid })
+    expect(b(out).profile?.district?.toLowerCase()).toBe('chennai')
+    expect(b(out).profile?.cutoff).toBe(190) // unchanged
+    expect(b(out).profile?.community).toBe('BC') // unchanged
+    expect(b(out).profile?.branch).toMatch(/computer/i) // unchanged
+    expect(b(out).answer).not.toMatch(/what is your cutoff|which community/i) // no re-onboarding
+  })
+
+  it('✓ Change branch only: "switch to ECE" updates branch, keeps the rest', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const out = await svc.handle({ message: 'switch to ECE', conversationId: cid })
+    expect(b(out).profile?.branch).toMatch(/electronic/i)
+    expect(b(out).profile?.cutoff).toBe(190) // unchanged
+    expect(b(out).profile?.district?.toLowerCase()).toBe('coimbatore') // unchanged
+  })
+
+  it('✓ Recommendation after onboarding uses warehouse data (real colleges, no invention)', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const out = await svc.handle({ message: 'Which colleges can I get?', conversationId: cid })
+    expect(b(out).answer).toMatch(/kumaraguru|coimbatore institute|psg|government college/i) // real warehouse colleges
+    expect(b(out).confidence).toBe('high')
+  })
+
+  it('✓ Follow-up questions never re-collect the profile', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    for (const q of ['show government colleges', 'compare PSG College of Technology and Kumaraguru College of Technology', 'something safer']) {
+      const out = await svc.handle({ message: q, conversationId: cid })
+      expect(b(out).answer).not.toMatch(/what is your cutoff|which community do you belong/i)
+      expect(b(out).profile?.complete).toBe(true)
+    }
   })
 })
