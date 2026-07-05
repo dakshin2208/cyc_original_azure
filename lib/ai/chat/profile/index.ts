@@ -1,0 +1,26 @@
+/**
+ * @module lib/ai/chat/profile
+ * The conversational student-profile layer: the profile model, its slot-filling
+ * helpers, and the per-conversation store.
+ */
+
+export {
+  PROFILE_SLOTS,
+  type ProfileSlot,
+  type StudentProfile,
+  type StudentProfileView,
+  emptyProfile,
+  isComplete,
+  nextMissingSlot,
+  profilesEqual,
+  mergeMessage,
+  toOverrides,
+  toView,
+  slotPrompt,
+  profileSummary,
+} from './student-profile'
+export {
+  type ProfileStore,
+  type InMemoryProfileStoreOptions,
+  createInMemoryProfileStore,
+} from './profile-store'

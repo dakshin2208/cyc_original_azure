@@ -25,10 +25,12 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------
-  # 1. Validate: install deps and run the available quality gate (lint).
-  #    NOTE: the repo currently ships no unit/integration test suite, so
-  #    there is nothing to run here beyond linting. `next lint` is allowed
-  #    to be non-blocking because no ESLint config is committed yet.
+  # 1. Validate: install deps, lint, and run the vitest suite as a BLOCKING
+  #    quality gate. A test failure fails this job and (via `needs`) blocks
+  #    the deploy — recommendation-quality regressions can no longer ship
+  #    silently. CI has no CYC_DATA_DIR, so warehouse-gated tests (incl. the
+  #    real-data golden tier) skip cleanly; the hermetic suite runs. To also
+  #    run the real-data golden tier in CI, provision CYC_DATA_DIR.
   # ---------------------------------------------------------------------
   build-and-test:
     runs-on: ubuntu-latest
@@ -46,6 +48,9 @@ jobs:
       - name: Lint (available quality gate — non-blocking)
         run: npm run lint
         continue-on-error: true
+
+      - name: Unit & integration tests (vitest — blocking quality gate)
+        run: npm test
 
   # ---------------------------------------------------------------------
   # 2. Build the Docker image, push to ACR, and roll the Container App to

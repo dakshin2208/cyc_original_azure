@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "types": ["vitest/globals", "node"],
+    "incremental": false
+  },
+  "include": [
+    "lib/ai/**/*.ts",
+    "lib/knowledge/**/*.ts",
+    "lib/retrieval/**/*.ts",
+    "lib/recommendation/**/*.ts",
+    "lib/opinion/**/*.ts",
+    "components/chat/lib/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

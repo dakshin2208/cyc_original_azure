@@ -25,7 +25,7 @@ export interface PlanLimits {
   name: string
   /** Max choices the plan can fill */
   maxChoices: number
-  /** AI chat question limit (feature not yet built — value reserved for enforcement) */
+  /** AI chat question limit — enforced by lib/ai/chat/usage-guard on POST /api/chat */
   aiChatLimit: number
   /** Number of aspirational (specific-college) picks allowed */
   aspirationalChoices: number

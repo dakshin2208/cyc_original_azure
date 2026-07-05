@@ -1,0 +1,4 @@
+nirf_id,year,campus_area_total,campus_area_green,energy_generated_kw,energy_consumed_kw,rainwater_capacity_litres,water_consumed_litres,water_bill,eco_transport_facilities,total_trees,aqi_max,aqi_min,eco_transport_capacity,waste_total_kg,waste_ewaste_kg,waste_recycled_kg,waste_food_kg,wastewater_reused_litres,food_waste_biogas_kg,biogas_generated_kwh
+IR-B-U-0448,2023-24,472.41,337.0,,3173119.0,31699750.0,61200000.0,2035745.0,,,,,,27225.0,1500.0,22785.0,25725.0,12250000.0,2940.0,39984.0
+IR-B-U-0448,2022-23,472.41,320.0,,3112985.0,24806260.0,60300000.0,1862154.0,,,,,,25760.0,1200.0,21560.0,24500.0,12250000.0,2940.0,39984.0
+IR-B-U-0448,2021-22,472.41,310.0,,2953842.0,38207560.0,54800000.0,1541471.0,,,,,,23150.0,1100.0,19110.0,22050.0,12250000.0,2940.0,39984.0
