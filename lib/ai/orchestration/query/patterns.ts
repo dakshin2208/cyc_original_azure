@@ -171,7 +171,7 @@ export const INSTITUTION_WORDS: ReadonlySet<string> = new Set([
 export const OUT_OF_DOMAIN: Readonly<Record<string, readonly string[]>> = {
   medical: ['mbbs', 'bds', 'medical', 'medicine', 'dental', 'dentist', 'dentistry', 'nursing', 'pharmacy', 'pharm', 'bpharm', 'veterinary', 'physiotherapy', 'bams', 'bhms', 'paramedical'],
   law: ['llb', 'llm', 'law college', 'law colleges', 'law school', 'law degree', 'legal studies'],
-  arts: ['ba english', 'ba economics', 'ba history', 'ba tamil', 'fine arts', 'journalism', 'arts college', 'arts colleges'],
+  arts: ['ba english', 'ba economics', 'ba history', 'ba tamil', 'fine arts', 'journalism', 'arts college', 'arts colleges', 'arts and science', 'arts & science'],
   commerce_management: ['mba', 'bba', 'bcom', 'b com', 'commerce college'],
   science: ['bsc', 'b sc', 'msc', 'm sc'],
   agriculture: ['agriculture', 'agricultural college', 'horticulture', 'forestry', 'dairy technology'],
