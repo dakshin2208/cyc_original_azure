@@ -56,6 +56,28 @@ const COUNT_KW = ['top', 'best', 'first', 'limit'] // "top 5" is a count, not a 
 
 const CONNECTORS = /\s+vs\s+|\s+versus\s+|\s+v\/s\s+|\s+and\s+|\s*,\s*|\s+or\s+/
 
+// Descriptor words that sit between a proper-noun and an institution word in a real
+// college name ("Hogwarts ENGINEERING College") — used to distinguish a fabricated
+// college name from a conversational phrase ("choosing a college").
+const COLLEGE_DESCRIPTOR = new Set([
+  'engineering', 'technology', 'tech', 'arts', 'science', 'sciences', 'management', 'polytechnic',
+])
+
+// The 2-letter alias "it" (Information Technology) is also the English pronoun. It is
+// the pronoun — NOT the branch — when it sits in a pronoun context ("is IT good?",
+// "what about IT?"). Only then do we refuse to read it as a branch.
+const IT_PRONOUN_BEFORE = new Set([
+  'is', 'are', 'was', 'were', 'does', 'do', 'about', 'like', 'consider', 'if', 'that', 'and', 'but', 'so', 'then', 'get', 'got',
+])
+const IT_PRONOUN_AFTER = new Set([
+  'a', 'an', 'the', 'is', 'was', 'good', 'better', 'worth', 'ok', 'okay', 'fine', 'nice', 'bad', 'really', 'very', 'too', 'out',
+])
+const isPronounIt = (tokens: readonly string[]): boolean => {
+  const i = tokens.indexOf('it')
+  if (i < 0) return false
+  return IT_PRONOUN_BEFORE.has(tokens[i - 1] ?? '') || IT_PRONOUN_AFTER.has(tokens[i + 1] ?? '')
+}
+
 const has = (window: readonly string[], kws: readonly string[]): boolean =>
   window.some((t) => kws.includes(t))
 
@@ -183,18 +205,19 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
     let branch: string | null = null
     const aliasesByLen = [...BRANCH_ALIASES].sort((a, b) => b.length - a.length)
     for (const alias of aliasesByLen) {
-      if (padded(normalized).includes(padded(alias.trim()))) {
-        const norm = normalizeBranch(alias.trim())
-        branch = norm.canonicalName
-        entities.push({
-          type: 'branch',
-          value: branch,
-          normalized: branch,
-          raw: alias.trim(),
-          confidence: norm.matched ? 0.95 : 0.7,
-        })
-        break
-      }
+      const a = alias.trim()
+      if (!padded(normalized).includes(padded(a))) continue
+      if (a === 'it' && isPronounIt(tokens)) continue // "is it good?" → pronoun, not the IT branch
+      const norm = normalizeBranch(a)
+      branch = norm.canonicalName
+      entities.push({
+        type: 'branch',
+        value: branch,
+        normalized: branch,
+        raw: a,
+        confidence: norm.matched ? 0.95 : 0.7,
+      })
+      break
     }
 
     // ── Location ──────────────────────────────────────────────────────────────
@@ -231,17 +254,20 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
       entities.push({ type: 'college', value: c.name, normalized: c.name, raw: c.name, confidence: 0.9 })
     }
 
-    // RC7: the user named a college — a distinctive, non-location token immediately
-    // preceding an institution word (within a branch word, e.g. "Hogwarts Engineering
-    // College") — but nothing verified in the warehouse → flag for a decline. The
-    // adjacency requirement avoids flagging generic phrases like "which colleges …".
+    // RC7: the user named a college that the warehouse could not verify → flag for a
+    // decline. A college NAME is a distinctive, non-location token immediately followed
+    // by an institution word ("Stark Institute"), OR followed by a college-descriptor
+    // that is itself followed by an institution word ("Hogwarts Engineering College").
+    // Requiring the descriptor in the 2-away form is what keeps a conversational phrase
+    // like "help choosing a college" from being read as an unknown college (bug #1).
     const unverifiedCollege =
       colleges.length === 0 &&
       tokens.some(
         (t, i) =>
           isDistinctive(t) &&
           !lexicon.locations.has(t) &&
-          (INSTITUTION_WORDS.has(tokens[i + 1] ?? '') || INSTITUTION_WORDS.has(tokens[i + 2] ?? '')),
+          (INSTITUTION_WORDS.has(tokens[i + 1] ?? '') ||
+            (COLLEGE_DESCRIPTOR.has(tokens[i + 1] ?? '') && INSTITUTION_WORDS.has(tokens[i + 2] ?? ''))),
       )
 
     return { entities, colleges, branch, community, studentCutoff, location, unverifiedCollege }

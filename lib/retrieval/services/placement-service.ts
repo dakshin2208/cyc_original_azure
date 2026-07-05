@@ -33,6 +33,17 @@ function summarize(
 ): PlacementSummary {
   const sorted = [...records].sort((a, b) => a.graduatingYear.localeCompare(b.graduatingYear))
   const latest = sorted[sorted.length - 1]
+  const latestYear = latest.graduatingYear
+  // A college often reports several programs (UG + PG) in the same year. Compute the
+  // headline stats over ALL of the latest year's programs — never one arbitrary record —
+  // so a small PG cohort cannot masquerade as the whole college (e.g. CIT's PG row at
+  // 21/126 = 16.7% vs the true ~83% once UG is included).
+  const latestRecords = records.filter((r) => r.graduatingYear === latestYear)
+  // The primary cohort (most students placed) represents the college's headline salary.
+  const primary = latestRecords.reduce(
+    (a, b) => ((b.studentsPlaced ?? 0) > (a.studentsPlaced ?? 0) ? b : a),
+    latestRecords[0],
+  )
 
   const byYear = new Map<string, number>()
   for (const r of records) {
@@ -43,19 +54,25 @@ function summarize(
     .map(([year, value]) => ({ year, value }))
     .sort((a, b) => a.year.localeCompare(b.year))
 
+  // Placement rate = total placed ÷ total sanctioned intake across the latest year's
+  // programs, capped at 100% (lateral entry can push placed above a single cohort).
+  let totalPlaced = 0
+  let totalIntake = 0
+  for (const r of latestRecords) {
+    if (r.studentsPlaced !== null) totalPlaced += r.studentsPlaced
+    if (r.firstYearIntake) totalIntake += r.firstYearIntake
+  }
   const placementPercentage =
-    latest.studentsPlaced !== null && latest.firstYearIntake
-      ? roundTo((latest.studentsPlaced / latest.firstYearIntake) * 100, 1)
-      : null
+    totalIntake > 0 ? Math.min(100, roundTo((totalPlaced / totalIntake) * 100, 1)) : null
 
   return {
     collegeId,
     nirfId: latest.nirfId,
-    latestYear: latest.graduatingYear,
-    medianSalary: latest.medianSalary,
+    latestYear,
+    medianSalary: primary.medianSalary,
     highestMedianSalary: maxNonNull(records.map((r) => r.medianSalary)),
     placementPercentage,
-    higherStudies: latest.studentsHigherStudies,
+    higherStudies: primary.studentsHigherStudies,
     salaryTrend,
     cohorts: new Set(records.map((r) => r.graduatingYear)).size,
   }

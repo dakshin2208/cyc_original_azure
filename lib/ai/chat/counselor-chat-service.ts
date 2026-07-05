@@ -39,6 +39,7 @@ import {
   isComplete,
   mergeMessage,
   nextMissingSlot,
+  PROFILE_SLOTS,
   profileSummary,
   profilesEqual,
   slotPrompt,
@@ -82,6 +83,12 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
  */
 const QUESTION_RE =
   /\?|\b(what|which|who|where|how|why|recommend|recommendation|recommendations|suggest|compare|versus|best|top|placement|placements|salary|package|roi|research|faculty|nirf|eligib|can i (get|join)|will i (get|join)|should i)\b/i
+
+/** Warm first-contact greeting (shown once, before the first slot prompt). */
+const WELCOME =
+  "Hi! I'm your Tamil Nadu Engineering admission counsellor — I'll help you find colleges that fit your rank and goals. Let's start with a few quick details."
+/** Recommendation query used to counsel the moment the profile is complete/updated. */
+const RECOMMEND_TRIGGER = 'recommend the best colleges for me'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   if (!ms || ms <= 0) return promise
@@ -134,6 +141,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     priorState: ConversationState | undefined,
     priorHistory: readonly ConversationTurn[],
     profile: StudentProfile | undefined,
+    intro?: string,
   ): Promise<ChatOutcome> => {
     const startedAt = deps.clock()
     let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
@@ -165,7 +173,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     })
 
     const body: ChatResponse = {
-      answer: advised.response.answer,
+      answer: intro ? `${intro}\n\n${advised.response.answer}` : advised.response.answer,
       citations: advised.response.evidence,
       confidence: advised.response.confidence,
       followUps: advised.response.followUps,
@@ -211,7 +219,12 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       return answer(message, id, priorState, priorHistory, priorProfile)
     }
 
-    const profile = mergeMessage(priorProfile, parsed, message)
+    const wasComplete = isComplete(priorProfile)
+    const hasQuestion = QUESTION_RE.test(parsed.normalized)
+    // Profile protection (#3): once the profile is complete, a QUESTION never mutates it
+    // — only an explicit statement ("show ECE", "actually my cutoff is 187") updates a
+    // field. During collection every message is merged so the slots fill.
+    const profile = wasComplete && hasQuestion ? priorProfile : mergeMessage(priorProfile, parsed, message)
     await deps.profileStore.set(id, profile)
 
     const finish = (text: string, stage: 'collecting' | 'ready'): ChatOutcome => {
@@ -223,23 +236,29 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       }
     }
 
-    // Still missing a required slot → ask for it (never re-ask an answered slot).
+    // Still collecting → ask the next slot; welcome the student on first contact (#1).
     const missing = nextMissingSlot(profile)
-    if (missing) return finish(slotPrompt(missing), 'collecting')
-
-    const wasComplete = isComplete(priorProfile)
-    const hasQuestion = QUESTION_RE.test(parsed.normalized)
-    // Profile just completed via a slot answer → confirm and invite a question.
-    if (!wasComplete && !hasQuestion) {
-      return finish(`Your profile is complete.\n${profileSummary(profile)}\n\nWhat would you like to know?`, 'ready')
-    }
-    // A profile UPDATE only (no question) → acknowledge the change.
-    if (wasComplete && !hasQuestion && !profilesEqual(priorProfile, profile)) {
-      return finish(`Got it — updated your profile.\n${profileSummary(profile)}\n\nWhat would you like to know?`, 'ready')
+    if (missing) {
+      const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
+      const prompt =
+        missing === 'cutoff' && firstContact ? `${WELCOME}\n\n${slotPrompt('cutoff')}` : slotPrompt(missing)
+      return finish(prompt, 'collecting')
     }
 
-    // 4. Answer the question using the stored profile.
-    return answer(message, id, priorState, priorHistory, profile)
+    // Profile complete → act like a counselor (#4): give guidance immediately instead of
+    // asking "what would you like to know?".
+    if (!wasComplete) {
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile,
+        `Thanks — that's everything I need. Here's my guidance for you (${profileSummary(profile).replace(/\n/g, ' · ')}):`)
+    }
+    // A real follow-up question with a complete profile → answer it directly.
+    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)
+    // An explicit profile change (no question) → re-counsel with the updated profile.
+    if (!profilesEqual(priorProfile, profile)) {
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, `Got it — I've updated that. Here's my revised guidance:`)
+    }
+    // Complete, no question, no change (e.g. "ok", "thanks").
+    return finish(`Happy to help further — ask about placements, compare two colleges, or I can suggest safer backup options.`, 'ready')
   }
 
   return Object.freeze({ handle })

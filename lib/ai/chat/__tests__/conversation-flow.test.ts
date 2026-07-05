@@ -119,7 +119,7 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     expect(b(out).profile?.answered.cutoff).toBe(false)
   })
 
-  it('collects the profile in order, then invites a question', async () => {
+  it('collects the profile in order, then counsels immediately once complete', async () => {
     const svc = make()
     let out = await svc.handle({ message: 'What is the best college?' }) // begins collecting
     const cid = b(out).conversationId
@@ -131,9 +131,12 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     out = await svc.handle({ message: 'Coimbatore', conversationId: cid })
     expect(b(out).answer).toMatch(/branch/i)
     out = await svc.handle({ message: 'CSE', conversationId: cid })
-    expect(b(out).answer).toMatch(/complete|what would you like/i)
+    // Profile just completed → the counselor gives guidance immediately (not "what would you like to know?").
+    expect(b(out).answer).toMatch(/guidance|recommend/i)
+    expect(b(out).answer.length).toBeGreaterThan(50)
     expect(b(out).stage).toBe('ready')
     expect(b(out).profile?.complete).toBe(true)
+    expect(b(out).confidence).toBe('high') // grounded recommendation, not the low-confidence prompt
   })
 
   it('asks ONLY the missing slot (cutoff) and never re-asks answered ones', async () => {

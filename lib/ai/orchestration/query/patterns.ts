@@ -145,6 +145,10 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   // query vocabulary (not part of a distinctive college name)
   'community', 'counselling', 'counseling', 'quota', 'reservation', 'seat', 'seats',
   'category', 'stream', 'course', 'degree', 'department', 'options', 'option',
+  // conversational / request verbs (a greeting or help request is never a college name)
+  'help', 'need', 'want', 'choose', 'choosing', 'looking', 'searching', 'search',
+  'find', 'select', 'pick', 'decide', 'deciding', 'guide', 'guidance', 'start',
+  'hi', 'hello', 'hey', 'please', 'thanks', 'thank', 'greetings',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])
