@@ -55,6 +55,22 @@ export { type ChatServiceDeps, type ChatService, createChatService } from './cha
 export { type BuildChatServiceOptions, buildChatService } from './composition'
 export { getChatService, setChatServiceOverride, resetChatService } from './container'
 
+// ── AI-chat auth + per-plan question-limit guard (production integration) ─────
+export {
+  type ChatUsageGuard,
+  type ChatUsageStore,
+  type GuardOutcome,
+  ChatUsageGuardConfigError,
+  withinLimit,
+  bearerToken,
+  createChatUsageGuard,
+  createSupabaseChatUsageStore,
+  createSupabaseChatUsageGuard,
+  getChatUsageGuard,
+  setChatUsageGuardOverride,
+  resetChatUsageGuard,
+} from './usage-guard'
+
 // ── Counselor chat service (LLM reasoning layer — the live /api/chat path) ────
 export {
   type CounselorChatServiceDeps,

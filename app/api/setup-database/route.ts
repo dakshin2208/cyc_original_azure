@@ -18,7 +18,7 @@ export async function POST() {
     console.log('Checking database setup requirements...')
 
     // Check if the required tables exist by attempting to query them
-    const tablesToCheck = ['choice_filling_usage', 'user_referrals', 'choice_filling_logs']
+    const tablesToCheck = ['choice_filling_usage', 'user_referrals', 'choice_filling_logs', 'ai_chat_usage']
     const missingTables: string[] = []
 
     for (const tableName of tablesToCheck) {
@@ -115,6 +115,21 @@ CREATE TABLE choice_filling_logs (
 
 CREATE INDEX idx_choice_filling_logs_user_id ON choice_filling_logs(user_id);
 CREATE INDEX idx_choice_filling_logs_session_id ON choice_filling_logs(session_id);
+\`\`\`
+
+**ai_chat_usage table (AI counsellor question limits — mirrors choice_filling_usage):**
+\`\`\`sql
+CREATE TABLE ai_chat_usage (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  questions_used INTEGER DEFAULT 0,
+  plan_type TEXT DEFAULT 'freemium' CHECK (plan_type IN ('freemium', 'premium_199', 'premium_299', 'premium_499', 'referral_75', 'referral_200', 'referral_300')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX idx_ai_chat_usage_user_id ON ai_chat_usage(user_id);
 \`\`\`
 
 ### 2. Add referral_code column to profiles table:

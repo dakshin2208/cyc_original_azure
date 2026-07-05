@@ -11,6 +11,8 @@ import type { ChatApiError, ChatErrorKind } from './types'
 /** Friendly, display-safe copy for each error kind. */
 export const USER_MESSAGE: Readonly<Record<ChatErrorKind, string>> = {
   validation: 'That request could not be processed. Please rephrase and try again.',
+  unauthorized: 'Please sign in to chat with the AI counsellor.',
+  limit_reached: "You've reached your plan's AI counsellor question limit. Upgrade your plan to ask more.",
   rate_limited: 'You are sending messages too quickly. Please wait a moment and try again.',
   server: 'Something went wrong on our side. Please try again.',
   unavailable: 'The assistant is temporarily unavailable. Please try again shortly.',
@@ -41,8 +43,12 @@ export function errorForStatus(status: number, body?: { code?: string }): ChatAp
     case 400:
     case 422:
       return make('validation', status, code)
+    case 401:
+      return make('unauthorized', status, code)
     case 429:
-      return make('rate_limited', status, code)
+      // A quota exhaustion (server code 'limit_reached') is distinct from rapid-fire
+      // rate limiting: it is not retryable and prompts an upgrade, not a "wait".
+      return make(code === 'limit_reached' ? 'limit_reached' : 'rate_limited', status, code)
     case 503:
       return make('unavailable', status, code)
     case 504:

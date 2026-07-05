@@ -33,6 +33,8 @@ export interface ChatApiError {
 /** The classes of failure the client distinguishes. */
 export type ChatErrorKind =
   | 'validation'
+  | 'unauthorized'
+  | 'limit_reached'
   | 'rate_limited'
   | 'server'
   | 'unavailable'

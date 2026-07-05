@@ -7,7 +7,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { resetChatService, setChatServiceOverride } from '@/lib/ai/chat'
+import {
+  resetChatService,
+  setChatServiceOverride,
+  resetChatUsageGuard,
+  setChatUsageGuardOverride,
+  type ChatUsageGuard,
+} from '@/lib/ai/chat'
 import * as route from '@/app/api/chat/route'
 import { makeService } from './support'
 
@@ -15,8 +21,22 @@ const url = 'http://localhost/api/chat'
 const post = (body: string): Request =>
   new Request(url, { method: 'POST', body, headers: { 'content-type': 'application/json' } })
 
-beforeEach(() => setChatServiceOverride(makeService().service))
-afterEach(() => resetChatService())
+/** A guard that authenticates a fixed user under their limit (records into `rec`). */
+const allowGuard = (rec = { n: 0 }): ChatUsageGuard => ({
+  check: async () => ({ allow: true, userId: 'u1', email: 'a@b.com', planType: 'freemium' }),
+  record: async () => {
+    rec.n += 1
+  },
+})
+
+beforeEach(() => {
+  setChatServiceOverride(makeService().service)
+  setChatUsageGuardOverride(allowGuard())
+})
+afterEach(() => {
+  resetChatService()
+  resetChatUsageGuard()
+})
 
 describe('POST /api/chat', () => {
   it('returns 200 with the chat response body', async () => {
@@ -61,5 +81,67 @@ describe('POST /api/chat', () => {
     expect(r.GET).toBeUndefined()
     expect(r.PUT).toBeUndefined()
     expect(r.DELETE).toBeUndefined()
+  })
+
+  // ── Auth + per-plan question limit (production integration) ──────────────────
+
+  it('returns 401 for an anonymous request (no valid session) — cannot bypass', async () => {
+    let handled = false
+    setChatServiceOverride({
+      handle: async () => {
+        handled = true
+        return { httpStatus: 200, body: { answer: 'x', conversationId: 'c', citations: [], confidence: 'low', followUps: [] } }
+      },
+    })
+    setChatUsageGuardOverride({
+      check: async () => ({ allow: false, status: 401, code: 'unauthenticated', message: 'sign in' }),
+      record: async () => {},
+    })
+    const res = await route.POST(post(JSON.stringify({ message: 'hi' })))
+    expect(res.status).toBe(401)
+    expect((await res.json()).code).toBe('unauthenticated')
+    expect(handled).toBe(false) // the chat service is never reached
+  })
+
+  it('returns 429 when the plan question limit is reached', async () => {
+    setChatUsageGuardOverride({
+      check: async () => ({ allow: false, status: 429, code: 'limit_reached', message: 'upgrade' }),
+      record: async () => {},
+    })
+    const res = await route.POST(post(JSON.stringify({ message: 'hi' })))
+    expect(res.status).toBe(429)
+    expect((await res.json()).code).toBe('limit_reached')
+  })
+
+  it('records exactly one question on a successful answer', async () => {
+    const rec = { n: 0 }
+    setChatUsageGuardOverride(allowGuard(rec))
+    await route.POST(post(JSON.stringify({ message: 'recommend a college' })))
+    expect(rec.n).toBe(1)
+  })
+
+  it('does NOT count a profile-collection turn (stage: collecting) against the quota', async () => {
+    const rec = { n: 0 }
+    setChatServiceOverride({
+      handle: async () => ({
+        httpStatus: 200,
+        body: { answer: 'What is your cutoff?', conversationId: 'c', citations: [], confidence: 'low', followUps: [], stage: 'collecting' },
+      }),
+    })
+    setChatUsageGuardOverride(allowGuard(rec))
+    await route.POST(post(JSON.stringify({ message: 'hi' })))
+    expect(rec.n).toBe(0)
+  })
+
+  it('fails closed (503) if the usage backend faults — never grants free unlimited', async () => {
+    setChatUsageGuardOverride({
+      check: async () => {
+        throw new Error('db down')
+      },
+      record: async () => {},
+    })
+    const res = await route.POST(post(JSON.stringify({ message: 'hi' })))
+    expect(res.status).toBe(503)
+    expect((await res.json()).code).toBe('usage_unavailable')
   })
 })

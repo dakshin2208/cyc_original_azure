@@ -21,6 +21,13 @@ export interface ChatClientConfig {
   readonly fetchImpl?: typeof fetch
   /** Sleep function (injectable for tests). */
   readonly sleep?: (ms: number) => Promise<void>
+  /**
+   * Resolve the current user's auth token (Supabase access token). When it returns a
+   * value, the request carries `Authorization: Bearer <token>` so the server can
+   * authenticate the user and enforce their plan's question limit. Omit (default) to
+   * send no auth header — transport is unchanged for existing callers/tests.
+   */
+  readonly getAuthToken?: () => Promise<string | null | undefined> | string | null | undefined
 }
 
 /** The request payload. */
@@ -72,9 +79,14 @@ export function createChatClient(config: ChatClientConfig = {}) {
     }, timeoutMs)
 
     try {
+      const headers: Record<string, string> = { 'content-type': 'application/json' }
+      if (config.getAuthToken) {
+        const token = await config.getAuthToken()
+        if (token) headers.authorization = `Bearer ${token}`
+      }
       const response = await doFetch(endpoint, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers,
         body: JSON.stringify({
           message: input.message,
           ...(input.conversationId ? { conversationId: input.conversationId } : {}),

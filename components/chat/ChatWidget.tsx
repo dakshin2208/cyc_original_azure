@@ -13,13 +13,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import { ChatWindow } from './ChatWindow'
 import { useChat } from './use-chat'
+
+/** Send the signed-in user's Supabase access token so the API can authenticate them
+ *  and enforce their plan's question limit (read fresh per request). */
+async function getAuthToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [entered, setEntered] = useState(false)
-  const chat = useChat()
+  const chat = useChat({ config: { getAuthToken } })
   const fabRef = useRef<HTMLButtonElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 

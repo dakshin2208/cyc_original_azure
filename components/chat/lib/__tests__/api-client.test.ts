@@ -42,6 +42,24 @@ describe('chat api client', () => {
     expect(body).toEqual({ message: 'hi', conversationId: 'c9' })
   })
 
+  it('attaches Authorization: Bearer when a token is available', async () => {
+    const fetchImpl = vi.fn(async () => res(200, RESPONSE)) as unknown as typeof fetch
+    await createChatClient({ fetchImpl, sleep: noSleep, getAuthToken: () => 'tok-123' }).send({ message: 'hi' })
+    const headers = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].headers
+    expect(headers.authorization).toBe('Bearer tok-123')
+  })
+
+  it('omits Authorization when no token is available (default transport unchanged)', async () => {
+    const fetchImpl = vi.fn(async () => res(200, RESPONSE)) as unknown as typeof fetch
+    await createChatClient({ fetchImpl, sleep: noSleep, getAuthToken: async () => null }).send({ message: 'hi' })
+    const headers = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].headers
+    expect(headers.authorization).toBeUndefined()
+    // and with no getAuthToken at all
+    await createChatClient({ fetchImpl, sleep: noSleep }).send({ message: 'hi' })
+    const headers2 = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[1][1].headers
+    expect(headers2.authorization).toBeUndefined()
+  })
+
   it('maps a 400 to a non-retryable validation error (single attempt)', async () => {
     const fetchImpl = vi.fn(async () => res(400, { code: 'invalid_request' }))
     const client = createChatClient({ fetchImpl: fetchImpl as unknown as typeof fetch, sleep: noSleep })
