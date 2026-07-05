@@ -415,6 +415,18 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
       return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, `${echo}\n\n${intro}`)
     }
+    // Tier view: "dream / target / safe colleges", "reach and safe options" → the
+    // eligibility-band answer (safe / target / dream), routed explicitly BEFORE the
+    // college-based routing so a phantom fuzzy-match on the tier words can't hijack it.
+    // Skipped for a two-college comparison, which owns those.
+    if (
+      !COMPARE_RE.test(message) &&
+      !parsed.hasMultipleColleges &&
+      /\b(dream|target|safe|reach|aspirational|ambitious|realistic)\b/i.test(message) &&
+      /colleg|collage|\boption|\bchoice|\btier|\blist\b|\bget\b/i.test(message)
+    ) {
+      return answer('which colleges can I safely get into', id, priorState, priorHistory, profile, `${echo}\n\nHere are your safe, target and dream options for that rank:`)
+    }
     // Comparison intent but fewer than two colleges were identified (often an
     // abbreviation the warehouse doesn't carry) — ask for the full name instead of
     // silently recommending the one we DID find.

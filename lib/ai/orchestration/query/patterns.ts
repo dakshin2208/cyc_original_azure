@@ -164,6 +164,9 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   'there', 'here', 'them', 'they', 'their', 'these', 'those', 'this', 'that', 'then', 'than',
   // quantifiers (never a distinctive name — "any college" is not a college called "Any")
   'any', 'some', 'few', 'many', 'all', 'each', 'every', 'more', 'other', 'others', 'name', 'names',
+  // counselling-tier words ("dream/target/safe colleges" are tiers, not a college's name)
+  'dream', 'target', 'safe', 'reach', 'backup', 'backups', 'aspirational', 'realistic',
+  'ambitious', 'balanced', 'moderate', 'options',
   // community codes
   'oc', 'bc', 'bcm', 'mbc', 'mbcdnc', 'mbcv', 'sc', 'sca', 'st', 'general', 'open',
 ])

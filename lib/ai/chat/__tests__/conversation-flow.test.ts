@@ -570,6 +570,26 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
     }
   })
 
+  it('✓ different questions get DIFFERENT data-grounded answers (not one canned fallback)', async () => {
+    const svc = make()
+    const first = await svc.handle({ message: '185 BC Coimbatore CSE' })
+    const cid = b(first).conversationId
+    const tiers = b(await svc.handle({ message: 'what are my dream, target and safe colleges?', conversationId: cid })).answer
+    const compare = b(await svc.handle({ message: 'compare PSG College of Technology vs Coimbatore Institute of Technology', conversationId: cid })).answer
+    const placements = b(await svc.handle({ message: 'which college has the best placements?', conversationId: cid })).answer
+    // Tier query → the safe/target/dream band view (not the generic "details saved" loop).
+    expect(tiers).toMatch(/safe choices|balanced|ambitious|realistic/i)
+    expect(tiers).not.toMatch(/i have your details saved|what would help most/i)
+    // Comparison → a head-to-head (distinct from the tier answer).
+    expect(compare).toMatch(/compare|lean towards|★/i)
+    // Placements → a placement-ranked answer with a real figure.
+    expect(placements).toMatch(/placement/i)
+    expect(placements).toMatch(/\d/) // a real number (salary / %)
+    // The three answers are genuinely different.
+    expect(tiers).not.toBe(compare)
+    expect(compare).not.toBe(placements)
+  })
+
   it('✓ a pure social message ("thanks") gets a nudge, not a recommendation', async () => {
     const svc = make()
     const first = await svc.handle({ message: '190 BC Coimbatore CSE' })
