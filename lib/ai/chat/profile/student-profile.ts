@@ -135,6 +135,15 @@ export function mergeMessage(prior: StudentProfile, parsed: ParsedQuery, raw: st
     if (STATE_TOKENS.has(parsed.location.toLowerCase())) district = null // state = "anywhere"
     else district = parsed.location
     answered.district = true
+  } else if (!answered.district) {
+    // Colloquial district nickname the parser doesn't resolve ("Trichy", "Madras") —
+    // recognized here so it also works in a bulk message ("170 MBC Trichy Civil"), not
+    // only when the district slot is the one being asked.
+    const aliasTok = Object.keys(DISTRICT_ALIASES).find((a) => text.split(' ').includes(a))
+    if (aliasTok) {
+      district = DISTRICT_ALIASES[aliasTok]
+      answered.district = true
+    }
   }
   if (parsed.colleges.length > 0) preferredCollege = parsed.colleges[0]
 

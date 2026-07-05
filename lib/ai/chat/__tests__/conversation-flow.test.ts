@@ -399,6 +399,21 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     expect(b(out).answer).not.toMatch(/Theresa/i) // "there" must not fuzzy-match a college
   })
 
+  it('a complete profile is never told "share your cutoff" on a vague message', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    const out = await svc.handle({ message: '???', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/share your cutoff|don't have enough to go on/i)
+    expect(b(out).answer).toMatch(/top picks|compare|backups|government|what would help/i)
+  })
+
+  it('resolves a colloquial district ("Trichy") inside a bulk one-shot profile', async () => {
+    const svc = make()
+    const out = await svc.handle({ message: '170 MBC Trichy Civil' })
+    expect(b(out).profile?.complete).toBe(true)
+    expect(b(out).profile?.district).toBe('tiruchirappalli')
+  })
+
   it('a bare question after completion never re-collects or mutates the profile', async () => {
     const svc = make()
     const cid = await complete(svc)

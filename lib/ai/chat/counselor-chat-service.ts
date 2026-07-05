@@ -230,6 +230,20 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     }
     const latencyMs = deps.clock() - startedAt
 
+    // A COMPLETE profile must never be told "share your cutoff and community" — that
+    // happens when a vague/unparseable message ("???", "hmm") yields insufficient
+    // evidence. Re-orient to what we CAN do instead of asking for details already given.
+    if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
+      advised = {
+        ...advised,
+        response: {
+          ...advised.response,
+          answer:
+            "I've got your details — cutoff, community, district and branch. I can share my top picks, compare two colleges head-to-head, show safer backups, or filter to government/private. What would help most?",
+        },
+      }
+    }
+
     await deps.sessionStore.set(id, advised.state)
     rememberTurn(id, message, advised.response.answer)
     deps.logger.log({
