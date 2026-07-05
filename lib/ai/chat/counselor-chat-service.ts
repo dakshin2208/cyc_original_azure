@@ -44,6 +44,7 @@ import {
   PROFILE_SLOTS,
   profileEcho,
   profilesEqual,
+  resolveDistrict,
   slotPrompt,
   toOverrides,
   toView,
@@ -73,6 +74,12 @@ export interface CounselorChatServiceDeps {
   readonly maxHistoryTurns?: number
   /** Max conversations to retain turn-text history for (default 1000). */
   readonly maxHistoryConversations?: number
+  /**
+   * Normalize a typed district to a known one, tolerating misspellings
+   * ("coimbaore" → "coimbatore"). Returns null when nothing is close enough (the
+   * service then broadens the recommendation statewide). Absent → no normalization.
+   */
+  readonly resolveDistrict?: (input: string) => string | null
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -228,6 +235,32 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         deps.opinion.advise(message, { priorState, history: priorHistory, overrides }),
         deps.timeoutMs,
       )
+      // Guarantee colleges: a complete profile must never get a "no evidence" deflection.
+      // The raw phrasing may not parse to a recommendation intent ("tell me the collage
+      // what i get"), so retry with a RELIABLE recommendation query; and if the DISTRICT
+      // still matches nothing, broaden across Tamil Nadu.
+      const hasCols = (a: typeof advised): boolean =>
+        a.response.recommendationSummary.some((s) => s.colleges.length > 0)
+      if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
+        const ov = { ...toOverrides(profile), exclude }
+        let retry = await withTimeout(
+          deps.opinion.advise(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: ov }),
+          deps.timeoutMs,
+        )
+        let note = ''
+        if (!hasCols(retry) && profile.district) {
+          const wide = await withTimeout(
+            deps.opinion.advise(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: { ...ov, location: null } }),
+            deps.timeoutMs,
+          )
+          if (hasCols(wide)) {
+            const place = profile.district.replace(/\b\w/g, (c) => c.toUpperCase())
+            note = `I couldn't find colleges specifically in ${place} for your profile, so here are strong options across Tamil Nadu:\n\n`
+            retry = wide
+          }
+        }
+        if (hasCols(retry)) advised = { ...retry, response: { ...retry.response, answer: note + retry.response.answer } }
+      }
     } catch (e) {
       const code: ChatErrorCode = e instanceof TimeoutError ? 'timeout' : 'internal_error'
       deps.logger.log({ event: 'error', conversationId: id, code, latencyMs: deps.clock() - startedAt, httpStatus: HTTP_STATUS[code] })
@@ -323,8 +356,14 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // (#5). A bare question ("is CIT good?") leaves the profile intact. During
     // collection every message is merged so the slots fill.
     const explicitChange = CHANGE_RE.test(message)
-    const profile =
+    let profile =
       wasComplete && hasQuestion && !explicitChange ? priorProfile : mergeMessage(priorProfile, parsed, message)
+    // Normalize a typed district to a known one, tolerating misspellings ("coimbaore"
+    // → "coimbatore"), so the district filter matches instead of returning nothing.
+    if (deps.resolveDistrict && profile.district) {
+      const canonical = deps.resolveDistrict(profile.district)
+      if (canonical && canonical !== profile.district) profile = { ...profile, district: canonical }
+    }
     await deps.profileStore.set(id, profile)
 
     const finish = (text: string, stage: 'collecting' | 'ready'): ChatOutcome => {
@@ -486,6 +525,15 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
   const parsedTimeout = Number(env.COUNSELOR_TIMEOUT_MS)
   const timeoutMs = options.timeoutMs ?? (Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 45_000)
 
+  // The set of districts the warehouse actually knows about — used to fuzzy-match a
+  // typed district ("coimbaore" → "coimbatore") so onboarding never stores a district
+  // that filters every college out.
+  const knownDistricts = new Set<string>()
+  for (const college of repos.colleges.list()) {
+    const d = repos.colleges.districtOf(college.id)
+    if (d) knownDistricts.add(d.toLowerCase())
+  }
+
   return createCounselorChatService({
     opinion,
     sessionStore: options.sessionStore ?? createInMemorySessionStore(),
@@ -498,5 +546,6 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     idGenerator: options.idGenerator ?? (() => randomUUID()),
     timeoutMs,
     maxMessageLength: options.maxMessageLength,
+    resolveDistrict: (input) => resolveDistrict(input, knownDistricts),
   })
 }

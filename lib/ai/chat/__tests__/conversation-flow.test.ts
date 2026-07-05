@@ -18,6 +18,7 @@ import {
   isComplete,
   mergeMessage,
   nextMissingSlot,
+  resolveDistrict,
   toOverrides,
   type ChatResponse,
   type StudentProfile,
@@ -94,6 +95,15 @@ describe('StudentProfile — slot filling', () => {
     expect(p.answered.branch).toBe(true)
     expect(p.branch).toBeNull()
     expect(isComplete(p)).toBe(true)
+  })
+
+  it('resolveDistrict: exact, misspelling, and unknown', () => {
+    const known = new Set(['coimbatore', 'chennai', 'madurai', 'salem', 'tiruchirappalli'])
+    expect(resolveDistrict('coimbatore', known)).toBe('coimbatore')
+    expect(resolveDistrict('coimbaore', known)).toBe('coimbatore') // 1 missing letter
+    expect(resolveDistrict('CHENNAI', known)).toBe('chennai') // case-insensitive
+    expect(resolveDistrict('madurai', known)).toBe('madurai')
+    expect(resolveDistrict('zzzzzz', known)).toBeNull() // nothing close → caller broadens
   })
 
   it('maps the profile to query overrides', () => {
@@ -567,5 +577,23 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
     const out = await svc.handle({ message: 'thanks', conversationId: cid })
     expect(b(out).answer).toMatch(/happy to help/i)
     expect(b(out).answer).not.toMatch(/my top recommendation/i)
+  })
+
+  it('✓ a MISSPELLED district ("coimbaore") still returns real colleges', async () => {
+    const svc = make()
+    let out = await svc.handle({ message: 'hi' })
+    const cid = b(out).conversationId
+    out = await svc.handle({ message: '170', conversationId: cid })
+    out = await svc.handle({ message: 'BC', conversationId: cid })
+    out = await svc.handle({ message: 'coimbaore', conversationId: cid }) // misspelled Coimbatore
+    out = await svc.handle({ message: 'CSE', conversationId: cid })
+    expect(b(out).profile?.district).toBe('coimbatore') // fuzzy-normalized
+    // and even an awkward phrasing that doesn't parse to an intent still answers
+    for (const q of ['tell me the collage what i get', 'suggest me the collage', 'which collage i get']) {
+      out = await svc.handle({ message: q, conversationId: cid })
+      expect(b(out).answer, `"${q}"`).toMatch(/based on your profile/i)
+      expect(b(out).answer).not.toMatch(/couldn't find|what would help most|widen the search/i)
+      expect(b(out).answer).toMatch(/college|technology|institute|engineering/i) // real college names
+    }
   })
 })

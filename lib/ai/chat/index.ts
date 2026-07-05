@@ -100,4 +100,5 @@ export {
   createInMemoryProfileStore,
   createSupabaseProfileStore,
   createConfiguredProfileStore,
+  resolveDistrict,
 } from './profile'

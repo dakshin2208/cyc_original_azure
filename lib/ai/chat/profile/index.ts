@@ -20,6 +20,7 @@ export {
   profileSummary,
   onboardingSummary,
   profileEcho,
+  resolveDistrict,
 } from './student-profile'
 export {
   type ProfileStore,

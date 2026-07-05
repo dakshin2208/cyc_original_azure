@@ -246,3 +246,42 @@ function titleCasePlace(place: string | null): string | null {
   if (!place) return null
   return place.replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+/** Levenshtein edit distance (small strings only). */
+function editDistance(a: string, b: string): number {
+  const m = a.length
+  const n = b.length
+  const prev = Array.from({ length: n + 1 }, (_, j) => j)
+  const cur = new Array<number>(n + 1)
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i
+    for (let j = 1; j <= n; j++) {
+      cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] : 1 + Math.min(prev[j], cur[j - 1], prev[j - 1])
+    }
+    for (let j = 0; j <= n; j++) prev[j] = cur[j]
+  }
+  return prev[n]
+}
+
+/**
+ * Resolve a typed district to the nearest KNOWN district (lowercased), tolerating
+ * misspellings ("coimbaore" → "coimbatore"). Returns null when nothing is close enough
+ * — the caller then broadens the search statewide rather than filtering to nothing.
+ */
+export function resolveDistrict(input: string, known: ReadonlySet<string>): string | null {
+  const q = input.trim().toLowerCase()
+  if (!q) return null
+  if (known.has(q)) return q
+  let best: string | null = null
+  let bestDist = Infinity
+  for (const d of known) {
+    const dist = editDistance(q, d)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = d
+    }
+  }
+  // Allow ~1 typo per 5 characters (min 1), so short names don't over-match.
+  const tolerance = Math.max(1, Math.floor(q.length / 5))
+  return best && bestDist <= tolerance ? best : null
+}
