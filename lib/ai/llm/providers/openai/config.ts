@@ -38,6 +38,8 @@ export interface OpenAiConfig {
 export const OPENAI_ENV_VARS = {
   apiKey: 'OPENAI_API_KEY',
   model: 'OPENAI_MODEL',
+  /** Standard Azure deployment-name var; takes priority over OPENAI_MODEL when set. */
+  azureDeployment: 'AZURE_OPENAI_DEPLOYMENT_NAME',
   baseUrl: 'OPENAI_BASE_URL',
   timeoutMs: 'OPENAI_TIMEOUT_MS',
   maxOutputTokens: 'OPENAI_MAX_OUTPUT_TOKENS',
@@ -71,7 +73,13 @@ export function readOpenAiConfig(env: Env): OpenAiConfig | null {
 
   return {
     apiKey,
-    model: env[OPENAI_ENV_VARS.model]?.trim() || 'gpt-4o-mini',
+    // For Azure the "model" IS the DEPLOYMENT name in the URL. Prefer the standard Azure
+    // var (AZURE_OPENAI_DEPLOYMENT_NAME), then OPENAI_MODEL, then the safe default — so a
+    // deployment that actually exists is called (avoids 404 DeploymentNotFound).
+    model:
+      env[OPENAI_ENV_VARS.azureDeployment]?.trim() ||
+      env[OPENAI_ENV_VARS.model]?.trim() ||
+      'gpt-4o-mini',
     baseUrl,
     isAzure,
     apiVersion: env[OPENAI_ENV_VARS.apiVersion]?.trim() || DEFAULT_AZURE_API_VERSION,

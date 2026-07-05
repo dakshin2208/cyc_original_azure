@@ -43,6 +43,18 @@ describe('readOpenAiConfig', () => {
     ).toBe('2025-01-01-preview') // override honored
   })
 
+  it('AZURE_OPENAI_DEPLOYMENT_NAME takes priority over OPENAI_MODEL for the deployment', () => {
+    const cfg = readOpenAiConfig({
+      OPENAI_API_KEY: 'k',
+      AZURE_OPENAI_ENDPOINT: 'https://r.openai.azure.com',
+      AZURE_OPENAI_DEPLOYMENT_NAME: 'gpt-4o-mini',
+      OPENAI_MODEL: 'gpt-4.1', // stale value must NOT win
+    })
+    expect(cfg?.model).toBe('gpt-4o-mini')
+    // Falls back to OPENAI_MODEL when the Azure var is absent.
+    expect(readOpenAiConfig({ OPENAI_API_KEY: 'k', OPENAI_MODEL: 'gpt-4o' })?.model).toBe('gpt-4o')
+  })
+
   it('treats an azure-host OPENAI_BASE_URL as Azure too', () => {
     expect(readOpenAiConfig({ OPENAI_API_KEY: 'k', OPENAI_BASE_URL: 'https://r.openai.azure.com' })?.isAzure).toBe(true)
   })
