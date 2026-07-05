@@ -1,0 +1,493 @@
+NIRF Code,CollegeCode,instituteName,collegeName,avgMedianSalary,avgPlacementPercentage,avgPassingPercentage,avgHigherStudiesPercentage,IdleOutputIndex,avgScholarshipPercentage,totalIntake,avgSeatsFilled,avgWomenStudents,avgOutsideStudents,ocCutoff,State,District,PowerScore,careerOutcome
+IR-E-C-36995,2718,Sri Krishna College of Engineering and Technology,Sri Krishna College of Engineering and Technology (Autonomous),700000,85.24,93.9,8.31,6.44,12.24,5736,93.24,26.89,6.32,192,Tamilnadu,Coimbatore,96.43,93.56
+IR-E-C-45287,2329,RATHINAM TECHNICAL CAMPUS,Rathinam Technical Campus (Autonomous),568333,95.14,98.2,3.07,1.8,30.16,1847,75.74,53.97,22.77,179,Tamilnadu,Coimbatore,96.11,98.2
+IR-E-C-16626,1211,Rajalakshmi Engineering College,Rajalakshmi Engineering College (Autonomous),537000,82.41,95.25,10.85,6.74,9.23,8490,99.91,46.08,34.55,193.5,Tamilnadu,Kancheepuram,94.36,93.26
+IR-E-C-36969,2007,COIMBATORE INSTITUTE OF TECHNOLOGY,Coimbatore Institute of Technology (Autonomous),586000,82.04,92.12,9.56,8.39,38.75,2880,94.07,30.76,2.73,198,Tamilnadu,Coimbatore,94.36,91.61
+IR-E-C-37070,2750,Kalaignar Karunanidhi Institute of Technology,KIT - Kalaignarkarunanidhi Institute of Technology (Autonomous),648333,83.76,91.08,7.26,8.98,34.13,2700,88.59,39.57,16.53,185.5,Tamilnadu,Coimbatore,94.2,91.02
+IR-E-C-16560,1304,Easwari Engineering College,Easwari Engineering College (Autonomous),532667,87.14,95.93,8.79,4.07,19.78,4440,75.04,53.67,11.86,188,Tamilnadu,Chennai,94.18,95.93
+IR-E-C-50605,2377,PSG INSTITUTE OF TECHNOLOGY AND APPLIED RESEARCH,PSG Institute of Technology and Applied Research(Autonomous),650000,81.31,94.49,6.6,12.1,22.42,1500,89.89,37.3,13.68,197,Tamilnadu,Coimbatore,92.85,87.9
+IR-E-C-36947,2726,SNS College of Technology,SNS College of Technology (Autonomous),509000,87.57,97.9,8.1,4.32,18.45,3960,65,41.17,11.92,177.5,Tamilnadu,Coimbatore,92.65,95.68
+IR-E-C-16532,1432,Rajalakshmi Institute of Technology,Rajalakshmi Institute of Technology (Autonomous) Irulapalayam Kuthampakkam,508667,96.45,100,3.43,0.12,30.39,2940,56.22,45.65,42.18,191,Tamilnadu,Chennai,92.33,99.88
+IR-E-C-16604,1315,Sri Sivasubramaniya Nadar College of Engineering,Sri Sivasubramaniya Nadar College of Engineering (Autonomous),806667,75.89,94.24,13.08,11.03,18.34,3240,105.85,35.69,16,199,Tamilnadu,Chengalpattu,92.3,88.97
+IR-E-C-16504,1116,SRI VENKATESWARA COLLEGE OF ENGINEERING AND TECHNOLOGY,Sri Venkateswara College of Engineering and Technology,498000,83.69,96.64,7.55,8.76,71.4,4680,85.58,34.65,25.72,167,Tamilnadu,Thiruvallur,91.8,91.24
+IR-E-C-26794,5008,Thiagarajar College of Engineering,Thiagarajar College of Engineering (Autonomous),668000,77.34,96.37,5.84,16.82,32.22,3594,95.75,39.39,0.95,197.5,Tamilnadu,Madurai,90.77,83.18
+IR-E-C-25054,3701,K. Ramakrishnan College of Technology,K Ramakrishnan College of Technology (Autonomous),463333,85.28,93.04,3.51,11.22,11.31,2100,81.29,33.79,5.48,171,Tamilnadu,Tiruchirappalli,90.37,88.78
+IR-E-C-36958,2715,Nandha Engineering College,Nandha Engineering College (Autonomous),419000,89.34,92.86,2.49,8.17,12.48,3240,71.94,30.66,0.65,165.5,Tamilnadu,Erode,89.9,91.83
+IR-E-I-1078,1316,Agni College of Technology,Agni College of Technology (Autonomous),408333,86.16,94.05,7.54,6.29,36.96,2670,74.75,48.41,15.46,161,Tamilnadu,Chengalpattu,89.01,93.71
+IR-E-C-36944,2622,V. S. B. Engineering College,V S B Engineering College (Autonomous),553667,80.36,88.33,2.12,17.52,14.64,4440,77.67,40.02,25.05,179,Tamilnadu,Karur,88.66,82.48
+IR-E-C-16572,1219,Sri Venkateswara College of Engineering,Sri Venkateswara College of Engineering (Autonomous),566667,72.49,95.67,18.87,8.64,30.06,4320,76.66,30.72,1.75,192,Tamilnadu,Chennai,86.86,91.36
+IR-E-C-16490,1118,VEL TECH MULTI TECH DR.RANGARAJAN DR.SAKUNTHALA ENGINEERING COLLEGE,Vel Tech Multi Tech Dr Rangarajan Dr Sakunthala Engineering College (Autonomous),441667,81.84,96.17,5.32,12.84,12.63,2940,68.1,29.99,3.49,175,Tamilnadu,Chennai,86.28,87.16
+IR-E-C-26783,5910,"PSNA College of Engineering and Technology, Dindigul",PSNA College of Engineering and Technology (Autonomous),455185,78.94,85.04,1.94,19.12,38.96,4800,75.75,37.61,0.11,183,Tamilnadu,Dindigul,85.1,80.88
+IR-E-C-16590,1216,SAVEETHA ENGINEERING COLLEGE,Saveetha Engineering College (Autonomous),484333,78.03,85.33,1.75,20.23,31.62,5670,78.17,32.58,7.63,189,Tamilnadu,Kancheepuram,84.7,79.77
+IR-E-C-36926,2712,Kumaraguru College of Technology,Kumaraguru College of Technology (Autonomous),466667,72.13,92.31,15.55,12.32,11.18,5472,87.76,32.63,1.8,195.5,Tamilnadu,Coimbatore,84.06,87.68
+IR-E-C-37080,2727,Sri Shakthi Institute of Engineering and Technology,Sri Shakthi Institute of Engineering and Technology (Autonomous),554017,74.37,82.88,7.81,17.82,17.43,4230,61.39,32.71,21.12,176,Tamilnadu,Coimbatore,83.56,82.18
+IR-E-C-37036,2734,SNS College of Engineering,SNS College of Engineering (Autonomous),564000,70.94,90.71,16.91,12.15,29.9,2520,68.86,39.59,18.24,,Tamilnadu,Coimbatore,83.42,87.85
+IR-E-C-16611,1311,KCG COLLEGE OF TECHNOLOGY,KCG college of Technology (Autonomous),409667,82.4,97.34,2.48,15.12,26.27,2730,57.76,40.27,36.52,174.5,Tamilnadu,Chennai,82.5,84.88
+IR-E-C-16576,1399,CHENNAI INSTITUTE OF TECHNOLOGY,Chennai Institute of Technology (Autonomous) Puduper,426585,73.02,93.43,7.69,19.29,17.5,4200,99.19,41.27,25.38,196,Tamilnadu,Chennai,82.5,80.71
+IR-E-C-37089,2719,Sri Ramakrishna Engineering College,Sri Ramakrishna Engineering College (Autonomous),490667,72.48,93.36,6.36,21.15,10.98,4050,90.01,32.06,1.6,187,Tamilnadu,Coimbatore,82.3,78.85
+IR-E-C-27091,4955,FRANCIS XAVIER ENGINEERING COLLEGE,Francis Xavier Engineering College (Autonomous),365333,85.31,92.62,5.89,8.8,12.48,2880,62.07,33.43,2.5,174,Tamilnadu,Tirunelveli,82.08,91.2
+IR-E-C-26781,5986,Velammal College of Engineering & Technology,Velammal College of Engineering and Technology (Autonomous),437414,72.02,91.2,4.5,23.48,10.57,2280,83.81,42.32,0.04,188.5,Tamilnadu,Madurai,78.24,76.52
+IR-E-C-37057,2739,Sri Eshwar College of Engineering,Sri Eshwar College of Engineering (Autonomous),493333,71.7,95.8,4.41,23.9,16.78,3060,74.8,36.27,6.31,193.5,Tamilnadu,Coimbatore,78.01,76.1
+IR-E-C-36930,2634,EXCEL ENGINEERING COLLEGE,Excel Engineering College (Autonomous),403333,74.39,81.11,4.49,21.12,28.39,4140,71.98,24.04,20.94,144,Tamilnadu,Namakkal,77.77,78.88
+IR-E-C-27058,4960,Mepco Schlenk Engineering College,Mepco Schlenk Engineering College (Autonomous),500000,68.84,94.32,6.01,25.15,37.44,4020,93.72,42.74,0.59,185.5,Tamilnadu,Virudhunagar,77.23,74.85
+IR-E-C-16537,1317,St. Josephs College of Engineering,St. Joseph's College of Engineering (Autonomous),445000,68.2,89.48,9.89,21.91,10.89,5640,90.73,35.41,14.98,187.5,Tamilnadu,Chennai,77.03,78.09
+IR-E-C-16480,1309,Meenakshi Sundararajan Engineering College,Meenakshi Sundararajan Engineering College (Autonomous),406667,73.01,92.41,3.93,23.06,9.2,1860,81.35,43.33,0,180.5,Tamilnadu,Chennai,76.88,76.94
+IR-E-C-36999,2764,KPR Institute of Engineering and Technology,KPR Institute of Engineering and Technology (Autonomous),432000,71.06,96.09,4.99,23.94,3.01,3600,85.26,35.22,7.99,192,Tamilnadu,Coimbatore,76.78,76.06
+IR-E-U-0439,1,Anna University,University Departments of Anna University,726667,64.65,89.6,7.68,27.67,14.67,9520,89.02,39.23,2.73,200,Tamilnadu,Chennai,76.16,72.33
+IR-E-C-36966,2617,Sengunthar Engineering College,Sengunthar Engineering College (Autonomous),340000,85.06,92.54,1.24,13.7,14.06,2280,48.66,21.14,26.39,152,Tamilnadu,Namakkal,76.11,86.3
+IR-E-C-27075,4959,KAMARAJ COLLEGE OF ENGINEERING & TECHNOLOGY,Kamaraj College of Engineering and Technology (Autonomous),395333,74.18,93.41,6.13,19.69,7.88,2520,60.68,41.2,0.09,173,Tamilnadu,Virudhunagar,75.92,80.31
+IR-E-C-37058,2653,Knowledge Institute of Technology,Knowledge Institute of Technology (Autonomous) KIOT Campus Kakapalayam,350180,78.44,85.17,2.36,19.2,8.5,2661,60.57,33.46,0.07,174,Tamilnadu,Salem,75.25,80.8
+IR-E-C-16463,1114,S. A. Engineering College,S.A. Engineering College (Autonomous),366667,78.33,91.44,4.6,17.07,11.5,3450,44.52,32.25,1.42,168,Tamilnadu,Chennai,74.95,82.93
+IR-E-C-16526,1413,Sri Venkateswaraa College of Technology,Sri Venkateswaraa College of Technology,416667,75.77,81.23,3.61,20.62,19.27,1320,28.01,41.79,7.63,172,Tamilnadu,Kancheepuram,74.53,79.38
+IR-E-C-26811,5832,"N.P.R. College of Engineering and Technology, Natham Village, Dindigul",N.P.R College of Engineering and Technology (Autonomous),330000,85.46,88.65,1.76,12.78,8.94,1440,38.84,31.96,0.24,154,Tamilnadu,Dindigul,74.51,87.22
+IR-E-C-27061,4944,Arunachala College of Engineering for Women,Arunachala College of Engineering for Women,340000,71.88,99.31,27.43,0.69,28.87,1920,61.67,100,0.7,155.5,Tamilnadu,Kanyakumari,74.03,99.31
+IR-E-C-37000,2611,Paavai Engineering College,Paavai Engineering College (Autonomous),328333,76.67,81.06,3.98,19.35,27.39,5400,74.85,28.25,2.71,155.5,Tamilnadu,Namakkal,73.57,80.65
+IR-E-C-36929,2736,Dr. N. G. P. Institute of Technology,Dr N.G.P. Institute of Technology (Autonomous),403333,70.95,79.82,5.23,23.82,8.92,2610,71.3,39.19,1.05,183,Tamilnadu,Coimbatore,73,76.18
+IR-E-C-16551,1509,Meenakshi College of Engineering,Meenakshi College of Engineering,376667,75.7,94.95,3.24,21.06,18.64,2700,25.09,41.19,1.01,167,Tamilnadu,Chennai,70.89,78.94
+IR-E-C-16543,1408,I. F. E. T. College of Engineering,IFET College of Engineering (Autonomous),324000,79.38,93.51,6.34,14.28,47.64,2910,38.02,40.27,6.02,176,Tamilnadu,Viluppuram,70.84,85.72
+IR-E-C-37063,2708,Hindusthan College of Engineering and Technology,Hindusthan College of Engineering and Technology(Autonomous),427000,63.46,96.31,12.75,23.78,32.01,5130,79.99,30.32,19.61,181,Tamilnadu,Coimbatore,70.02,76.22
+IR-E-C-37065,2711,Kongu Engineering College,Kongu Engineering College (Autonomous),400000,69.14,86.22,3.1,27.75,11.35,6960,83.8,36.11,1.42,186.5,Tamilnadu,Erode,69.9,72.25
+IR-E-C-16615,1424,Dhaanish Ahmed College of Engineering,Dhaanish Ahmed College of Engineering,283333,90.98,94.94,0.53,8.49,19.5,1890,29.94,22.45,9.64,182.5,Tamilnadu,Chennai,68.94,91.51
+IR-E-C-37099,2707,Erode Sengunthar Engineering College,Erode Sengunthar Engineering College (Autonomous),284667,79.07,85.53,4.74,16.19,22.77,3780,70.18,36.25,6.91,152.5,Tamilnadu,Erode,68.86,83.81
+IR-E-C-16554,1233,Adhi College of Engineering and Technology,Adhi College of Engineering and Technology,337000,72.71,78.97,3.49,23.81,7.59,1560,65.56,36.82,0.16,143.5,Tamilnadu,Kancheepuram,68.52,76.19
+IR-E-C-16550,1237,Velammal Institute of Technology,Velammal Institute of Technology,383333,69.74,95.51,5.69,24.57,3.48,2250,57.97,40.87,17.17,167,Tamilnadu,Thiruvallur,68.34,75.43
+IR-E-C-37094,2723,Velalar College of Engineering and Technology,Velalar College of Engineering and Technology (Autonomous),316667,72.66,95.21,4.65,22.7,9.33,3270,82.97,51.69,0.09,174.5,Tamilnadu,Erode,67.62,77.3
+IR-E-C-16624,1422,SRM Valliammai Engineering College,SRM Valliammai Engineering College (Autonomous),400000,69.49,83.7,3.35,27.16,27.43,3720,59.09,27.43,1.23,184.5,Tamilnadu,Chennai,67.5,72.84
+IR-E-C-27064,4917,Sethu Institute of Technology,Sethu Institute of Technology (Autonomous),279333,76.9,92.09,3.33,19.77,39.44,4680,86,26.06,0.27,164,Tamilnadu,Virudhunagar,67.35,80.23
+IR-E-C-25046,3811,M. I. E. T. Engineering College,M.I.E.T. Engineering College (Autonomous),415000,67.86,74.74,6.41,25.72,19.05,2040,49.99,23.1,0.82,137.5,Tamilnadu,Tiruchirappalli,67.18,74.28
+IR-E-C-16614,1113,R.M.K. Engineering College,R.M.K. Engineering College (Autonomous),458333,59.45,97.86,10.99,29.57,19.28,3360,88.68,38.27,20.22,190,Tamilnadu,Thiruvallur,65.97,70.43
+IR-E-C-16549,1325,St. Joseph College of Engineering,St. Joseph College of Engineering,341333,70.83,76.13,3.6,25.57,26.24,1380,65.61,33.36,0.34,152,Tamilnadu,Kancheepuram,65.69,74.43
+IR-E-C-37105,2601,Adhiyamaan College of Engineering(Autonomous),Adhiyamaan College of Engineering (Autonomous),351667,70.14,83.08,3.98,25.88,17.4,3660,58.64,33.13,5.76,158.5,Tamilnadu,Krishnagiri,64.73,74.12
+IR-E-C-36951,2652,AL-Ameen Engineering College,AL-Ameen Engineering College (Autonomous),248000,85.97,88.83,2.23,11.8,17.11,960,34.81,16.89,3.47,134.5,Tamilnadu,Erode,64.23,88.2
+IR-E-C-1377,1529,The Oxford College of Engineering,Oxford College of Engineering,521667,61.52,89.66,5.13,33.35,43.65,3300,56.3,42.47,20.24,,Tamilnadu,Thiruvannamalai,63.64,66.65
+IR-E-C-16620,1210,Panimalar Engineering College,Panimalar Engineering College (Autonomous),394325,62.93,94.86,5.16,31.91,14.31,8580,88.46,44.41,28.7,179.5,Tamilnadu,Chennai,63.34,68.09
+IR-E-C-16599,1409,Karpaga Vinayaga College of Engineering and Technology,Karpaga Vinayaga College of Engineering and Technology,323333,73.44,80.3,4.39,22.17,44.4,1920,27.15,38.59,9.96,154.5,Tamilnadu,Chengalpattu,63.12,77.83
+IR-E-C-49130,2338,ASIAN COLLEGE OF ENGINEERING AND TECHNOLOGY,Asian College of Engineering and Technology,300000,74.64,90.27,6.05,19.3,75.45,1260,39.56,31.48,0,134,Tamilnadu,Coimbatore,62.82,80.7
+IR-E-C-36975,2005,Government College of Technology,Government College of Technology (Autonomous),473333,59.79,92.56,3.39,36.82,67.54,2880,87.73,41.95,1.1,197.5,Tamilnadu,Coimbatore,62.79,63.18
+IR-E-C-49144,4678,Ramco Institute of Technology,Ramco Institute of Technology,318333,70.76,85.54,6.9,22.34,33.35,2160,55.24,36.56,0.4,171.5,Tamilnadu,Virudhunagar,62.7,77.66
+IR-E-C-45299,2345,Dhirajlal Gandhi College of Technology,Dhirajlal Gandhi College of Technology (Autonomous),345000,68.45,76.15,2.44,29.11,8.34,2160,64.01,32.34,0.32,148,Tamilnadu,Salem,62.13,70.89
+IR-E-C-37041,2741,P. A. College of Engineering and Technology,P A College of Engineering and Technology (Autonomous),295333,76.27,83.64,0.81,22.92,22.17,1920,44.76,37.25,1.94,166.5,Tamilnadu,Coimbatore,61.78,77.08
+IR-E-C-27071,4933,St. Mother Theresa Engineering College,St. Mother Theresa Engineering College,266667,76.66,92.31,5.49,17.85,29.27,1560,46.51,38.57,0,112.5,Tamilnadu,Thoothukudi,61.48,82.15
+IR-E-C-48266,2357,V.S.B College of Engineering Technical Campus,V.S.B. College of Engineering Technical Campus (Autonomous),525333,60.68,73.2,4.46,34.87,24.67,2220,52.82,43.65,1.32,173,Tamilnadu,Coimbatore,61.21,65.13
+IR-E-C-6580,1212,Rajiv Gandhi College of Engineering and Technology,Rajiv Gandhi College of Engineering,353900,68.56,80.99,1.89,29.55,5.33,1780,46.44,37.6,25.78,143.5,Tamilnadu,Kancheepuram,61.07,70.45
+IR-E-C-16527,1112,R.M.D Engineering College,R.M.D. Engineering College (Autonomous),406766,57.27,97.56,9.03,33.7,18.38,2220,90.25,40.43,26.48,182.5,Tamilnadu,Thiruvallur,59.53,66.3
+IR-E-C-24984,3805,Dhanalakshmi Srinivasan Engineering College,Dhanalakshmi Srinivasan Engineering College (Autonomous),336667,67.43,85.53,1.92,30.65,21.72,5700,60.16,29.99,6.87,156.5,Tamilnadu,Perambalur,59.08,69.35
+IR-E-C-37022,2620,Vivekanandha College of Engineering for Women,Vivekanandha College of Engineering for Women (Autonomous),276667,69.3,92.06,7.37,23.34,17.82,2220,76.79,100,1.35,163.5,Tamilnadu,Namakkal,58.24,76.66
+IR-E-C-16477,1450,Loyola-ICAM College of Engineering and Technology,Loyola ICAM College of Engineering and Technology,403333,55.8,83.36,10.41,33.79,9.55,1440,97.22,35.51,0.46,193,Tamilnadu,Chennai,57.99,66.21
+IR-E-C-37021,2762,Jansons Institute of Technology,Jansons Institute of Technology (Autonomous),296667,71.7,75.95,3.44,24.86,6.67,1260,52.15,34.66,38.99,167,Tamilnadu,Coimbatore,57.81,75.14
+IR-E-C-16539,1306,Jeppiaar Engineering College,Jeppiaar Engineering College,375000,60.45,95.82,4.47,35.08,0,2700,83.79,31.96,1.5,174,Tamilnadu,Chennai,57.72,64.92
+IR-E-C-36954,2314,Muthayammal Engineering College,Muthayammal College of Engineering,324000,64.89,88.93,2.26,32.86,7.75,4440,66.85,21.48,10.63,,,,56.73,67.14
+IR-E-C-25024,3908,Mount Zion College of Engineering and Technology,Mount Zion College of Engineering and Technology,228667,75.66,78.31,2.65,21.69,15.06,1440,53.11,64.91,0.46,160,Tamilnadu,Pudukkottai,56.29,78.31
+IR-E-C-39247,2607,K.S.RANGASAMY COLLEGE OF TECHNOLOGY,K S Rangasamy College of Technology (Autonomous),375000,59.89,94.35,2.9,37.21,42.82,3810,73.22,32.35,0.84,172,Tamilnadu,Namakkal,55.54,62.79
+IR-E-C-37026,2639,R P Sarathy Institute of Technology,Narasu's Sarathy Institute of Technology,266667,74.07,80.02,1,24.92,5.35,1410,43.7,36.52,0.38,135,Tamilnadu,Salem,55.47,75.08
+IR-E-C-26807,5921,SYED AMMAL ENGINEERING COLLEGE,Syed Ammal Engineering College (Autonomous),408221,59.78,72.1,2.98,37.25,37.74,1380,57.85,46.98,0.06,167,Tamilnadu,Ramanathapuram,55.34,62.75
+IR-E-C-37004,2632,Mahendra Institute of Technology,Mahendra Institute of Technology (Autonomous),308333,67.02,72.74,2.46,30.52,26.7,3360,65.43,18.82,6.55,136,Tamilnadu,Namakkal,55.22,69.48
+IR-E-C-16525,1307,Jerusalem College of Engineering,Jerusalem College of Engineering (Autonomous),313333,64.05,75.91,4.42,31.53,15.38,2544,82.56,45.3,0.67,169,Tamilnadu,Chennai,54.97,68.47
+IR-E-I-1119,3841,CARE College of Engineering,CARE College of Engineering (Formerly C.A.R.E Group of Institutions),346667,66.59,74.78,1.75,31.65,16.59,1140,27.22,32.43,0.75,164.5,Tamilnadu,Tiruchirappalli,54.85,68.35
+IR-E-I-1030,1107,Jaya Institute of Technology,Jaya Institute of Technology,120000,83.33,83.33,0,16.67,0,630,1.67,21.6,1.2,127,Tamilnadu,Thiruvallur,54.16,83.33
+IR-E-C-37076,2643,BHARATHIYAR INSTITUTE OF ENGINEERING FOR WOMEN,Bharathiyar Institute of Engineering for Women,316000,64.6,70.8,3.14,32.27,40.23,1260,64.22,100,0,144,Tamilnadu,Salem,53.83,67.73
+IR-E-C-36989,2751,KGISL INSTITUTE OF TECHNOLOGY,KGISL Institute of Technology (Autonomous),373333,61.09,79.25,2.69,36.22,8.13,2100,52.85,38.93,1.08,182.5,Tamilnadu,Coimbatore,53.79,63.78
+IR-E-C-37029,2646,Tagore Institute of Engineering and Technology,Tagore Institute of Engineering and Technology,328000,64.41,72.15,4.76,30.83,48.24,1440,43.98,34.91,0,125,Tamilnadu,Salem,53.59,69.17
+IR-E-C-16521,1407,G. K. M. College of Engineering and Technology,G K M College of Engineering and Technology,366667,58.61,76.44,16.76,24.63,25.4,1240,22.02,38.29,2.78,142,Tamilnadu,Chennai,53.19,75.37
+IR-E-C-27041,4964,PSN COLLEGE OF ENGINEERING AND TECHNOLOGY,PSN College of Engineering and  Technology (Autonomous) Melathediyoor  Tirunelveli-627 152,313333,63.18,72.26,5.21,31.62,27.2,2400,67.58,22.56,2.07,145.5,Tamilnadu,Tirunelveli,52.55,68.38
+IR-E-C-16503,4946,D. M. I. College of Engineering,D M I Engineering College,335000,62.91,74.15,3.65,33.44,0,1710,48.24,37.57,1.08,138,Tamilnadu,Kanyakumari,52.17,66.56
+IR-E-C-36938,2731,RVS College of Engineering and Technology,RVS College of Engineering and Technology (Autonomous),254667,69.73,77.94,4.96,25.3,27.96,1260,49.2,20.43,3.94,164,Tamilnadu,Coimbatore,51.44,74.7
+IR-E-C-26814,5914,"Solamalai College of Engineering, Madurai",Solamalai College of Engineering  (Autonomous),393333,61.86,87.94,1.12,37.02,21.99,1140,19.88,29.67,0,126,Tamilnadu,Madurai,51.44,62.98
+IR-E-C-25028,3795,SRM TRP Engineering College,SRM TRP Engineering College,416667,52.39,57.08,4.69,42.92,23.22,2340,67.54,30.07,0.19,176,Tamilnadu,Tiruchirappalli,50.77,57.08
+IR-E-C-36990,2761,UNITED INSTITUTE OF TECHNOLOGY,United Institute of Technology (Autonomous),272667,69.61,78.64,3.35,27.04,48.27,1170,34.52,31.83,46.71,153.5,Tamilnadu,Coimbatore,50.32,72.96
+IR-E-C-25004,3803,Anjalai Ammal Mahalingam Engineering College,Anjalai Ammal Mahalingam Engineering College,300000,64.5,79.73,1.76,33.74,6.91,1980,59.09,42.19,0.06,178,Tamilnadu,Thiruvarur,50.06,66.26
+IR-E-C-27035,4023,University College of Engineering Nagercoil,University College of Engineering,388055,45.33,94.38,28.45,26.22,12.48,1980,59.88,47.09,0.06,178,Tamilnadu,Kanyakumari,49.83,73.78
+IR-E-C-24993,3804,Arasu Engineering College,Arasu Engineering College,353333,60.18,80.55,2,37.82,15.13,1950,48.52,31.51,0,149,Tamilnadu,Thanjavur,49.63,62.18
+IR-E-C-27082,4965,P. S. R. Engineering College,P.S.R. Engineering College (Autonomous),280667,63.69,96.08,4.28,32.02,10.95,2220,75.51,37,0.13,165,Tamilnadu,Virudhunagar,49.36,67.98
+IR-E-C-50925,1140,JEPPIAAR INSTITUTE OF TECHNOLOGY,Jeppiaar Institute of Technology (Autonomous),436333,50.21,89.31,6.07,43.71,10.22,1560,63.33,36.31,0.55,172.5,Tamilnadu,Kancheepuram,48.81,56.29
+IR-E-C-37028,2618,Sona College of Technology,Sona College of Technology (Autonomous),410329,50.51,93.45,3.57,45.92,28.71,4530,78.06,49.76,10.27,185,Tamilnadu,Salem,48.62,54.08
+IR-E-C-27077,4971,St. Xavier`s Catholic College of Engineering,St. Xavier's Catholic College of Engineering (Autonomous),268333,61.74,85.89,9.29,28.97,3.19,2280,70.25,33.64,1.37,177,Tamilnadu,Kanyakumari,48.54,71.03
+IR-E-C-16541,1420,Tagore Engineering College,Tagore Engineering College,370000,57.38,62.05,2.99,39.63,28.33,1320,44.64,39.19,0.83,154,Tamilnadu,Chennai,47.89,60.37
+IR-E-C-48273,4670,Rohini College of Engineering And Technology,Rohini College of Engineering & Technology,227000,63.65,81.03,5.82,30.53,68.17,2160,99.75,37.27,6.1,164.5,Tamilnadu,Kanyakumari,47.43,69.47
+IR-E-C-16473,1523,Global Institute of Engineering and Technology,Global Institute of Engineering and Technology,320000,62.91,80.64,3.35,33.74,24.4,1680,33.16,24.82,0,134,Tamilnadu,Chennai,47.3,66.26
+IR-E-C-37006,2630,Chettinad College of Engineering & Technology,Chettinad College of Engineering and Technology,222322,70.7,75.36,2.77,26.52,15.15,1200,41.57,37.03,0,162.5,Tamilnadu,Tiruchirappalli,47.13,73.48
+IR-E-C-27051,4994,J.P.College of Engineering,J.P. College of Engineering,288000,64.01,72.17,1.63,34.36,22.25,1320,61.39,43.21,0.43,139.5,Tamilnadu,Tenkasi,47.13,65.64
+IR-E-C-37068,2627,Selvam College of Technology,Selvam College of Technology (Autonomous),259667,64.6,75.76,4.85,30.55,45.51,1920,55.35,36.52,0,133.5,Tamilnadu,Namakkal,46.67,69.45
+IR-E-C-16468,1412,Mailam Engineering College,Mailam Engineering College,261000,68.21,72.67,1.36,30.42,65.32,3720,33.63,33.77,6.68,170,Tamilnadu,Viluppuram,46.56,69.58
+IR-E-C-37061,2642,P.S.V.College of Engineering and Technology,P S V College of Engineeering and Technology,346667,58.06,74.06,4.35,37.59,20.63,1800,41.44,39.9,4.07,152.5,Tamilnadu,Krishnagiri,45.84,62.41
+IR-E-C-26789,5901,Alagappa Chettiar Government College of Engineering and Technology,Alagappa Chettair Government College of Engineering and Technology (Autonomous),373333,50.28,90.08,3.16,46.56,57.79,1680,86.11,37.59,0.17,194,Tamilnadu,Sivagangai,45.69,53.44
+IR-E-C-37038,2752,Nandha College of Technology,Nandha College of Technology,310000,61.51,74.76,1,37.49,7.4,1350,56.62,36.6,0.38,156.5,Tamilnadu,Erode,45.67,62.51
+IR-E-C-16488,1310,Misrimal Navajee Munoth Jain Engineering College,Misrimal Navajee Munoth Jain Engineering College,300000,61.66,85,4.71,33.63,8.25,1350,42.22,35.14,1.42,167,Tamilnadu,Chennai,45.17,66.37
+IR-E-C-16567,1405,Dhanalakshmi College of Engineering,Dhanalakshmi College of Engineering,316667,59.63,79.91,0.42,39.95,64.68,1620,62.07,26.59,27.78,159,Tamilnadu,Chennai,44.97,60.05
+IR-E-C-16518,1225,Loyola Institute of Technology,Loyola Institute of Technology,299316,59.67,63.03,2.24,38.09,36.18,1260,80.97,34.68,1.69,166.5,Tamilnadu,Chennai,44.85,61.91
+IR-E-C-37090,2755,Nehru Institute of Technology,Nehru Institute of Technology (Autonomous),293333,64.46,69.42,0.75,34.79,34.25,1260,36.44,30.54,13.15,166,Tamilnadu,Coimbatore,44.58,65.21
+IR-E-C-36980,2615,Government College of Engineering,Government College of Engineering (Autonomous),320000,54.12,90.72,2.42,43.45,88.51,1920,90.21,35.7,1.34,195,Tamilnadu,Salem,44.38,56.55
+IR-E-C-26795,5907,"Mohamed Sathak Engineering College, Kilakarai",Mohamed Sathak Engineering College (Autonomous),440000,48.09,78.79,8.16,43.75,7.01,2640,37.41,32.79,19.19,161,Tamilnadu,Ramanathapuram,43.84,56.25
+IR-E-C-37043,2753,PPG Institute of Technology,PPG Institute of Technology,181667,67.04,84.2,10.36,22.59,26.24,1110,26.83,32.48,3.12,149.5,Tamilnadu,Coimbatore,43.62,77.41
+IR-E-C-45288,2342,"SRI RANGANATHAR INSTITUTE OF ENGINEERING AND TECHNOLOGY, COIMBATORE",Sri Ranganathar Institute of Engineering and Technology (Autonomous),383333,51.85,59.6,1.2,46.95,34.54,1260,58.56,26.97,8.66,146.5,Tamilnadu,Coimbatore,43.59,53.05
+IR-E-C-16487,1401,Adhiparasakthi Engineering College,Adhiparasakthi Engineering College,233667,64.48,77.97,5.03,30.48,6.11,1960,42.11,38.18,0.48,158,Tamilnadu,Chengalpattu,43.14,69.52
+IR-E-C-37016,2705,CSI College of Engineering,CSI College of Engineering,361667,54.86,64.87,4.93,40.21,56.03,1890,23.89,30.16,2.28,,Tamilnadu,The Nilgiris,42.65,59.79
+IR-E-C-37035,2735,Karpagam Institute of Technology,Karpagam Institute of Technology (Autonomous),300000,58.46,60.96,0.27,41.27,12.12,1800,67.22,23.7,0.98,185.5,Tamilnadu,Coimbatore,41.68,58.73
+IR-E-C-27074,4864,V.V.College of Engineering,V V College of Engineering,198667,64.94,70.59,4.06,31,3.38,1200,44.24,37.92,0,155.5,Tamilnadu,Thoothukudi,41.31,69
+IR-E-C-25006,3819,Saranathan College of Engineering,Saranathan College of Engineering (Autonomous),363998,47.97,90.59,2.87,49.16,11.17,2760,84.3,44.2,0.29,183.5,Tamilnadu,Tiruchirappalli,41.04,50.84
+IR-E-C-25038,3905,Kings College of Engineering,Kings College of Engineering (Autonomous),345000,54.48,56.3,1.67,43.85,25.4,1740,42.22,31.24,0.08,158,Tamilnadu,Pudukkottai,40.96,56.15
+IR-E-C-36970,2347,AVS Engineering College,AVS College of Technology,160000,60.78,86.31,4.48,34.73,30.82,2160,101.6,41.73,0.27,133.5,Tamilnadu,Salem,39.8,65.27
+IR-E-C-37032,2725,Sri Ramakrishna Institute of Technology,Sri Ramakrishna Institute of Technology (Autonomous),350000,50.08,92.36,4.69,45.23,9.21,1620,55.13,27.64,0.93,176.5,Tamilnadu,Coimbatore,39.61,54.77
+IR-E-C-16625,1322,DHANALAKSHMI SRINIVASAN COLLEGE OF ENGINEERING AND TECHNOLOGY,Dhanalakshmi Srinivasan College of Engineering and Technology,323333,52.76,58.25,0.3,46.94,24.95,3300,59.1,31.29,22.11,148,Tamilnadu,Chennai,38.56,53.06
+IR-E-C-16465,1238,GRT Institute of Engineering and Technology,G R T Institute of Engineering and Technology,330667,51.81,57.96,1.06,47.13,13.73,1470,58.86,39.98,6.62,155,Tamilnadu,Thiruvallur,38.42,52.87
+IR-E-C-49141,3464,GOVERNMENT COLLEGE OF ENGINEERING THANJAVUR,Government College of Engineering,328000,49.03,71.4,2.86,48.11,16.27,1200,82.56,36.2,0,182.5,Tamilnadu,Thanjavur,38.19,51.89
+IR-O-C-36937,2624,Gnanamani College of Technology,Gnanamani College of Technology (Autonomous),250000,57.55,66.74,5.63,36.82,44.88,4560,64.86,40.36,7.47,134.5,Tamilnadu,Namakkal,37.78,63.18
+IR-E-C-48283,1516,THANTHAI PERIYAR GOVERNMENT INSTITUTE OF TECHNOLOGY,Thanthai Periyar Government Institute of Technology,316667,48.81,83.89,5.18,46.01,57.33,1680,85,33.07,0.06,190,Tamilnadu,Vellore,37.5,53.99
+IR-E-C-16530,1319,Thangavelu Engineering College,Thangavelu Engineering College,230000,64.3,84.2,1.3,34.4,25.99,1980,12.32,27.22,0.76,120.5,Tamilnadu,Chennai,36.34,65.6
+IR-E-C-45295,2328,"KSR INSTITUTE FOR ENGINEERING AND TECHNOLOGY, NAMAKKAL",K S R Institute for Engineering and Technology (Autonomous) Thokkavadi Namakkal,290000,53.17,90.53,4.77,42.05,15.06,1380,62.41,35.73,0.43,,Tamilnadu,Namakkal,36.34,57.95
+IR-E-C-49142,3465,GOVERNMENT COLLEGE OF ENGINEERING SRIRANGAM,Government College of Engineering,370000,39.29,77.59,3.25,57.47,33.7,997,99.57,40.55,0,188,Tamilnadu,Tiruchirappalli,35.97,42.53
+IR-E-C-49133,2369,Government College of Engineering Dharmapuri,Government College of Engineering,353333,42.53,77.13,3.61,53.86,82.58,1200,82.56,38.5,0,183.5,Tamilnadu,Dharmapuri,35.5,46.14
+IR-E-U-0443,5010,Annamalai University,Anna University Regional Campus - Madurai,317400,43.92,74.45,20.23,35.86,42.96,4560,54.07,25.78,0.38,184.5,Tamilnadu,Kanyakumari,35.44,64.14
+IR-E-C-16482,1452,Peri Institute of Technology,PERI Institute of Technology (Autonomous),321333,50.66,73.09,2.48,46.85,14.81,1560,51.24,38.27,1.08,139.5,Tamilnadu,Chennai,35.27,53.15
+IR-E-C-49129,2367,ARJUN COLLEGE OF TECHNOLOGY,Arjun College of Technology,486667,40.57,40.88,0.16,59.28,12.79,1245,35.08,18.98,53.78,136,Tamilnadu,Coimbatore,35.05,40.72
+IR-E-C-37104,2656,BUILDERS ENGINEERING COLLEGE,Kangeyam Institute of Technology (Autonomous),293000,52.4,83.85,12.54,35.06,16.85,1320,32.36,33.99,2.17,179,Tamilnadu,Tiruppur,34.95,64.94
+IR-E-C-25020,1427,Krishnaswamy College of Engineering,Sri Krishna Engineering College,246667,58.5,60.51,1.19,40.31,6.07,1200,55.06,39.56,0,133.5,Tamilnadu,Chennai,34.38,59.69
+IR-E-C-25066,3831,Indra Ganesan College of Engineering,Indra Ganesan College of Engineering (Autonomous),313333,50.68,56.9,6.23,43.1,21.97,1800,40.71,47.53,0,122.5,Tamilnadu,Tiruchirappalli,34.31,56.9
+IR-E-C-16571,1301,Mohamed Sathak A.J. College of Engineering,Mohamed Sathak A J College of Engineering (Autonomous),293333,55.89,73.03,2.84,41.27,44.42,1440,31.36,15.85,1.79,161.5,Tamilnadu,Chengalpattu,33.9,58.73
+IR-E-C-16618,1303,ANAND INSTITUTE OF HIGHER TECHNOLOGY,Anand Institute of Higher Technology,367500,36.46,89.27,1.71,61.82,27.77,2310,88.3,43.3,0.58,150.5,Tamilnadu,Chengalpattu,33.14,38.18
+IR-E-C-46528,2614,SSM COLLEGE OF ENGINEERING,SSM College of Engineering,420000,21.11,64.17,12.59,66.3,0,2640,70.81,27.65,0,,Tamilnadu,Namakkal,32.92,33.7
+IR-E-C-25014,3425,C K College of Engineering & Technology (Formerly Sri Jayaram Engineering College),C.K. College of Engineering & Technology,210000,56.31,77.02,3.6,40.08,23.88,1320,67.6,32.69,2.72,175,Tamilnadu,Cuddalore,32.8,59.92
+IR-E-C-56319,5865,NADAR SARASWATHI COLLEGE OF ENGINEERING & TECHNOLOGY,Nadar Saraswathi College of Engineering and Technology,230664,58.46,81.09,3.13,38.41,16.63,1440,47.31,58.74,0.11,162.5,Tamilnadu,Theni,32.61,61.59
+IR-E-C-16577,1106,JAYA ENGINEERING COLLEGE,Jaya Engineering College,303333,52.74,61.85,3.68,43.58,24.11,2710,22.52,25.71,8.21,139.5,Tamilnadu,Chennai,32.6,56.42
+IR-E-C-27038,4954,Dr. Sivanthi Aditanar College of Engineering,Dr Sivanthi aditanar College of Engineering,290459,51.88,73.18,6.04,42.08,0,900,41.33,43.89,0.14,170.5,Tamilnadu,Thoothukudi,32.28,57.92
+IR-E-C-16511,1127,St. Peter`s College of Engineering and Technology,St. Peter's College of Engineering and Technology(Autonomous),260000,56.27,80,5.92,37.81,25.77,1740,21.98,39.08,0.7,144,Tamilnadu,Chennai,31.39,62.19
+IR-E-C-37074,2623,Mahendra College of Engineering,Mahendra College of Engineering,313333,49.7,57.42,2.32,47.98,36.09,2700,44.29,32.1,0.12,135,Tamilnadu,Salem,31.01,52.02
+IR-E-C-37031,2732,Info Institute of Engineering,Info Institute of Engineering,316667,50.13,68.37,3.79,46.07,20.25,1320,22.09,27.3,0,138.5,Tamilnadu,Coimbatore,30.59,53.93
+IR-E-C-16506,1503,Arulmigu Meenakshi Amman College of Engineering,Arulmigu Meenakshi Amman College of Engineering,50000,44.34,96.3,51.96,3.7,33.33,1450,1.99,42.86,0,95,Tamilnadu,Thiruvannamalai,30.57,96.3
+IR-E-C-36941,2650,Christ The King Engineering College,Christ The King Engineering College,266667,51.21,54.31,3.1,45.69,40.26,1200,58.94,33.07,1.18,130,Tamilnadu,Coimbatore,30.3,54.31
+IR-E-C-26785,5904,K. L. N. College of Engineering,K.L.N.College of Engineering (Autonomous),300000,47.7,88.58,1.48,50.82,1.69,2340,64.43,36.68,0,173.5,Tamilnadu,Sivagangai,29.9,49.18
+IR-E-C-25043,3843,M.R.K. Institute of Technology,M R K Institute of Technology,178000,58.81,77.26,0.94,40.25,73.81,1560,47.38,29.95,0,145,Tamilnadu,Cuddalore,29.7,59.75
+IR-E-C-37003,2603,Government College of Engineering,Government College of Engineering (Autonomous),366667,22.4,68.05,1.66,75.93,61.1,960,89.86,32.17,0,191,Tamilnadu,Krishnagiri,29.61,24.07
+IR-E-C-49137,5536,MANGAYARKARASI COLLEGE OF ENGINEERING,Mangayarkarasi College of Engineering,300000,43.89,60.52,5.99,50.12,24.46,1320,80.11,55.11,0,150,Tamilnadu,Madurai,29.46,49.88
+IR-E-C-37055,2769,JCT College of Engineering and Technology,JCT College of Engineering and Technology (Autonomous),308333,46.57,71.1,2.51,50.92,12.97,2850,50.66,18.49,32.82,164,Tamilnadu,Coimbatore,27.87,49.08
+IR-E-C-27087,4993,Loyola Institute of Technology and Science,Loyola Institute of Technology and Science,160000,53.64,67.41,6.45,39.9,33.42,2160,47.72,33.51,0.89,123,Tamilnadu,Kanyakumari,26.46,60.1
+IR-E-C-16619,1241,T.J.S. Engineering College,T J S Engineering College,325000,42.72,56.46,1.73,55.55,23.16,1290,23.5,37.42,7.27,149,Tamilnadu,Thiruvallur,24.78,44.45
+IR-E-C-37087,2747,Shree Venkateshwara Hi-Tech Engineering College,Shree Venkateshwara Hi-Tech Engineering College (Autonomous),298333,44.79,45.08,0.28,54.92,26.35,1980,48.15,42.1,1.14,133,Tamilnadu,Erode,23.81,45.08
+IR-E-C-60622,4672,Stella Mary`s College of Engineering,Stella Mary's College of Engineering,196667,49.45,61.66,4.29,46.27,9.72,1380,63.78,33.03,1.57,146.5,Tamilnadu,Kanyakumari,23.79,53.73
+IR-E-C-51677,5009,Government College of Engineering,Government College of Engineering,233242,44.01,69.13,2.74,53.25,4.84,1200,88,36.03,0,181,Tamilnadu,Theni,23.2,46.75
+IR-E-C-25010,3817,Roever Engineering College,Roever Engineering College,323333,35.78,58.38,3.45,60.77,39.2,1650,48.82,32.57,0.08,145.5,Tamilnadu,Perambalur,23.14,39.23
+IR-E-C-16580,1123,Gojan School of Business and Technology,Gojan School of Business and Technology,353333,27.95,44.45,1.07,70.98,43.79,1260,37.71,38.17,0.7,149.5,Tamilnadu,Chennai,22.88,29.02
+IR-E-C-26784,5935,"Fatima Michael College of Engineering and Technology, Madurai",Fatima Michael College of Engineering and Technology,272000,45.71,54.32,8.61,45.68,21.81,1320,24.75,36.58,0.17,147,Tamilnadu,Sivagangai,22.8,54.32
+IR-E-C-25005,3854,Mahath Amma Institute of Engineering and Technology,Mahath Amma Institute of Engineering and Technology,333333,33.11,62.68,9.85,57.03,78.41,1080,22.36,20.66,0,,Tamilnadu,Pudukkottai,22.5,42.97
+IR-E-C-45320,5530,SSM Institute of Engineering and Technology,SSM Institute of Engineering and Technology (Autonomous),231667,46.92,76.74,4.38,48.69,10.13,1800,56.6,42.16,0.08,170.5,Tamilnadu,Dindigul,21.93,51.31
+IR-E-C-37051,2758,JKK Munirajah College of Technology,JKK Munirajah College of Technology (Autonomous),268000,48.07,55.63,0.79,51.13,44.43,1560,31.96,34.2,0.52,123.5,Tamilnadu,Erode,21.91,48.87
+IR-E-C-36956,2673,Sree Sakthi Engineering College,Sree Sakthi Engineering College (Autonomous),322000,37.63,42.99,5.35,57.01,0,1200,24.49,21.93,1.95,168,Tamilnadu,Coimbatore,21.83,42.99
+IR-E-C-27032,4982,Vins Christian College of Engineering,Vins Christian College of Engineering,232000,51.71,76.74,1.52,46.78,12.5,1800,9,36.18,0,119.5,Tamilnadu,Kanyakumari,21.63,53.22
+IR-E-C-25022,3825,St. Joseph's college of engineering and technology,St. Joseph's College of Engineering and Technology,250000,47.79,56.82,4.35,47.86,29.09,1350,28.62,37.83,0,148,Tamilnadu,Thanjavur,20.94,52.14
+IR-E-C-37015,2716,PARK COLLEGE OF ENGINEERING AND TECHNOLOGY,Park College of Engineering and Technology (Autonomous),264333,42.76,57.72,4.76,52.48,10.55,3390,52.82,31,2.15,155,Tamilnadu,Coimbatore,20.64,47.52
+IR-E-C-25002,3760,Sir Issac Newton College of Engineering and Technology (New),Sir Issac Newton College of Engineering and Technology,221000,46.9,55.52,2.52,50.58,25.11,1260,55.89,39.95,1.16,128.5,Tamilnadu,Nagapattinam,20.08,49.42
+IR-E-C-16523,1605,Idhaya Engineering College for Women,Idhaya Engineering College for Women,273337,41.62,78.7,8.73,49.65,48.17,960,27.78,100,0,141.5,Tamilnadu,Kallakurichi,19.38,50.35
+IR-E-C-25012,1411,M. A. M. College of Engineering,Madha Engineering College,308667,35.12,62.35,4.16,60.72,13.94,2760,33.83,34.15,0,128,Tamilnadu,Chennai,18.29,39.28
+IR-E-C-16548,1115,Sri Ram Engineering College,SriRam Engineering College,188000,49.22,71.31,6.65,44.13,16.62,990,11.67,28.34,1.36,153.5,Tamilnadu,Thiruvallur,18.12,55.87
+IR-E-C-36985,2763,AKSHAYA COLLEGE OF ENGINEERING AND TECHNOLOGY,Akshaya College of Engineering and Technology,281496,40.06,61.13,2.11,57.83,6.27,1200,42.83,28.94,14,150.5,Tamilnadu,Coimbatore,17.9,42.17
+IR-E-C-26808,5919,"St. Michael College of Engineering and Technology, Kalayarkoil, Sivagangai Dist",St. Michael College of Engineering and Technology,200000,46.61,72.09,7.91,45.48,40.88,1290,22.6,46.58,0,131,Tamilnadu,Sivagangai,17.72,54.52
+IR-E-C-16591,1441,A.K.T. Memorial College of Engineering & Technology,A.K.T.Memorial College of Engineering and Technology,220933,46.56,60.58,1.43,52.01,48.54,1440,45.09,33.27,0.18,131,Tamilnadu,Kallakurichi,17.67,47.99
+IR-E-C-27076,4931,Grace College of Engineering,Grace College of Engineering,236667,40.13,82.37,5.74,54.13,20.32,1080,40.69,42.14,5.48,145,Tamilnadu,Thoothukudi,14.85,45.87
+IR-O-C-24992,3801,A.V.C. College of Engineering,A.V.C. College of Engineering,237094,40.32,72.92,2.14,57.54,11.43,2437,43.54,38.89,0.58,169,Tamilnadu,Mayiladuthurai,14.68,42.46
+IR-E-C-16594,1221,Jaya College Of Engineering And Technology,Jaya College of Engineering and Technology,195000,46.38,46.38,0,53.62,33.33,480,35,20.14,0.69,120,Tamilnadu,Chennai,14.61,46.38
+IR-E-C-36974,2709,Institute of Road and Transport Technology,Government College of Engineering (Formerly Institute of Road and Transport Technology),232000,30.36,96.25,2,67.64,28.35,1848,65.73,32.14,0,191.5,Tamilnadu,Erode,13.34,32.36
+IR-E-C-25016,3766,Star Lion College of Engineering and Technology (New),Star Lion College of Engineering and Technology,300000,26.83,43.17,1.95,71.21,52.09,1080,20.4,21.47,0,,Tamilnadu,Thanjavur,13.12,28.79
+IR-E-C-25007,3786,M.A.M. School of Engineering (New),M.A.M. School of Engineering (Autonomous),242333,39.79,40,0.21,60,35.68,1680,38.89,24.3,0,140,Tamilnadu,Tiruchirappalli,13,40
+IR-E-C-16515,1510,Priyadarshini Engineering College,Priyadarshini Engineering College,176667,38.68,48.9,1.23,60.09,60.11,1860,66.37,29.39,0,140,Tamilnadu,Thiruppattur,12.48,39.91
+IR-E-C-27095,4970,Sree Sowdambika College of Engineering,Sree Sowdambika College of Engineering,176000,44.91,53.14,1.19,53.9,18.64,1200,25.87,27.39,0.32,146.5,Tamilnadu,Virudhunagar,11.96,46.1
+IR-E-C-27084,4975,Dr.G.U.Pope College of Engineering,Dr G.U. Pope College of Engineering,192800,41.45,50.35,1.31,57.23,16.42,1090,40.6,39.93,1.12,132.5,Tamilnadu,Thoothukudi,11.63,42.77
+IR-E-C-25062,3860,St.Anne's College of Engineering and Technology,St.Anne's College of Engineering and Technology,189100,41.1,45.4,1.28,57.62,31.85,1080,39.86,32.53,0,126,Tamilnadu,Cuddalore,10.89,42.38
+IR-E-C-16622,1437,RRASE College of Engineering,Rrase College of Engineering,260000,31.24,41.63,4.14,64.62,42.54,1320,15.24,23.12,3.61,143.5,Tamilnadu,Kancheepuram,10.1,35.38
+IR-E-C-26797,5990,"Latha Mathavan Engineering College, Madurai",Latha Mathavan Engineering College,251333,31.06,41.38,3.14,65.8,16.17,1620,17.7,25.09,0,122.5,Tamilnadu,Madurai,9.33,34.2
+IR-E-C-25069,3846,Mother Terasa College of Engineering and Technology,Mother Terasa College of Engineering and Technology,225000,31.99,49.84,9.99,58.01,36.29,1680,20.95,31.47,0,134.5,Tamilnadu,Pudukkottai,8.2,41.99
+IR-E-C-49138,3461,ARIFA INSTITUTE OF TECHNOLOGY,Arifa Institute of Technology(Formly Haji sheik Ismail Engineering College),245000,26.69,28.85,2.17,71.15,26.57,916,23.63,29.6,0,120,Tamilnadu,Nagapattinam,7.7,28.85
+IR-E-C-27093,4952,C.S.I.Institute of Technology,C.S.I. Institute of Technology,211111,29.89,48.41,13.04,57.07,19.62,1980,14.44,39.39,1.31,,Tamilnadu,Kanyakumari,7.2,42.93
+IR-E-C-24999,3456,K.S.K College of Engineering and Technology (New),KSK College of Engineering and Technology,120000,25.56,68.69,3.93,70.51,16.54,1200,42.44,37.09,0,126.5,Tamilnadu,Thanjavur,4.73,29.49
+IR-E-C-25031,3845,Imayam College of Engineering,Imayam College of Engineering,170000,18.78,39.45,10.04,71.18,43.4,1290,33.24,39.15,0,146,Tamilnadu,Tiruchirappalli,3.12,28.82
+IR-E-C-16617,1318,T.J. Institute of Technology,T.J. Institute of Technology,215245,8.66,11.39,0,91.34,41.91,2976,4.92,16.45,1.06,,Tamilnadu,Chennai,2.92,8.66
+,1436,,A R Engineering College,,,,,,,,,,,,Tamilnadu,Viluppuram,,
+,2636,,A V S Engineering College,,,,,,,,,,,141.5,Tamilnadu,Salem,,
+,4937,,A.R College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tirunelveli,,
+,3821,,A.R.J College of Engineering and Technology,,,,,,,,,,,118,Tamilnadu,Thiruvarur,,
+,4680,,AAA College of Engineering and Technology,,,,,,,,,,,158.5,Tamilnadu,Virudhunagar,,
+,1101,,Aalim Muhammed Salegh College of Engineering,,,,,,,,,,,157,Tamilnadu,Chennai,,
+,,,Academy of Maritime Education and Training (AMET),,,,,,,,,,,,,,,
+,1501,,Adhiparasakthi College of Engineering,,,,,,,,,,,155.5,Tamilnadu,Ranipet,,
+,2744,,Adithya Institute of Technology (Autonomous),,,,,,,,,,,164,Tamilnadu,Coimbatore,,
+,2332,,Aishwarya College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Erode,,
+,1228,,Alpha College of Engineering,,,,,,,,,,,147,Tamilnadu,Chennai,,
+,4972,,AMRITA College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,,,Amrita Vishwa Vidyapeetham,,,,,,,,,,,,,,,
+,2733,,Angel College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tiruppur,,
+,2025,,Anna University Regional Campus - Coimbatore,,,,,,,,,,,194,Tamilnadu,Coimbatore,,
+,4020,,Anna University Regional Campus - Tirunelveli,,,,,,,,,,,184,Tamilnadu,Tirunelveli,,
+,3849,,Annai College of Engineering and Technology,,,,,,,,,,,98,Tamilnadu,Thanjavur,,
+,2602,,Annai Mathammal Sheela Engineering College,,,,,,,,,,,,Tamilnadu,Namakkal,,
+,1137,,Annai Mira College of Engineering and Technology,,,,,,,,,,,164.5,Tamilnadu,Ranipet,,
+,1402,,Annai Teresa College of Engineering,,,,,,,,,,,98,Tamilnadu,Kallakurichi,,
+,4999,,Annai Vailankanni College of Engineering,,,,,,,,,,,141,Tamilnadu,Kanyakumari,,
+,1133,,Annai Veilankannis College of Engineering,,,,,,,,,,,129,Tamilnadu,Chennai,,
+,5,,Annamalai University Faculty of Engineering and Technology,,,,,,,,,,,178.5,Tamilnadu,Cuddalore,,
+,1524,,Annamalaiar College Of Engineering,,,,,,,,,,,108.5,Tamilnadu,Thiruvannamalai,,
+,2648,,Annapoorana Engineering College (Autonomous),,,,,,,,,,,152.5,Tamilnadu,Salem,,
+,1230,,Apollo Engineering College,,,,,,,,,,,141,Tamilnadu,Kancheepuram,,
+,3462,,Ariyalur Engineering College,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,1232,,ARM College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Chengalpattu,,
+,1334,,ARS College of Engineering,,,,,,,,,,,,Tamilnadu,Chengalpattu,,
+,4979,,Arul Tharum VPMM College of Engineering and Technology (Formerly V.P.Muthaiah Pillai Meenakshi Ammal Engineering College for Women),,,,,,,,,,,,Tamilnadu,Virudhunagar,,
+,2356,,Arulmurugan College of Engineering,,,,,,,,,,,,Tamilnadu,Karur,,
+,4677,,Arunachala Hitech Engineering College (formerly Lourdes Mount College of Engineering and Technology),,,,,,,,,,,139.5,Tamilnadu,Kanyakumari,,
+,1504,,Arunai Engineering College (Autonomous),,,,,,,,,,,161,Tamilnadu,Thiruvannamalai,,
+,3855,,As-Salam College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Thanjavur,,
+IR-E-C-16486,1423,Asan Memorial College of Engineering and Technology,Asan Memorial College of Engineering and Technology,,,,,,35.03,630,,50.64,0.32,144,Tamilnadu,Chengalpattu,,
+,,,B. S. Abdur Rahman Crescent Institute of Science and Technology,,,,,,,,,,,,,,,
+,2702,,Bannari Amman Institute of Technology (Autonomous),,,,,,,,,,,189.5,Tamilnadu,Erode,,
+,4992,,Bethlahem Institute of Engineering,,,,,,,,,,,124.5,Tamilnadu,Kanyakumari,,
+,1102,,Bhajarang Engineering College,,,,,,,,,,,93,,,,
+,5902,,Bharath Niketan Engineering College,,,,,,,,,,,124,Tamilnadu,Theni,,
+IR-B-U-0448,1519,Bharathidasan University,Bharathidasan Engineering College,,,,,,25.04,,,49.89,3.15,125.5,Tamilnadu,Thiruppattur,,
+,2772,,C M S College of Engineering and Technology,,,,,,,,,,,121.5,Tamilnadu,Coimbatore,,
+,1505,,C.Abdul Hakeem College of Engineering and Technology,,,,,,,,,,,163,Tamilnadu,Ranipet,,
+,4953,,Cape Institute of Technology,,,,,,,,,,,94.5,Tamilnadu,Tirunelveli,,
+,5012,,Central Electrochemical Research Institute CECRI),,,,,,,,,,,,,,,
+,1321,,Central Institute of Petrochemicals Engineering and Technology (Formerly Central Institute of Plastics Engineering and Technology) (CIPET),,,,,,,,,,,,,,,
+,,,Central Institute of Plastics Engineering and Technology,,,,,,,,,,,,,,,
+,3926,,Chendhuran College of Engineering and Technology,,,,,,,,,,,118,Tamilnadu,Pudukkottai,,
+,1398,,Chennai Institute of Technology and Applied Research Sarathy Nagar Puthuper,,,,,,,,,,,,Tamilnadu,Chennai,,
+,2355,,Cheran College of Engineering,,,,,,,,,,,,,,,
+,2378,,Cherraan College of Technology,,,,,,,,,,,,Tamilnadu,Tiruppur,,
+,5703,,Christian College of Engineering and Technology,,,,,,,,,,,136,Tamilnadu,Dindigul,,
+,2635,,CMS College of Engineering,,,,,,,,,,,,Tamilnadu,Namakkal,,
+,2704,,Coimbatore Institute of Engineering and Technology (Autonomous),,,,,,,,,,,176,Tamilnadu,Coimbatore,,
+,,,College of Food and Dairy Technology (TANUVAS),,,,,,,,,,,,,,,
+IR-I-C-49131,2349,DHAANISH AHMED INSTITUTE OF TECHNOLOGY,Dhaanish Ahmed Institute of Technology,,,,,,6.69,1170,,31.5,25.11,171.5,Tamilnadu,Coimbatore,,
+,2743,,Dhanalakshmi Srinivasan College of Engineering (CBE),,,,,,,,,,,168.5,Tamilnadu,Coimbatore,,
+,1202,,DMI College of Engineering (Autonomous),,,,,,,,,,,148,Tamilnadu,Chennai,,
+,2706,,Dr Mahalingam College of Engineering and Technology (Autonomous),,,,,,,,,,,187.5,Tamilnadu,Coimbatore,,
+,,,Dr. M.G.R. Educational and Research Institute,,,,,,,,,,,,,,,
+,2662,,Dr. Nagarathinams College of Engineering,,,,,,,,,,,,,,,
+,3806,,E.G.S. Pillay Engineering College (Autonomous),,,,,,,,,,,157.5,Tamilnadu,Nagapattinam,,
+,2749,,Easa College of Engineering and Technology,,,,,,,,,,,149.5,Tamilnadu,Coimbatore,,
+,4980,,Einstein College of Engineering,,,,,,,,,,,147.5,Tamilnadu,Tirunelveli,,
+,2621,,Er. Perumal Manimekalai College of Engineering (Autonomous),,,,,,,,,,,157.5,Tamilnadu,Krishnagiri,,
+,5545,,G.T.N COLLEGE OF TECHNOLOGY,,,,,,,,,,,119,,,,
+,1507,,Ganadipathy Tulsi's Jain Engineering College,,,,,,,,,,,144,Tamilnadu,Vellore,,
+,5924,,Ganapathy Chettiar College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Ramanathapuram,,
+,2341,,Ganesh College of Engineering,,,,,,,,,,,114,Tamilnadu,Salem,,
+,4686,,Good Shepherd College of Engineering and Technology,,,,,,,,,,,104.5,Tamilnadu,Kanyakumari,,
+,4974,,Government College of Engineering,,,,,,,,,,,193,Tamilnadu,Tirunelveli,,
+,,,Hindustan Institute of Technology and Science (HITS),,,,,,,,,,,,,,,
+,2777,,HINDUSTHAN COLLEGE OF ENGINEERING,,,,,,,,,,,145,,,,
+,2740,,Hindusthan Institute of Technology (Autonomous),,,,,,,,,,,174.5,Tamilnadu,Coimbatore,,
+,4934,,Holy Cross Engineering College,,,,,,,,,,,128,Tamilnadu,Thoothukudi,,
+,4932,,Immanuel Arasar J.J. College of Engineering,,,,,,,,,,,,,,,
+,2343,,Indian Institute of Handloom Technology,,,,,,,,,,,,,,,
+,,,"Indian Institute of Information Technology, Design & Manufacturing Kancheepuram",,,,,,,,,,,,,,,
+,,,Indian Institute of Technology Madras,,,,,,,,,,,,,,,
+,1229,,Indira Institute of Engineering and Technology,,,,,,,,,,,112,Tamilnadu,Thiruvallur,,
+,4976,,Infant Jesus College of Engineering,,,,,,,,,,,112,Tamilnadu,Thoothukudi,,
+,1158,,International Maritime Academy,,,,,,,,,,,,,,,
+,1126,,J N N Institute of Engineering Ushaa Garden Kannigaipair,,,,,,,,,,,167.5,Tamilnadu,Thiruvallur,,
+,3807,,J.J. College of Engineering and Technology,,,,,,,,,,,161,Tamilnadu,Tiruchirappalli,,
+,2647,,J.K.K.Nataraja College of Engineering and Technology,,,,,,,,,,,139,Tamilnadu,Namakkal,,
+,1435,,Jagannath Institute of Technology,,,,,,,,,,,,,,,
+,2651,,Jai Shriram Engineering College,,,,,,,,,,,148,Tamilnadu,Tiruppur,,
+,5537,,Jainee College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Dindigul,,
+,2350,,Jairupaa College of Engineering,,,,,,,,,,,,Tamilnadu,Tiruppur,,
+,5546,,Jamal Mohamed College of Engineering,,,,,,,,,,,108,,,,
+,1447,,Jawahar Engineering College,,,,,,,,,,,,,,,
+,1416,,Jaya Sakthi Engineering College,,,,,,,,,,,91.5,Tamilnadu,Chennai,,
+,2640,,Jayalakshmi Institute of Technology,,,,,,,,,,,111,Tamilnadu,Dharmapuri,,
+,2606,,Jayam College of Engineering and Technology,,,,,,,,,,,,,,,
+,4956,,Jayamatha Engineering College,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,4957,,Jayaraj Annapackiam CSI College of Engineering,,,,,,,,,,,142.5,Tamilnadu,Thoothukudi,,
+,3808,,Jayaram College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,1235,,Jei Mathaajee College of Engineering,,,,,,,,,,,,Tamilnadu,Kancheepuram,,
+,3830,,K Ramakrishnan College of Engineering (Autonomous),,,,,,,,,,,179,Tamilnadu,Tiruchirappalli,,
+,2613,,K S R College of Engineering (Autonomous),,,,,,,,,,,167,Tamilnadu,Namakkal,,
+,,,Kalasalingam Academy of Research and Education,,,,,,,,,,,,,,,
+,5533,,Karaikudi Institute of Technology and Karaikudi Institute of Management,,,,,,,,,,,,Tamilnadu,Sivagangai,,
+,2710,,Karpagam College of Engineering (Autonomous),,,,,,,,,,,191.5,Tamilnadu,Coimbatore,,
+,,,Karunya Institute of Technology and Sciences,,,,,,,,,,,,,,,
+,2745,,Kathir College of Engineering (Autonomous),,,,,,,,,,,166.5,Tamilnadu,Coimbatore,,
+,1207,,Kings Engineering College (Autonomous),,,,,,,,,,,148,Tamilnadu,Kancheepuram,,
+,1520,,Kingston Engineering College,,,,,,,,,,,160.5,Tamilnadu,Vellore,,
+,3826,,Kongunadu College of Engineering and Technology (Autonomous),,,,,,,,,,,168,Tamilnadu,Tiruchirappalli,,
+,3410,,Krishnasamy College of Engineering and Technology,,,,,,,,,,,156.5,Tamilnadu,Cuddalore,,
+,3809,,Kurinji College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,4983,,Lord Jegannath College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,1205,,Lord Venkateshwaraa Engineering College,,,,,,,,,,,,,,,
+,3810,,M A M College of Engineering,,,,,,,,,,,143.5,Tamilnadu,Tiruchirappalli,,
+,2713,,M P Nachimuthu M Jaganathan Engineering College,,,,,,,,,,,134.5,Tamilnadu,Erode,,
+,3829,,M.A.M. College of Engineering and Technology,,,,,,,,,,,143,Tamilnadu,Tiruchirappalli,,
+,4929,,M.E.T. Engineering College,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,2608,,M.Kumarasamy College of Engineering (Autonomous),,,,,,,,,,,176.5,Tamilnadu,Karur,,
+,1203,,MADRAS ENGINEERING COLLEGE,,,,,,,,,,,156,,,,
+,1430,,Maha Barathi Engineering College,,,,,,,,,,,126.5,Tamilnadu,Kallakurichi,,
+,4998,,Mahakavi Bharathiyar College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tenkasi,,
+,3403,,Mahalakshmi Engineering College,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,1339,,MAHALAKSHMI TECH CAMPUS (FORMERLY MAHALAKSHMI ENGINEERING COLLEGE - TIRUCHIRAPPALLI),,,,,,,,,,,130.5,,,,
+,2609,,Mahendra Engineering College (Autonomous),,,,,,,,,,,157.5,Tamilnadu,Namakkal,,
+,2638,,Mahendra Engineering College for Women,,,,,,,,,,,114,Tamilnadu,Namakkal,,
+,2665,,Mahendra Institute of Engineering and Technology,,,,,,,,,,,,,,,
+,4928,,MAR Ephraem College of Engineering & Technology,,,,,,,,,,,144,Tamilnadu,Kanyakumari,,
+,4927,,Maria College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,4984,,MARTHANDAM COLLEGE OF ENGINEERING AND TECHNOLOGY,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,3857,,Meenakshi Ramaswamy Engineering College,,,,,,,,,,,114.5,Tamilnadu,Tiruchirappalli,,
+,3923,,MNSK College of Engineering,,,,,,,,,,,,Tamilnadu,Pudukkottai,,
+,1400,,Mohamed Sathak A.J. Academy of Architecture,,,,,,,,,,,,,,,
+,3812,,Mookambigai College of Engineering,,,,,,,,,,,133,Tamilnadu,Pudukkottai,,
+,2610,,Muthayammal Engineering College (Autonomous),,,,,,,,,,,140.5,Tamilnadu,Namakkal,,
+,2327,,N.S.N. College of Engineering and Technology,,,,,,,,,,,127,Tamilnadu,Madurai,,
+,4977,,Narayanaguru College of Engineering,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,4962,,National Engineering College (Autonomous),,,,,,,,,,,188,Tamilnadu,Thoothukudi,,
+,,,"National Institute of Food Technology, Entrepreneurship and Management - Thanjavur",,,,,,,,,,,,,,,
+,,,National Institute of Technology Tiruchirappalli,,,,,,,,,,,,,,,
+,2729,,Nehru Institute of Engineering and Technology (Autonomous),,,,,,,,,,,174,Tamilnadu,Coimbatore,,
+,4961,,Nellai College of Engineering (Formerly National College of Engineering),,,,,,,,,,,,Tamilnadu,Tirunelveli,,
+,3466,,Nelliandavar Institute of Technology,,,,,,,,,,,104.5,Tamilnadu,Ariyalur,,
+,1431,,New Prince Shri Bhavani College of Engineering and Technology (Autonomous),,,,,,,,,,,151,Tamilnadu,Chennai,,
+,,,Noorul Islam Centre for Higher Education,,,,,,,,,,,,,,,
+,4986,,Noorul Islam College of Engineering and Technology,,,,,,,,,,,98,Tamilnadu,Kanyakumari,,
+,3782,,OASYS Institute of Technology,,,,,,,,,,,142.5,Tamilnadu,Tiruchirappalli,,
+,3813,,Oxford Engineering College,,,,,,,,,,,105.5,Tamilnadu,Tiruchirappalli,,
+,1226,,P T Lee Chengalvaraya Naicker College of Engineering and Technology,,,,,,,,,,,160,Tamilnadu,Kancheepuram,,
+,1222,,P.B. College of Engineering,,,,,,,,,,,89,Tamilnadu,Kancheepuram,,
+,3814,,P.R. Engineering College,,,,,,,,,,,,Tamilnadu,Thanjavur,,
+,4995,,P.S.R.R College of Engineering (Formerly P S R Rengasamy College of Engineering for Women),,,,,,,,,,,,Tamilnadu,Virudhunagar,,
+,5911,,P.T.R. College of Engineering and Technology,,,,,,,,,,,113.5,Tamilnadu,Madurai,,
+,2628,,Paavai College of Engineering,,,,,,,,,,,146,Tamilnadu,Namakkal,,
+,2657,,Paavai College of Technology,,,,,,,,,,,,,,,
+,1209,,Pallavan College of Engineering,,,,,,,,,,,,Tamilnadu,Kancheepuram,,
+,5912,,Pandian Saraswathi Yadav Engineering College,,,,,,,,,,,121,Tamilnadu,Sivagangai,,
+,1533,,Panimalar Engineering College Chennai City Campus,,,,,,,,,,,,,,,
+,1231,,Panimalar Institute of Technology,,,,,,,,,,,,,,,
+,3833,,Parisutham Institute of Technology and Science (Autonomous),,,,,,,,,,,131,Tamilnadu,Thanjavur,,
+,2768,,Park College of Technology,,,,,,,,,,,132.5,Tamilnadu,Coimbatore,,
+,3815,,Pavendar Bharathidasan College of Engineering and Technology,,,,,,,,,,,139.5,Tamilnadu,Tiruchirappalli,,
+,,,Periyar Maniammai Institute of Science & Technology,,,,,,,,,,,,,,,
+,4966,,PET Engineering College,,,,,,,,,,,139.5,Tamilnadu,Tirunelveli,,
+,2612,,PGP College of Engineering and Technology,,,,,,,,,,,112,Tamilnadu,Namakkal,,
+,1125,,PMR Engineering College,,,,,,,,,,,,Tamilnadu,Chennai,,
+,1525,,Podhigai College of Engineering and Technology,,,,,,,,,,,124,Tamilnadu,Thiruppattur,,
+,2354,,Pollachi Institute of Engineering and Technology,,,,,,,,,,,132,Tamilnadu,Coimbatore,,
+,4981,,Ponjesly College of Engineering,,,,,,,,,,,158.5,Tamilnadu,Kanyakumari,,
+,,,Ponnaiyah Ramajayam Institute of Science & Technology,,,,,,,,,,,,,,,
+,1110,,Prathyusha Engineering College (Autonomous),,,,,,,,,,,165.5,Tamilnadu,Thiruvallur,,
+,1442,,Prince Dr. K. Vasudevan College of Engineering and Technology (Autonomous),,,,,,,,,,,182.5,Tamilnadu,Chennai,,
+,1414,,Prince Shri Venkateshwaraa Padmavathy Engineering College (Autonomous),,,,,,,,,,,195,Tamilnadu,Chennai,,
+,2006,,PSG College of Technology (Autonomous),,,,,,,,,,,,Tamilnadu,Coimbatore,,
+,4989,,PSN Engineering College,,,,,,,,,,,131,Tamilnadu,Tirunelveli,,
+,4949,,PSN Institute of Technology and Science,,,,,,,,,,,136,Tamilnadu,Tirunelveli,,
+,1428,,Quannta School of Software Engineering (formerly E S Engineering College),,,,,,,,,,,118,Tamilnadu,Viluppuram,,
+,2776,,R V S Technical Campus Coimbatore (Autonomous),,,,,,,,,,,157,Tamilnadu,Coimbatore,,
+,1444,,R.M.Engineering College (formerly Chendu College of Engineering and Technology),,,,,,,,,,,,Tamilnadu,Chengalpattu,,
+,1128,,R.M.K. College of Engineering and Technology (Autonomous),,,,,,,,,,,178.5,Tamilnadu,Thiruvallur,,
+,5913,,R.V.S. College of Engineering,,,,,,,,,,,137.5,Tamilnadu,Dindigul,,
+,4948,,Rajas Institute of Technology,,,,,,,,,,,,,,,
+,1511,,RANIPPETTAI ENGINEERING COLLEGE,,,,,,,,,,,,Tamilnadu,Ranipet,,
+,4676,,Renganayagi Varatharaj College of Engineering,,,,,,,,,,,145.5,Tamilnadu,Virudhunagar,,
+,5862,,RVS School of Engineering and Technology,,,,,,,,,,,128,Tamilnadu,Dindigul,,
+,1213,,S K R Engineering College,,,,,,,,,,,,Tamilnadu,Chennai,,
+,4967,,S. Veerasamy Chettiar College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tenkasi,,
+,1512,,S.K.P. Engineering College,,,,,,,,,,,152.5,Tamilnadu,Thiruvannamalai,,
+,,,S.R.M. Institute of Science and Technology,,,,,,,,,,,,,,,
+,5915,,SACS M.A.V.M.M. Engineering College,,,,,,,,,,,143,Tamilnadu,Madurai,,
+,2659,,Salem College of Engineering and Technology,,,,,,,,,,,119.5,Tamilnadu,Salem,,
+,1124,,SAMS College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Thiruvallur,,
+,2616,,Sapthagiri College of Engineering,,,,,,,,,,,,Tamilnadu,Dharmapuri,,
+,1449,,Saraswathy College of Engineering and Technology,,,,,,,,,,,134.5,Tamilnadu,Viluppuram,,
+,4968,,Sardar Raja College of Engineering,,,,,,,,,,,128,Tamilnadu,Tenkasi,,
+,2361,,SASI CREATIVE SCHOOL OF ARCHITECTURE,,,,,,,,,,,,,,,
+,2717,,Sasurie College of Engineering,,,,,,,,,,,119.5,Tamilnadu,Tiruppur,,
+,,,Sathyabama Institute of Science and Technology,,,,,,,,,,,,,,,
+,4943,,Satyam College of Engineering and Technology,,,,,,,,,,,114,Tamilnadu,Kanyakumari,,
+,,,Saveetha Institute of Medical and Technical Sciences,,,,,,,,,,,,,,,
+,5930,,SBM College of Engineering and Technology,,,,,,,,,,,122.5,Tamilnadu,Dindigul,,
+,4969,,SCAD College of Engineering and Technology,,,,,,,,,,,135.5,Tamilnadu,Tirunelveli,,
+,3,,School of Architecture and Planning,,,,,,,,,,,,,,,
+,3859,,Sembodai Rukmani Varatharajan Engineering College,,,,,,,,,,,,Tamilnadu,Nagapattinam,,
+,2629,,Sengunthar College of Engineering,,,,,,,,,,,,,,,
+,3918,,Shanmuganathan Engineering College,,,,,,,,,,,146,Tamilnadu,Pudukkottai,,
+,,,Shanmugha Arts Science Technology & Research Academy,,,,,,,,,,,,,,,
+,1333,,Shikshaa Institute of Advanced Technologies (formerly Vi Institute of Technology),,,,,,,,,,,,,,,
+,3844,,Shivani Engineering College,,,,,,,,,,,131,Tamilnadu,Tiruchirappalli,,
+,1313,,Shree Motilal Kanhaiyalal (SMK)Fomra Institute of Technology,,,,,,,,,,,,Tamilnadu,Chengalpattu,,
+,2346,,Shree Sathyam College of Engineering and Technology,,,,,,,,,,,96,Tamilnadu,Salem,,
+,2683,,Shreenivasa Engineering College,,,,,,,,,,,117,Tamilnadu,Dharmapuri,,
+,3802,,Shri Angalamman College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,4938,,Sivaji College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Kanyakumari,,
+,3451,,SMR East Coast College of Engineering and Technology,,,,,,,,,,,,,,,
+,1438,,Sree Krishna College of Engineering,,,,,,,,,,,102.5,Tamilnadu,Vellore,,
+IR-E-C-16491,1217,Sree Sastha Institute of Engineering and Technology,Sree Sastha Institute of Engineering and Technology,250000,44.83,48.28,3.45,51.72,34.42,660,,33.02,1.16,144.5,Tamilnadu,Chennai,,48.28
+,2767,,SRG Engineering College,,,,,,,,,,,95.5,Tamilnadu,Namakkal,,
+,1513,,Sri Balaji Chockalingam Engineering College,,,,,,,,,,,144,Tamilnadu,Thiruvannamalai,,
+,3852,,Sri Bharathi Engineering College for Women,,,,,,,,,,,147.5,Tamilnadu,Pudukkottai,,
+,1150,,Sri Jayaram Institute of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Thiruvallur,,
+,1526,,Sri Krishna College of Engineering,,,,,,,,,,,,Tamilnadu,Ranipet,,
+,2722,,Sri Krishna College of Technology (Autonomous),,,,,,,,,,,,Tamilnadu,Coimbatore,,
+,1335,,Sri Krishna Institute of Technology,,,,,,,,,,,,,,,
+,1218,,Sri Muthukumaran Institute of Technology,,,,,,,,,,,158,Tamilnadu,Chennai,,
+,1514,,Sri Nandhanam College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Vellore,,
+,5502,,Sri Raajaraajan College of Engineering and Technology,,,,,,,,,,,131.5,Tamilnadu,Sivagangai,,
+,3454,,Sri Ramakrishna College of Engineering,,,,,,,,,,,159.5,Tamilnadu,Perambalur,,
+,1426,,Sri Ramanujar Engineering College,,,,,,,,,,,140.5,Tamilnadu,Chennai,,
+,1445,,Sri Rangapoopathi College of Engineering,,,,,,,,,,,138.5,Tamilnadu,Viluppuram,,
+,1419,,Sri Sai Ram Engineering College (Autonomous),,,,,,,,,,,186,Tamilnadu,Chennai,,
+,1324,,Sri Sai Ram Institute of Technology (Autonomous),,,,,,,,,,,,Tamilnadu,Chennai,,
+,2737,,Sri Sai Ranganathan Engineering College,,,,,,,,,,,170,Tamilnadu,Coimbatore,,
+,2302,,Sri Shanmugha College of Engineering and Technology (Autonomous),,,,,,,,,,,150.5,Tamilnadu,Salem,,
+,5720,,Sri Subramanya College of Engineering and Technology,,,,,,,,,,,,,,,
+,1121,,Sri Venkateswara Institute of Science and Technology,,,,,,,,,,,,Tamilnadu,Thiruvallur,,
+,4996,,Sri Vidya College of Engineering and Technology,,,,,,,,,,,105,Tamilnadu,Virudhunagar,,
+,3477,,SRI VIGNESH COLLEGE OF ENGINEERING AND TECHNOLOGY,,,,,,,,,,,,,,,
+,5842,,SRM Madurai College for Engineering and Technology (Formely Madurai Institute of Engineering and Technology),,,,,,,,,,,171,Tamilnadu,Sivagangai,,
+,1149,,St. Joseph's Institute of Technology (Autonomous),,,,,,,,,,,180,Tamilnadu,Chennai,,
+,1243,,ST. LOURDES ENGINEERING COLLEGE (Formerly Madha Institute of Engineering and Technology),,,,,,,,,,,,Tamilnadu,Chennai,,
+,2770,,Studyworld College of Engineering,,,,,,,,,,,141.5,Tamilnadu,Coimbatore,,
+,3920,,Sudharsan Engineering College,,,,,,,,,,,132.5,Tamilnadu,Pudukkottai,,
+,2360,,Suguna College of Engineering,,,,,,,,,,,142.5,Tamilnadu,Coimbatore,,
+,4925,,Sun College of Engineering and Technology,,,,,,,,,,,,,,,
+,3460,,Surya College of Engineering,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,2748,,Surya Engineering College,,,,,,,,,,,119.5,Tamilnadu,Erode,,
+,1434,,Surya Group of Institutions,,,,,,,,,,,147.5,Tamilnadu,Viluppuram,,
+,1415,,T.S.M.Jain College of Technology,,,,,,,,,,,,Tamilnadu,Kallakurichi,,
+,,,Tamil Nadu Dr.J.Jayalalithaa Fisheries University,,,,,,,,,,,,,,,
+,2721,,Tamilnadu College of Engineering,,,,,,,,,,,152,Tamilnadu,Coimbatore,,
+,4669,,Thamirabharani Engineering College (Autonomous),,,,,,,,,,,128.5,Tamilnadu,Tirunelveli,,
+,2625,,The Kavery Engineering College (Autonomous),,,,,,,,,,,137.5,Tamilnadu,Salem,,
+IR-I-C-26802,5988,Theni Kammavar Sangam College of Technology,Theni Kammavar Sangam College of Technology,,,,,,21.05,1500,,37.01,0.34,142,Tamilnadu,Theni,,
+,1517,,Thirumalai Engineering College,,,,,,,,,,,115.5,Tamilnadu,Kancheepuram,,
+,1518,,Thiruvalluvar College of Engineering and Technology,,,,,,,,,,,119,Tamilnadu,Thiruvannamalai,,
+,3822,,Tittagudi Sengunthar Engineering College (Formerly Dr.Navalar Nedunchezhiyan College of Engineering),,,,,,,,,,,,Tamilnadu,Cuddalore,,
+,3820,,Trichy Engineering College,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,4978,,Udaya School of Engineering,,,,,,,,,,,119.5,Tamilnadu,Kanyakumari,,
+,5942,,Ultra College of Engineering and Technology,,,,,,,,,,,125,Tamilnadu,Chennai,,
+,4675,,Universal College of Engineering and Technology,,,,,,,,,,,123,Tamilnadu,Tirunelveli,,
+,1013,,University College of Engineering,,,,,,,,,,,182.5,Tamilnadu,Viluppuram,,
+,1014,,University College of Engineering,,,,,,,,,,,179.5,Tamilnadu,Viluppuram,,
+,1015,,University College of Engineering,,,,,,,,,,,174,Tamilnadu,Thiruvannamalai,,
+,1026,,University College of Engineering,,,,,,,,,,,181,Tamilnadu,Chennai,,
+,3011,,University College of Engineering,,,,,,,,,,,191,Tamilnadu,Tiruchirappalli,,
+,3016,,University College of Engineering,,,,,,,,,,,168.5,Tamilnadu,Ariyalur,,
+,3018,,University College of Engineering,,,,,,,,,,,161.5,Tamilnadu,Nagapattinam,,
+,3019,,University College of Engineering,,,,,,,,,,,170,Tamilnadu,Chennai,,
+,3021,,University College of Engineering,,,,,,,,,,,172,Tamilnadu,Thanjavur,,
+,5017,,University College of Engineering,,,,,,,,,,,166,Tamilnadu,Ramanathapuram,,
+,5022,,University College of Engineering,,,,,,,,,,,170.5,Tamilnadu,Dindigul,,
+,2,,University Departments of Anna University,,,,,,,,,,,,,,,
+,4,,University Departments of Anna University,,,,,,,,,,,199.5,Tamilnadu,Chengalpattu,,
+,4024,,University V.O.C. College of Engineering,,,,,,,,,,,177,,,,
+,4941,,Unnamalai Institute of Technology,,,,,,,,,,,136.5,Tamilnadu,Thoothukudi,,
+,2658,,V S A Group of Institutions,,,,,,,,,,,,Tamilnadu,Salem,,
+,1421,,V.R.S. College of Engineering and Technology,,,,,,,,,,,147.5,Tamilnadu,Viluppuram,,
+,5532,,Vaigai College of Engineering,,,,,,,,,,,129,Tamilnadu,Madurai,,
+,3848,,Vandayar Engineering College,,,,,,,,,,,123,Tamilnadu,Thanjavur,,
+,2641,,Varuvan Vadivelan Institute of Technology,,,,,,,,,,,109.5,Tamilnadu,Dharmapuri,,
+,5851,,Veerammal Engineering College,,,,,,,,,,,100,Tamilnadu,Dindigul,,
+,1122,,Vel Tech High Tech Dr.Rangarajan Dr.Sakunthala Engineering College (Autonomous),,,,,,,,,,,176,Tamilnadu,Chennai,,
+,,,Vel Tech Rangarajan Dr. Sagunthala R & D Institute of Science and Technology,,,,,,,,,,,,,,,
+,1120,,Velammal Engineering College (Autonomous),,,,,,,,,,,180,Tamilnadu,Chennai,,
+,,,Vellore Institute of Technology,,,,,,,,,,,,,,,
+,,,Vels Institute of Science Technology and Advanced Studies (VISTAS),,,,,,,,,,,,,,,
+,3850,,Vetri Vinayaha College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Tiruchirappalli,,
+,2633,,Vidyaa Vikas College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Namakkal,,
+,,,Vinayaka Mission's Research Foundation,,,,,,,,,,,,,,,
+,4945,,Vins Christian Women's College of Engineering,,,,,,,,,,,,,,,
+,2368,,Vishnu Lakshmi College of Engineering and Technology,,,,,,,,,,,,Tamilnadu,Coimbatore,,
+,2661,,Vivekanandha College of Technology for Women,,,,,,,,,,,,Tamilnadu,Namakkal,,
