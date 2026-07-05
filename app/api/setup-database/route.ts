@@ -117,19 +117,26 @@ CREATE INDEX idx_choice_filling_logs_user_id ON choice_filling_logs(user_id);
 CREATE INDEX idx_choice_filling_logs_session_id ON choice_filling_logs(session_id);
 \`\`\`
 
-**ai_chat_usage table (AI counsellor question limits — mirrors choice_filling_usage):**
+**ai_chat_usage table (AI counsellor DAILY question limits — one row per user per IST day):**
 \`\`\`sql
 CREATE TABLE ai_chat_usage (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
-  questions_used INTEGER DEFAULT 0,
-  plan_type TEXT DEFAULT 'freemium' CHECK (plan_type IN ('freemium', 'premium_199', 'premium_299', 'premium_499', 'referral_75', 'referral_200', 'referral_300')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  usage_date DATE NOT NULL DEFAULT ((now() AT TIME ZONE 'Asia/Kolkata')::date),
+  questions_used INTEGER NOT NULL DEFAULT 0,
+  plan_type TEXT NOT NULL DEFAULT 'freemium' CHECK (plan_type IN ('freemium', 'premium_199', 'premium_299', 'premium_499', 'referral_75', 'referral_200', 'referral_300')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_ai_chat_usage_user_id ON ai_chat_usage(user_id);
+-- One row per user per day (the daily-reset key) + a lookup index.
+CREATE UNIQUE INDEX idx_ai_chat_usage_user_day ON ai_chat_usage(user_id, usage_date);
+CREATE INDEX idx_ai_chat_usage_user_id ON ai_chat_usage(user_id);
+
+-- RLS: backend (service_role) has full access and BYPASSES RLS; no policies are
+-- granted to anon/authenticated, so the table is NEVER reachable from the client.
+ALTER TABLE ai_chat_usage ENABLE ROW LEVEL SECURITY;
 \`\`\`
 
 ### 2. Add referral_code column to profiles table:

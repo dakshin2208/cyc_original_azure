@@ -63,6 +63,7 @@ export {
   ChatUsageGuardConfigError,
   withinLimit,
   bearerToken,
+  usageDay,
   createChatUsageGuard,
   createSupabaseChatUsageStore,
   createSupabaseChatUsageGuard,
