@@ -189,11 +189,11 @@ export function slotPrompt(slot: ProfileSlot): string {
     case 'cutoff':
       return 'What is your cutoff mark?'
     case 'community':
-      return 'What is your community?\n• OC\n• BC\n• BCM\n• MBC\n• SC\n• SCA\n• ST'
+      return 'Which community do you belong to?\n• OC\n• BC\n• BCM\n• MBC/DNC\n• SC\n• SCA\n• ST'
     case 'district':
-      return 'Which district or city are you interested in?\nExamples: Coimbatore, Chennai, Madurai, Salem\n\nor say "Anywhere in Tamil Nadu".'
+      return 'Which district or location do you prefer?\nExamples: Coimbatore, Chennai, Madurai, Salem\n\nor say "Anywhere in Tamil Nadu".'
     case 'branch':
-      return 'Which branch are you interested in?\nExamples: CSE, AI & DS, ECE, EEE, Mechanical, Civil, IT, Biotech\n\nor say "I haven\'t decided yet".'
+      return 'Which engineering branch are you interested in?\nExamples: CSE, AI & DS, IT, ECE, EEE, Mechanical, Civil\n\nor say "I haven\'t decided yet".'
   }
 }
 
@@ -205,4 +205,44 @@ export function profileSummary(p: StudentProfile): string {
     `✓ District: ${p.district ?? 'Anywhere in Tamil Nadu'}`,
     `✓ Branch: ${p.branch ?? 'Undecided'}`,
   ].join('\n')
+}
+
+/**
+ * The V2 onboarding hand-off, shown ONCE when the four slots are complete: confirm
+ * the collected profile, then invite the student's question (we do NOT auto-answer —
+ * the student asks next).
+ */
+export function onboardingSummary(p: StudentProfile): string {
+  return [
+    'Your Profile',
+    '',
+    `Cutoff: ${p.cutoff !== null ? p.cutoff : '—'}`,
+    `Community: ${p.community ?? '—'}`,
+    `Preferred Location: ${titleCasePlace(p.district) ?? 'Anywhere in Tamil Nadu'}`,
+    `Branch: ${p.branch ?? 'Undecided'}`,
+    '',
+    'Perfect! Now ask me anything about engineering counselling.',
+    '',
+    'Examples:',
+    '• Which colleges can I get?',
+    '• Compare PSG vs CIT',
+    '• Which college has the best placements?',
+    '• What are my dream, target and safe colleges?',
+  ].join('\n')
+}
+
+/**
+ * A compact one-line echo of the stored profile an answer is based on — so the student
+ * can see their onboarding details are being used (and never has to repeat them).
+ */
+export function profileEcho(p: StudentProfile): string {
+  const loc = titleCasePlace(p.district) ?? 'Anywhere in TN'
+  const branch = p.branch ?? 'any branch'
+  return `Based on your profile — Cutoff ${p.cutoff !== null ? p.cutoff : '—'} · ${p.community ?? '—'} · ${loc} · ${branch}:`
+}
+
+/** Title-case a stored (lowercased) district for display: "coimbatore" → "Coimbatore". */
+function titleCasePlace(place: string | null): string | null {
+  if (!place) return null
+  return place.replace(/\b\w/g, (c) => c.toUpperCase())
 }

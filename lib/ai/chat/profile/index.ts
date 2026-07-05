@@ -18,6 +18,8 @@ export {
   toView,
   slotPrompt,
   profileSummary,
+  onboardingSummary,
+  profileEcho,
 } from './student-profile'
 export {
   type ProfileStore,
