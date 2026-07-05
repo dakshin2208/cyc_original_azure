@@ -44,7 +44,7 @@ describe('opinion service — counseling scenarios', () => {
   it('missing / unrecognized query → graceful "not enough evidence"', async () => {
     const { response } = await makeOpinion().advise('asdfghjkl qwerty')
     expect(response.strategy).toBe('insufficient_evidence')
-    expect(response.answer.toLowerCase()).toMatch(/enough evidence/)
+    expect(response.answer.toLowerCase()).toMatch(/enough to go on|share your cutoff/)
     expect(response.usedModel).toBe(false)
   })
 })

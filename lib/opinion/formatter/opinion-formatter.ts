@@ -30,22 +30,55 @@ function citationsFromEvidence(context: OpinionContext, evidenceIds: readonly st
     .map((i) => ({ evidenceId: i.id, collegeName: i.collegeName, label: i.label, source: i.source }))
 }
 
-/** Synthesize a grounded counselor answer from the recommendation objects. */
+/** Synthesize a grounded, counselor-style answer from the recommendation objects. */
 function deterministicAnswer(result: OpinionResult): string {
   if (result.strategy === 'insufficient_evidence') {
     return (
-      "I don't have enough evidence to confidently recommend colleges for this yet. " +
-      'Could you share a little more — your cutoff mark and community, or the specific colleges or branch you are considering?'
+      "I don't have enough to go on yet — share your cutoff mark and community (and ideally your " +
+      "preferred district and branch), and I'll suggest the colleges you can realistically get."
     )
   }
-  const parts: string[] = []
-  for (const r of result.recommendations) {
-    parts.push(r.colleges.length > 0 ? `${r.headline}: ${r.colleges.join(', ')}.` : `${r.headline}.`)
-    if (r.reasoning.length > 0) parts.push(r.reasoning.join(' '))
-    if (r.tradeoffs.length > 0) parts.push(`Trade-offs — ${r.tradeoffs.join(' ')}`)
-    if (r.risks.length > 0) parts.push(`Please note: ${r.risks.join(' ')}`)
+  const recs = result.recommendations
+  const stripName = (line: string, name: string): string =>
+    line.startsWith(`${name}: `) ? line.slice(name.length + 2) : line
+
+  // Head-to-head comparison.
+  const cmp = recs.find((r) => r.kind === 'comparison')
+  if (cmp) {
+    const parts = [cmp.colleges.length >= 2 ? `Here's how ${cmp.colleges.join(' and ')} compare:` : `${cmp.headline}.`]
+    for (const line of cmp.reasoning) parts.push(line)
+    if (cmp.tradeoffs.length > 0) parts.push(`Trade-offs — ${cmp.tradeoffs.join(' ')}`)
+    if (cmp.risks.length > 0) parts.push(`Note: ${cmp.risks.join(' ')}`)
+    return parts.join('\n').trim()
   }
-  return parts.join(' ').trim()
+
+  const parts: string[] = []
+  const top = recs.find((r) => r.kind === 'top_pick')
+  if (top && top.colleges.length > 0) {
+    const name = top.colleges[0]
+    const why = top.reasoning[0] ? ` — ${stripName(top.reasoning[0], name)}` : ''
+    parts.push(`My top recommendation is ${name}${why}.`)
+    const cautions = [...top.tradeoffs.map((t) => stripName(t, name)), ...top.risks]
+    if (cautions.length > 0) parts.push(`Just note: ${cautions.join(' ')}`)
+  }
+  const alt = recs.find((r) => r.kind === 'alternative')
+  if (alt && alt.colleges.length > 0) {
+    parts.push('\nOther strong options for you:')
+    for (const name of alt.colleges) {
+      const line = alt.reasoning.find((r) => r.startsWith(`${name}: `))
+      parts.push(`• ${name}${line ? ` — ${stripName(line, name)}` : ''}`)
+    }
+  }
+  // Band buckets (safe / moderate / dream) for "which colleges can I get" queries.
+  for (const r of recs) {
+    if (r.kind === 'top_pick' || r.kind === 'alternative' || r.colleges.length === 0) continue
+    parts.push(`\n${r.headline}: ${r.colleges.join(', ')}.`)
+  }
+  if (parts.length === 0) {
+    for (const r of recs) if (r.colleges.length > 0) parts.push(`${r.headline}: ${r.colleges.join(', ')}.`)
+  }
+  parts.push('\nYou can ask me to compare any two of these, show safer backup options, or dig into placements.')
+  return parts.join('\n').trim()
 }
 
 function summarize(result: OpinionResult): RecommendationSummaryItem[] {

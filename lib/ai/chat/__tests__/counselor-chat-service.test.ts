@@ -105,7 +105,7 @@ describe('counselor chat service — grounding & degradation', () => {
   it('says it lacks evidence for an unrecognized query', async () => {
     const { service } = makeCounselor(createUnavailableProvider('none'))
     const body = ok((await service.handle({ message: 'asdfghjkl qwerty' })).body)
-    expect(body.answer.toLowerCase()).toMatch(/enough (verified )?(information|evidence)/)
+    expect(body.answer.toLowerCase()).toMatch(/enough to go on|share your cutoff/)
   })
 })
 

@@ -33,17 +33,22 @@ const downgrade = (level: ConfidenceLevel): ConfidenceLevel => CONF_BY_RANK[Math
 const recId = (kind: string, colleges: readonly string[]): string =>
   `rec:${kind}:${slugify(colleges.join(' ') || 'none')}`
 
-/** Concrete, grounded reasons for a single college. */
+/** Render rupees as a readable lakh figure: 400000 → "4L", 680000 → "6.8L". */
+function lakh(rupees: number): string {
+  const l = rupees / 100000
+  return `${l % 1 === 0 ? l.toFixed(0) : l.toFixed(1)}L`
+}
+
+/** Concrete, grounded reasons for a single college — concise fact fragments a
+ *  counselor would actually say (no per-cohort/patent noise). */
 function reasonsFor(dossier: CollegeDossier): string[] {
   const rs: string[] = []
   if (dossier.strengths.length > 0) {
-    rs.push(`Strong ${dossier.strengths.map((d) => DIMENSION_LABEL[d].toLowerCase()).join(' and ')}.`)
+    rs.push(`strong ${dossier.strengths.map((d) => DIMENSION_LABEL[d].toLowerCase()).join(' and ')}`)
   }
   const p = dossier.placement
-  if (p?.medianSalary != null) rs.push(`Median salary ₹${p.medianSalary} per year.`)
-  if (p?.placementPercentage != null) rs.push(`Placement rate ${p.placementPercentage}%.`)
-  if (dossier.research?.patentsPublished != null) rs.push(`${dossier.research.patentsPublished} patents published.`)
-  if (dossier.trend.length >= 2) rs.push(`Median-salary data across ${dossier.trend.length} cohorts.`)
+  if (p?.medianSalary != null) rs.push(`₹${lakh(p.medianSalary)} median salary`)
+  if (p?.placementPercentage != null) rs.push(`${Math.round(p.placementPercentage)}% placement`)
   return rs
 }
 
@@ -86,7 +91,7 @@ function bucket(
   headline?: string,
 ): OpinionRecommendation {
   const colleges = dossiers.map((d) => d.college.name)
-  const reasoning = unique(dossiers.flatMap((d) => [`${d.college.name}: ${reasonsFor(d).join(' ')}`.trim()]))
+  const reasoning = unique(dossiers.flatMap((d) => [`${d.college.name}: ${reasonsFor(d).join(', ')}`.trim()]))
   const tradeoffs = unique(dossiers.flatMap((d) => tradeoffsFor(d).map((t) => `${d.college.name}: ${t}`)))
   const risks = unique([...dossiers.flatMap((d) => risksFor(d, priorities)), ...extraRisks])
   return {
@@ -122,25 +127,38 @@ function comparisonRecommendation(context: OpinionContext): OpinionRecommendatio
   const names = cmp.colleges.map((c) => c.name)
   const dimWins = cmp.dimensions.filter((d) => d.winner && SUBSTANTIVE_DIMENSIONS.includes(d.dimension))
 
-  const reasoning: string[] = [
-    cmp.winner ? `Overall, ${cmp.winner.name} scores higher on the weighted evidence.` : 'The two are closely matched overall.',
-    ...dimWins.map((d) => `Stronger ${DIMENSION_LABEL[d.dimension].toLowerCase()}: ${d.winner!.name}.`),
-  ]
-
+  // Each college's winning dimensions, stated ONCE (no per-dimension + grouped repeat).
   const winsBy = new Map<string, string[]>()
   for (const d of dimWins) {
     const arr = winsBy.get(d.winner!.name) ?? []
     arr.push(DIMENSION_LABEL[d.dimension].toLowerCase())
     winsBy.set(d.winner!.name, arr)
   }
-  const tradeoffs = [...winsBy.entries()].map(([name, dims]) => `${name} leads on ${dims.join(', ')}.`)
+  const reasoning: string[] = [...winsBy.entries()].map(([name, dims]) => `${name} is stronger on ${dims.join(', ')}.`)
+
+  // Admission difficulty from the historical closing cutoffs (higher = harder to get).
+  const cutoffs = new Map<string, number>()
+  for (const d of context.candidates) {
+    if (d.eligibility?.closingCutoff != null) cutoffs.set(d.college.name, d.eligibility.closingCutoff)
+  }
+  if (cutoffs.size === 2) {
+    const [[na, ca], [nb, cb]] = [...cutoffs.entries()]
+    if (ca !== cb) reasoning.push(`${ca > cb ? na : nb} is harder to get into (higher closing cutoff).`)
+  }
+
+  // Clear verdict.
+  reasoning.push(
+    cmp.winner
+      ? `On balance I'd lean towards ${cmp.winner.name}, though ${names.find((n) => n !== cmp.winner!.name)} is a strong alternative.`
+      : 'The two are closely matched — either is a sound choice.',
+  )
 
   const noData = cmp.dimensions
     .filter((d) => !d.winner && SUBSTANTIVE_DIMENSIONS.includes(d.dimension))
     .map((d) => DIMENSION_LABEL[d.dimension].toLowerCase())
   const risks = [
-    ...(noData.length > 0 ? [`No comparable data on ${noData.join(', ')}.`] : []),
-    'Fees and campus environment are not in the dataset; weigh those separately.',
+    ...(noData.length > 0 ? [`I don't have comparable data on ${noData.join(', ')} for both.`] : []),
+    'Fees and campus life are not in the dataset — weigh those separately.',
   ]
 
   return {
@@ -151,7 +169,7 @@ function comparisonRecommendation(context: OpinionContext): OpinionRecommendatio
     reasoning,
     evidenceIds: unique(context.candidates.flatMap((c) => c.evidenceIds)),
     confidence: minConfidence(context.candidates.map((c) => c.confidence)),
-    tradeoffs,
+    tradeoffs: [], // folded into `reasoning` to avoid repeating each strength twice
     risks,
   }
 }

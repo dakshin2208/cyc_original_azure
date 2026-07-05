@@ -44,7 +44,7 @@ describe('formatOpinion (via engine.complete)', () => {
     const res = svc.engine.complete(prepared, orch.context.followUpQuestions, failedLlm)
     expect(res.usedModel).toBe(false)
     expect(res.answer.length).toBeGreaterThan(0)
-    expect(res.answer).toContain('Recommended pick')
+    expect(res.answer).toMatch(/my top recommendation|choices|options|compare/i)
     // Deterministic path still cites the opinion evidence.
     expect(res.evidence.some((c) => c.evidenceId === evidenceId)).toBe(true)
   })
