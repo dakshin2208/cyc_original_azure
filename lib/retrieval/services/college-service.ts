@@ -35,7 +35,21 @@ export function createCollegeService(repos: KnowledgeRepositories): CollegeRetri
   const byName = (c: CanonicalCollege): string => c.name
 
   return Object.freeze({
-    findByExactName: (name) => repos.colleges.findByNameSlug(slugify(name)),
+    findByExactName: (name) => {
+      const slug = slugify(name)
+      const direct = repos.colleges.findByNameSlug(slug)
+      if (!direct) return null
+      // Among same-named entities (base-warehouse duplicates, e.g. the two CIT records),
+      // prefer the one with real data — a known cutoff, else placement — so a user naming
+      // a college is matched to the data-bearing record, not an empty stub.
+      const sameName = all().filter((c) => c.nameSlug === slug)
+      if (sameName.length <= 1) return direct
+      return (
+        sameName.find((c) => repos.colleges.ocCutoffOf(c.id) != null) ??
+        sameName.find((c) => repos.placements.byCollege(c.id).length > 0) ??
+        direct
+      )
+    },
 
     findByPartialName: (query, limit) =>
       rankCandidates(query, all(), { name: byName, limit, includeFuzzy: false }),
