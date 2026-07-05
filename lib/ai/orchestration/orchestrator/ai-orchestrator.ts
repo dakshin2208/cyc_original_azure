@@ -250,15 +250,23 @@ export function createAIOrchestrator(
   ): OrchestrationResult => {
     const parsed = applyOverrides(parser.parse(question), overrides)
     const eng = runEngines(parsed)
+    // Explicit exclusions ("remove X"): the engine already RANKED every college (it
+    // stays the source of truth); we only omit the ones the student rejected. Ranks
+    // are left as the engine assigned them — we never re-rank or fabricate.
+    const excluded = new Set((overrides?.exclude ?? []).map((n) => n.trim().toLowerCase()).filter(Boolean))
+    const recommendations =
+      excluded.size === 0
+        ? eng.recommendations
+        : eng.recommendations.filter((r) => !excluded.has(r.college.name.toLowerCase()))
     const evidence = collector.collect({
-      recommendations: eng.recommendations,
+      recommendations,
       comparison: eng.comparison,
       facts: eng.facts,
     })
     const context = contextBuilder.build({
       parsed,
       subjects: eng.subjects,
-      recommendations: eng.recommendations,
+      recommendations,
       comparison: eng.comparison,
       facts: eng.facts,
       evidence,

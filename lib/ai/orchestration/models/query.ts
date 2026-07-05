@@ -57,4 +57,11 @@ export interface QueryOverrides {
   readonly community?: CommunityCode | null
   readonly branch?: string | null
   readonly location?: string | null
+  /**
+   * Canonical college names the student explicitly asked to exclude ("remove X").
+   * The engine still RANKS every college (it stays the source of truth); the
+   * orchestrator simply omits these from the results the student rejected — a
+   * presentation-level constraint, never a change to the ranking itself.
+   */
+  readonly exclude?: readonly string[]
 }

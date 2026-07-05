@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
 import { createCommunityCutoffLookup, type CutoffLookup } from '@/lib/recommendation'
-import type { ConversationState } from '@/lib/ai/orchestration'
+import type { ConversationState, ParsedQuery } from '@/lib/ai/orchestration'
 import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
 import {
   createOpinionService,
@@ -92,6 +92,42 @@ const RECOMMEND_TRIGGER = 'recommend the best colleges for me'
 /** A parent (rather than the student) is talking — switch to a reassuring tone. */
 const PARENT_RE = /\bmy (son|daughter|child|kid|ward|boy|girl)\b|\bour (son|daughter|child|kid)\b|\bfor my\b|\bwe are (planning|looking)\b/i
 
+// ── Refinement (#5): once the profile is complete, a follow-up can re-scope the
+// SAME student without restarting — by college type ("government only"), by safety
+// ("safer backups"), or by changing a slot in place ("switch to ECE", "actually
+// 187"). Each maps to a CLEAN engine trigger; the raw wording (e.g. the word "safe",
+// which the parser would mistake for a college name) never reaches the parser.
+const CHANGE_RE =
+  /\b(instead|actually|switch(?:ing)? to|change (?:it |that |my )?to|change my|make it|rather|no,? i (want|meant)|i meant|update (?:my|to))\b/i
+const GOVT_RE = /\bgovern(?:ment|ance)?\b|\bgovt\b|\baided\b/i
+const PRIVATE_RE = /\bprivate\b|\bself[ -]?financ\w*\b|\bdeemed\b/i
+const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguaranteed\b|\bwithin reach\b|\blow[ -]?risk\b/i
+const REMOVE_RE =
+  /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
+const FEE_RE = /\b(cheap(?:er|est)?|afford\w*|budget|low(?:er)?[ -]?fees?|fees?|tuition|scholarships?|cost\w*)\b/i
+const HOSTEL_RE = /\b(hostel|accommodation|mess|campus life|dining|food)\b/i
+
+/**
+ * A complete-profile message that RE-SCOPES the search to a college TYPE or a
+ * SAFETY view — returns a clean engine trigger + a natural intro. Returns null when
+ * the message names a specific college (so comparisons and college-specific
+ * questions are never hijacked) or isn't a scope refinement. The stored profile
+ * still carries cutoff/community/district/branch; only the college SET changes.
+ */
+function refinementTrigger(message: string, parsed: ParsedQuery): { trigger: string; intro: string } | null {
+  if (parsed.colleges.length > 0) return null // a named college → a question, not a re-scope
+  if (GOVT_RE.test(message)) {
+    return { trigger: 'recommend the best government colleges for me', intro: 'Sure — here are the government options for your rank and district:' }
+  }
+  if (PRIVATE_RE.test(message)) {
+    return { trigger: 'recommend the best private colleges for me', intro: 'Here are the private options that fit your profile:' }
+  }
+  if (SAFER_RE.test(message)) {
+    return { trigger: 'which colleges can I safely get into', intro: "Let's look at how realistic each seat is for your rank — safest bets first:" }
+  }
+  return null
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   if (!ms || ms <= 0) return promise
   return new Promise<T>((resolve, reject) => {
@@ -116,6 +152,9 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
   const maxConversations = deps.maxHistoryConversations ?? 1000
   // In-memory, request/session-scoped turn-text history (no database).
   const history = new Map<string, ConversationTurn[]>()
+  // Per-conversation set of colleges the student asked to exclude ("remove X"),
+  // remembered across turns and applied on every later recommendation (#5).
+  const excluded = new Map<string, Set<string>>()
 
   const rememberTurn = (id: string, userText: string, assistantText: string): void => {
     const prior = history.get(id) ?? []
@@ -144,16 +183,16 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     priorHistory: readonly ConversationTurn[],
     profile: StudentProfile | undefined,
     intro?: string,
+    outro?: string,
   ): Promise<ChatOutcome> => {
     const startedAt = deps.clock()
     let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
     try {
+      const exSet = excluded.get(id)
+      const exclude = exSet && exSet.size > 0 ? [...exSet] : undefined
+      const overrides = profile ? { ...toOverrides(profile), exclude } : exclude ? { exclude } : undefined
       advised = await withTimeout(
-        deps.opinion.advise(message, {
-          priorState,
-          history: priorHistory,
-          overrides: profile ? toOverrides(profile) : undefined,
-        }),
+        deps.opinion.advise(message, { priorState, history: priorHistory, overrides }),
         deps.timeoutMs,
       )
     } catch (e) {
@@ -175,7 +214,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     })
 
     const body: ChatResponse = {
-      answer: intro ? `${intro}\n\n${advised.response.answer}` : advised.response.answer,
+      answer: [intro, advised.response.answer, outro].filter((s): s is string => !!s).join('\n\n'),
       citations: advised.response.evidence,
       confidence: advised.response.confidence,
       followUps: advised.response.followUps,
@@ -223,10 +262,14 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
 
     const wasComplete = isComplete(priorProfile)
     const hasQuestion = QUESTION_RE.test(parsed.normalized)
-    // Profile protection (#3): once the profile is complete, a QUESTION never mutates it
-    // — only an explicit statement ("show ECE", "actually my cutoff is 187") updates a
-    // field. During collection every message is merged so the slots fill.
-    const profile = wasComplete && hasQuestion ? priorProfile : mergeMessage(priorProfile, parsed, message)
+    // Profile protection: once the profile is complete, a QUESTION never mutates it —
+    // EXCEPT when it carries explicit change-intent ("switch to ECE", "actually my
+    // cutoff is 187", "Chennai instead"), which must update the slot AND be remembered
+    // (#5). A bare question ("is CIT good?") leaves the profile intact. During
+    // collection every message is merged so the slots fill.
+    const explicitChange = CHANGE_RE.test(message)
+    const profile =
+      wasComplete && hasQuestion && !explicitChange ? priorProfile : mergeMessage(priorProfile, parsed, message)
     await deps.profileStore.set(id, profile)
 
     const finish = (text: string, stage: 'collecting' | 'ready'): ChatOutcome => {
@@ -253,22 +296,56 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     const summary = profileSummary(profile).replace(/\n/g, ' · ')
 
     // Profile complete → act like a counselor (#4): give guidance immediately instead of
-    // asking "what would you like to know?".
+    // asking "what would you like to know?". On this FIRST hand-off, invite the one
+    // preference that will most tailor the advice (#3 — light, asked once).
     if (!wasComplete) {
       const intro = isParent
         ? `Thanks for sharing your child's details — I know this decision feels big. Here's how I'd guide them (${summary}). I'll flag which colleges are realistic, which are a reach, and a couple of safe backups:`
         : `Thanks — that's everything I need. Here's my guidance for you (${summary}):`
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
+      const outro =
+        "One quick thing so I can tailor this — what matters most to you: strong placements, a seat you're sure to get, staying near home, or overall reputation? Or tell me to show only government or private colleges."
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro, outro)
     }
-    // A real follow-up question with a complete profile → answer it directly.
-    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)
-    // An explicit profile change (no question) → re-counsel with the updated profile.
+    // Exclusion (#5): "remove / drop / not interested in <college>" — remember it and
+    // re-counsel without that college. The profile itself is unchanged (the mention of
+    // a college here is a rejection, not a new preference), so we re-store priorProfile.
+    if (REMOVE_RE.test(message) && parsed.colleges.length > 0) {
+      const set = excluded.get(id) ?? new Set<string>()
+      parsed.colleges.forEach((c) => set.add(c.toLowerCase()))
+      excluded.set(id, set)
+      await deps.profileStore.set(id, priorProfile)
+      const intro = `Done — I've taken ${parsed.colleges.join(', ')} off your list. Here's the updated guidance:`
+      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, priorProfile, intro)
+    }
+    // An explicit profile change (cutoff/community/district/branch) — including one
+    // phrased as a question via change-intent ("switch to ECE") → re-counsel with the
+    // updated, remembered profile (#5).
     if (!profilesEqual(priorProfile, profile)) {
       const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
       return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, intro)
     }
+    // A scope refinement on the SAME student — government/private only, or a safety
+    // view — re-counsel without restarting; the stored profile is preserved (#5).
+    const refine = refinementTrigger(message, parsed)
+    if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, refine.intro)
+    // Fees / hostel / campus-life — honestly absent from the official dataset: say so
+    // and steer to what we CAN help with, rather than guessing (#5, honesty).
+    if (parsed.colleges.length === 0 && FEE_RE.test(message)) {
+      return finish(
+        "I don't have tuition-fee data in the official dataset, so I won't pretend to rank by cost. Government colleges are usually the most affordable — say \"show government colleges\" and I'll pull those for your rank. For any specific college, check its official fee structure.",
+        'ready',
+      )
+    }
+    if (parsed.colleges.length === 0 && HOSTEL_RE.test(message)) {
+      return finish(
+        "Hostel and campus-life details aren't in my official dataset, so I can't compare those reliably. I can still help with placements, cutoffs, eligibility, or comparing two colleges head-to-head.",
+        'ready',
+      )
+    }
+    // A real follow-up question with a complete profile → answer it directly.
+    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile)
     // Complete, no question, no change (e.g. "ok", "thanks").
-    return finish(`Happy to help further — ask about placements, compare two colleges, or I can suggest safer backup options.`, 'ready')
+    return finish(`Happy to help further — ask about placements, compare two colleges, or say "show government colleges" or "safer options".`, 'ready')
   }
 
   return Object.freeze({ handle })

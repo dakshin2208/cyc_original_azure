@@ -241,3 +241,89 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     expect(b(out).profile?.branch).toBeNull()
   })
 })
+
+// ── refinement, exclusion, preference (real warehouse) ───────────────────────
+describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
+  const make = () => {
+    let n = 0
+    return buildCounselorChatService({
+      dataDir: DIR,
+      logger: createNullLogger(),
+      provider: createUnavailableProvider('none'),
+      idGenerator: () => `refine-${(n += 1)}`,
+    })
+  }
+  const b = (o: { body: unknown }) => o.body as ChatResponse
+  const complete = async (svc: ReturnType<typeof make>, profile = '190 BC Coimbatore CSE') => {
+    const out = await svc.handle({ message: profile })
+    return b(out).conversationId as string
+  }
+
+  it('first complete-profile guidance invites ONE tailoring preference (#3)', async () => {
+    const out = await make().handle({ message: '190 BC Coimbatore CSE' })
+    expect(b(out).answer).toMatch(/what matters most|tailor/i)
+    // and it explains its confidence honestly (#7)
+    expect(b(out).answer).toMatch(/confiden/i)
+    expect(b(out).answer).toMatch(/don't have|weigh those/i)
+  })
+
+  it('"show only government colleges" re-scopes without restarting (#5)', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    const out = await svc.handle({ message: 'show only government colleges', conversationId: cid })
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).answer).toMatch(/government/i)
+    expect(b(out).answer).not.toMatch(/what is your cutoff/i) // no re-collection
+    expect(b(out).profile?.complete).toBe(true) // profile preserved
+  })
+
+  it('"private colleges" and "something safer" re-scope the same student (#5)', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    let out = await svc.handle({ message: 'I want private colleges', conversationId: cid })
+    expect(b(out).answer).toMatch(/private option/i)
+    out = await svc.handle({ message: 'something safer', conversationId: cid })
+    // the eligibility-band view: realistic / safe / ambitious framing
+    expect(b(out).answer).toMatch(/realistic|safe|ambitious|reach/i)
+  })
+
+  it('remembers an exclusion and keeps applying it across turns (#5)', async () => {
+    const svc = make()
+    const cid = await complete(svc, '195 MBC Tamil Nadu CSE') // statewide → Anna University surfaces
+    let out = await svc.handle({ message: 'remove Anna University', conversationId: cid })
+    expect(b(out).answer).toMatch(/taken Anna University off|off your list/i)
+    // the recommendations themselves (after the confirming intro line) drop it
+    expect(b(out).answer.split('\n').slice(1).join('\n')).not.toMatch(/Anna University/)
+    // exclusion persists into a later, independent recommendation request (memory)
+    out = await svc.handle({ message: 'show me the best colleges', conversationId: cid })
+    expect(b(out).answer).not.toMatch(/Anna University/)
+  })
+
+  it('changes a slot phrased as a question ("switch to ECE") and remembers it (#5)', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    const out = await svc.handle({ message: 'switch to ECE instead', conversationId: cid })
+    expect(b(out).answer).toMatch(/updated/i)
+    expect(b(out).profile?.branch).toMatch(/electronic/i) // ECE remembered, not reverted to CSE
+  })
+
+  it('is honest that fees/hostel are not in the dataset (#5)', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    let out = await svc.handle({ message: 'cheaper options', conversationId: cid })
+    expect(b(out).answer).toMatch(/fee/i)
+    expect(b(out).answer).toMatch(/government/i) // steers to the affordable set we DO have
+    out = await svc.handle({ message: 'what about hostel facilities', conversationId: cid })
+    expect(b(out).answer).toMatch(/hostel|campus/i)
+    expect(b(out).answer).toMatch(/not in|can't compare|isn't in/i)
+  })
+
+  it('a bare question after completion never re-collects or mutates the profile', async () => {
+    const svc = make()
+    const cid = await complete(svc)
+    const out = await svc.handle({ message: 'which has the best placements?', conversationId: cid })
+    expect(b(out).profile?.cutoff).toBe(190) // untouched
+    expect(b(out).profile?.branch).toMatch(/computer/i) // still CSE
+    expect(b(out).answer).not.toMatch(/what is your cutoff/i)
+  })
+})
