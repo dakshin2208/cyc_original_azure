@@ -1115,15 +1115,13 @@ export default function ChoiceFilling() {
         }
         
         // Then add the choice type question. Options are gated by plan (see pricing
-        // page): Traditional Method is always available; Power Score on paid plans;
-        // AI Method on Assured and Assured+.
+        // page): Traditional Method is always available; Power Score on paid plans.
         const choiceTypeMessage: Message = {
           type: 'bot',
           content: 'Which method would you like to use for your choices?',
           options: [
             'Traditional Method',
             ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
-            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
           ]
         }
         
@@ -4938,14 +4936,13 @@ export default function ChoiceFilling() {
                                         }
                                         
                                         // Then add the choice type question, gated by plan:
-                                        // Power Score on paid plans; AI Method on Assured / Assured+.
+                                        // Power Score is available on paid plans.
                                         const choiceTypeMessage: Message = {
                                           type: 'bot',
                                           content: 'Which method would you like to use for your choices?',
                                           options: [
                                             'Traditional Method',
                                             ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
-                                            ...(planAllowsAiMethod(usageData?.planType) ? ['AI Method'] : []),
                                           ]
                                         }
                                         

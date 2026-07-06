@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Loader2, ArrowRight } from "lucide-react"
+import { Search, Loader2, ArrowRight, Download } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "../contexts/AuthContext"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 
 // Tamil Nadu reservation categories. These MUST match the values stored in
 // rank_list.COMMUNITY and the category columns present in the "Rank" table.
@@ -215,6 +217,122 @@ export default function RankPredictorClient() {
     }
   }
 
+  // Build a PDF of the results, styled like the other exports on the site
+  // (logo + chooseyourcollege.com header, blue separators, footer with page
+  // numbers and timestamp).
+  function generatePDF() {
+    if (!results || results.length === 0) return
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+    const pageWidth = doc.internal.pageSize.width
+    const pageHeight = doc.internal.pageSize.height
+
+    const addHeader = () => {
+      // Logo on the left
+      try {
+        doc.addImage("/pdflogo.jpg", "JPEG", 15, 12, 26, 17)
+      } catch (e) {
+        // Logo missing — continue without it
+      }
+
+      // Website name
+      doc.setTextColor(41, 128, 185)
+      doc.setFontSize(24)
+      doc.setFont("helvetica", "bold")
+      const websiteName = "chooseyourcollege.com"
+      const nameWidth = doc.getTextWidth(websiteName)
+      doc.text(websiteName, (pageWidth - nameWidth) / 2, 22)
+
+      // Title
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(15)
+      doc.setFont("helvetica", "bold")
+      const title = "Rank Predictor Results"
+      const titleWidth = doc.getTextWidth(title)
+      doc.text(title, (pageWidth - titleWidth) / 2, 31)
+
+      // Separator line
+      doc.setDrawColor(41, 128, 185)
+      doc.setLineWidth(0.5)
+      doc.line(15, 35, pageWidth - 15, 35)
+    }
+
+    const addFooter = (pageNumber: number, totalPages: number) => {
+      doc.setDrawColor(41, 128, 185)
+      doc.setLineWidth(0.5)
+      doc.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20)
+
+      doc.setTextColor(41, 128, 185)
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "bold")
+      doc.text("chooseyourcollege.com", 15, pageHeight - 12)
+
+      doc.setTextColor(100, 100, 100)
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      const pageText = `Page ${pageNumber} of ${totalPages}`
+      const pageTextWidth = doc.getTextWidth(pageText)
+      doc.text(pageText, (pageWidth - pageTextWidth) / 2, pageHeight - 12)
+
+      doc.setFontSize(8)
+      const stamp = new Date().toLocaleString()
+      const stampWidth = doc.getTextWidth(stamp)
+      doc.text(stamp, pageWidth - 15 - stampWidth, pageHeight - 12)
+    }
+
+    addHeader()
+
+    // Applicant details line
+    doc.setTextColor(60, 60, 60)
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "normal")
+    doc.text(`Name: ${name}`, 15, 44)
+    doc.text(`Phone: +91${phone}`, pageWidth - 15 - doc.getTextWidth(`Phone: +91${phone}`), 44)
+    doc.text(
+      `General Rank: ${generalRank}    Community: ${community}    Community Rank: ${communityRank}`,
+      15,
+      50,
+    )
+
+    // Results table
+    autoTable(doc, {
+      startY: 55,
+      head: [["S.No", "College Name", "Code", "Branch", "District", "OC Closing Rank"]],
+      body: results.map((r, i) => [
+        (i + 1).toString(),
+        r.collegeName || "-",
+        r.collegeCode || "-",
+        r.branchName || "-",
+        r.district || "-",
+        r.ocRank.toString(),
+      ]),
+      styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak", halign: "left", font: "helvetica" },
+      columnStyles: {
+        0: { cellWidth: 12 },
+        1: { cellWidth: 62 },
+        2: { cellWidth: 16 },
+        3: { cellWidth: 45 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 23 },
+      },
+      headStyles: { fillColor: [11, 85, 136], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 15, right: 15, top: 40, bottom: 25 },
+      theme: "grid",
+    })
+
+    // Header + footer on every page
+    const totalPages = (doc as any).internal.pages.length - 1
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      if (i > 1) addHeader()
+      addFooter(i, totalPages)
+    }
+
+    const timestamp = new Date().toISOString().split("T")[0]
+    doc.save(`rank-predictor-results-${timestamp}.pdf`)
+  }
+
   function toResult(row: any, oc: number): CollegeResult {
     return {
       collegeCode: String(row["College Code"] ?? "").trim(),
@@ -381,6 +499,14 @@ export default function RankPredictorClient() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Download the results as a PDF */}
+                <div className="mt-4 flex justify-end">
+                  <Button variant="outline" onClick={generatePDF}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
                 </div>
 
                 {/* CTA to Choice Filling */}
