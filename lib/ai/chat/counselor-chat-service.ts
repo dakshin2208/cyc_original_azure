@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
 import { createCommunityCutoffLookup, type CutoffLookup } from '@/lib/recommendation'
-import type { ConversationState, ParsedQuery } from '@/lib/ai/orchestration'
+import type { ConversationState } from '@/lib/ai/orchestration'
 import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
 import {
   createOpinionService,
@@ -28,24 +28,28 @@ import {
   type OpinionConfig,
   type OpinionService,
 } from '@/lib/opinion'
+import { decideTurn } from './counselor-brain'
+import { createOpinionTrustPipeline } from './trust-pipeline'
+import { createConsoleAnalytics, createNullAnalytics, isClosingMessage, turnAnalyticsEvents, type AnalyticsSink } from './analytics'
+import { RECOMMEND_TRIGGER } from './constants'
+import {
+  createDefaultCapabilityRegistry,
+  type CapabilityContext,
+  type CapabilityRegistry,
+} from './capability-registry'
 import type { ChatService } from './chat-service'
 import type { ChatOutcome, ChatResponse } from './dto'
 import { ChatConfigError, HTTP_STATUS, SAFE_MESSAGE, TimeoutError, type ChatErrorCode } from './errors'
 import { createConsoleLogger, type ChatLogger } from './logger'
-import { createInMemorySessionStore, type SessionStore } from './session-store'
+import { createConfiguredSessionStore, createInMemorySessionStore, type SessionStore } from './session-store'
 import {
   createConfiguredProfileStore,
   createInMemoryProfileStore,
   emptyProfile,
   isComplete,
   mergeMessage,
-  nextMissingSlot,
-  onboardingSummary,
-  PROFILE_SLOTS,
   profileEcho,
-  profilesEqual,
   resolveDistrict,
-  slotPrompt,
   toOverrides,
   toView,
   type ProfileStore,
@@ -59,6 +63,12 @@ export interface CounselorChatServiceDeps {
   readonly opinion: OpinionService
   readonly sessionStore: SessionStore
   /**
+   * The capability registry that dispatches the brain's decision to its handler.
+   * Defaults to {@link createDefaultCapabilityRegistry}; inject to add/replace a
+   * capability (registration only — no orchestration change).
+   */
+  readonly capabilityRegistry?: CapabilityRegistry
+  /**
    * When present, the service runs the conversational profile layer: it collects
    * the student profile (cutoff → community → district → branch) before answering,
    * then uses the stored profile on every later question. When absent, the service
@@ -66,6 +76,8 @@ export interface CounselorChatServiceDeps {
    */
   readonly profileStore?: ProfileStore
   readonly logger: ChatLogger
+  /** Privacy-safe product/observability sink. Defaults to a no-op (analytics disabled). */
+  readonly analytics?: AnalyticsSink
   readonly clock: () => number
   readonly idGenerator: () => string
   readonly timeoutMs: number
@@ -93,11 +105,6 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 const QUESTION_RE =
   /\?|\b(what|which|who|where|how|why|recommend|recommendation|recommendations|suggest|compare|versus|best|top|placement|placements|salary|package|roi|research|faculty|nirf|eligib|can i (get|join)|will i (get|join)|should i)\b/i
 
-/** Warm first-contact greeting (shown once, before the first slot prompt) — V2. */
-const WELCOME =
-  "👋 Welcome to ChooseYourCollege AI Counselor.\n\nI'll help you find the best engineering colleges based on your profile.\n\nLet's first understand your preferences."
-/** Recommendation query used to counsel the moment the profile is complete/updated. */
-const RECOMMEND_TRIGGER = 'recommend the best colleges for me'
 /** A parent (rather than the student) is talking — switch to a reassuring tone. */
 const PARENT_RE = /\bmy (son|daughter|child|kid|ward|boy|girl)\b|\bour (son|daughter|child|kid)\b|\bfor my\b|\bwe are (planning|looking)\b/i
 
@@ -108,65 +115,10 @@ const PARENT_RE = /\bmy (son|daughter|child|kid|ward|boy|girl)\b|\bour (son|daug
 // which the parser would mistake for a college name) never reaches the parser.
 const CHANGE_RE =
   /\b(instead|actually|switch(?:ing)? to|change (?:it |that |my )?to|change my|make it|rather|no,? i (want|meant)|i meant|update (?:my|to))\b/i
-const GOVT_RE = /\bgovern(?:ment|ance)?\b|\bgovt\b|\baided\b/i
-const PRIVATE_RE = /\bprivate\b|\bself[ -]?financ\w*\b|\bdeemed\b/i
-const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguaranteed\b|\bwithin reach\b|\blow[ -]?risk\b/i
-const REMOVE_RE =
-  /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
-const COMPARE_RE = /\b(compare|comparison|versus|difference between|better between)\b|\bvs\.?\b/i
-// A pure social / acknowledgement message — the ONLY complete-profile input that should
-// NOT produce a recommendation. Everything else is treated as a counselling question.
-const SOCIAL_RE = /^(ok(ay)?|k|thanks?|thank you|thx|cool|nice|great|good|got ?it|fine|hmm+|hi+|hello|hey|yo|bye|done|sure|yes|yeah|yep|no|nope|👍|🙏)[\s!.]*$/i
-// Eligibility ("will he get a seat?", "chances?", "can she get admission?") — matches
-// first- AND third-person, since a parent asks on the student's behalf. Routed to the
-// safe/target/reach band view so a complete profile is never told "share your cutoff".
-const ELIGIBILITY_RE =
-  /\b(will|can|could|would|does|do)\s+(i|he|she|they|we|my (son|daughter|child|kid|ward))\s+(get|join|make it|get in|get into|qualify)\b|\b(get|getting)\s+(a\s+)?(seat|admission)\b|\bchances?\b|\bdefinitely get\b|\beligib\w*\b|\bqualify\b|\bsafe seat\b/i
-const FEE_RE = /\b(cheap(?:er|est)?|afford\w*|budget|low(?:er)?[ -]?fees?|fees?|tuition|scholarships?|cost\w*)\b/i
-const HOSTEL_RE = /\b(hostel|accommodation|mess|campus life|dining|food|canteen)\b/i
-// Recruiter NAMES aren't in the dataset (placement RATE and median salary ARE) — so
-// "which companies recruit" is honestly declined, while "placements"/"salary" is answered.
-const RECRUITER_RE = /\brecruit\w*\b|\b(which|what|name|list|top)\b[^.?]{0,24}\bcompan\w*|\bfirms?\b|\bplacement partners?\b/i
 
-/**
- * A complete-profile message that RE-SCOPES the search to a college TYPE or a
- * SAFETY view — returns a clean engine trigger + a natural intro. Returns null when
- * the message names a specific college (so comparisons and college-specific
- * questions are never hijacked) or isn't a scope refinement. The stored profile
- * still carries cutoff/community/district/branch; only the college SET changes.
- */
-function refinementTrigger(message: string, parsed: ParsedQuery): { trigger: string; intro: string } | null {
-  if (parsed.colleges.length > 0) return null // a named college → a question, not a re-scope
-  if (GOVT_RE.test(message)) {
-    return { trigger: 'recommend the best government colleges for me', intro: 'Sure — here are the government options for your rank and district:' }
-  }
-  if (PRIVATE_RE.test(message)) {
-    return { trigger: 'recommend the best private colleges for me', intro: 'Here are the private options that fit your profile:' }
-  }
-  if (SAFER_RE.test(message)) {
-    return { trigger: 'which colleges can I safely get into', intro: "Let's look at how realistic each seat is for your rank — safest bets first:" }
-  }
-  if (ELIGIBILITY_RE.test(message)) {
-    return { trigger: 'which colleges can I safely get into', intro: "Here's how realistic each option is for that rank — the safe bets first, then the stretches:" }
-  }
-  // Stated PRIORITY (#3 → thread to the engine): a preference like "I care most about
-  // placements" re-ranks by that dimension via the matching engine strategy. "recruit"
-  // is deliberately excluded here so "which companies recruit" gets the honest
-  // recruiter-names decline instead.
-  if (/\b(placement|placements|job|jobs|package|salary|highest paying)\b/i.test(message)) {
-    return { trigger: 'which colleges have the best placements', intro: 'Since placements matter most to you, here they are ranked by placement strength:' }
-  }
-  if (/\b(roi|return on invest|value for money|worth it)\b/i.test(message)) {
-    return { trigger: 'best return on investment colleges', intro: 'Ranking these by return on investment:' }
-  }
-  if (/\b(research|innovation|higher studies|for ms|do ms|phd)\b/i.test(message)) {
-    return { trigger: 'colleges with the best research', intro: 'Ranking by research strength:' }
-  }
-  if (/\b(reputation|brand|prestige|well[ -]?known|nirf|overall ranking)\b/i.test(message)) {
-    return { trigger: 'the best overall colleges', intro: 'Ranking by overall reputation:' }
-  }
-  return null
-}
+// Capability selection / clarification / refinement matchers were extracted to the
+// Orchestration Brain (`./counselor-brain`), which owns the routing decision. The
+// service only EXECUTES the decision the brain returns.
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   if (!ms || ms <= 0) return promise
@@ -190,6 +142,13 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
   const maxLen = deps.maxMessageLength ?? 2000
   const maxTurns = deps.maxHistoryTurns ?? 6
   const maxConversations = deps.maxHistoryConversations ?? 1000
+  // The single dispatch layer from a brain decision → its capability handler.
+  const registry = deps.capabilityRegistry ?? createDefaultCapabilityRegistry()
+  // The explicit trust boundary every reasoning-answer crosses (Evidence → Grounding →
+  // Validation → Narration → Response). Delegates to the reused Opinion engine.
+  const trust = createOpinionTrustPipeline(deps.opinion)
+  // Privacy-safe product/observability sink (no-op unless configured). Side-effect only.
+  const analytics = deps.analytics ?? createNullAnalytics()
   // In-memory, request/session-scoped turn-text history (no database).
   const history = new Map<string, ConversationTurn[]>()
   // Per-conversation set of colleges the student asked to exclude ("remove X"),
@@ -232,7 +191,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       const exclude = exSet && exSet.size > 0 ? [...exSet] : undefined
       const overrides = profile ? { ...toOverrides(profile), exclude } : exclude ? { exclude } : undefined
       advised = await withTimeout(
-        deps.opinion.advise(message, { priorState, history: priorHistory, overrides }),
+        trust.run(message, { priorState, history: priorHistory, overrides }),
         deps.timeoutMs,
       )
       // Guarantee colleges: a complete profile must never get a "no evidence" deflection.
@@ -244,13 +203,13 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
         const ov = { ...toOverrides(profile), exclude }
         let retry = await withTimeout(
-          deps.opinion.advise(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: ov }),
+          trust.run(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: ov }),
           deps.timeoutMs,
         )
         let note = ''
         if (!hasCols(retry) && profile.district) {
           const wide = await withTimeout(
-            deps.opinion.advise(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: { ...ov, location: null } }),
+            trust.run(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: { ...ov, location: null } }),
             deps.timeoutMs,
           )
           if (hasCols(wide)) {
@@ -293,6 +252,17 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       fallback: !advised.response.usedModel,
       latencyMs,
     })
+    // Observability: the Trust Pipeline outcome (strategy, confidence LEVEL, fallback usage,
+    // evidence count) — no facts, no message, no cutoff value.
+    analytics.track({
+      type: 'trust_outcome',
+      conversationId: id,
+      strategy: advised.response.strategy,
+      confidence: advised.response.confidence,
+      usedModel: advised.response.usedModel,
+      fallback: !advised.response.usedModel,
+      evidenceCount: advised.response.evidence.length,
+    })
 
     const body: ChatResponse = {
       answer: [intro, advised.response.answer, outro].filter((s): s is string => !!s).join('\n\n'),
@@ -327,17 +297,19 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     const priorState = conversationId ? await deps.sessionStore.get(conversationId) : undefined
     const priorHistory = history.get(id) ?? []
     deps.logger.log({ event: 'request', conversationId: id, messageLength: message.length })
+    if (!conversationId) analytics.track({ type: 'conversation_started', conversationId: id })
 
     // 3a. No profile store → answer immediately (original behavior; existing callers).
     if (!deps.profileStore) return answer(message, id, priorState, priorHistory, undefined)
 
     // 3b. Conversational profile layer: collect the profile, then answer using it.
     const priorProfile = (conversationId ? await deps.profileStore.get(conversationId) : undefined) ?? emptyProfile()
-    const parsed = deps.opinion.parse(message)
+    const parsed = trust.parse(message)
 
     // Domain / unknown-entity guards apply at ANY stage — decline immediately rather
     // than collecting a profile for a query the warehouse cannot serve.
     if (parsed.outOfDomain !== null || parsed.unverifiedCollege) {
+      analytics.track({ type: 'honest_limitation', conversationId: id, topic: parsed.outOfDomain !== null ? 'out_of_domain' : 'unverified_college' })
       return answer(message, id, priorState, priorHistory, priorProfile)
     }
 
@@ -375,111 +347,49 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       }
     }
 
-    // Still collecting → ask the next slot; welcome the student on first contact (#1).
-    const missing = nextMissingSlot(profile)
-    if (missing) {
-      const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
-      const prompt =
-        missing === 'cutoff' && firstContact ? `${WELCOME}\n\n${slotPrompt('cutoff')}` : slotPrompt(missing)
-      return finish(prompt, 'collecting')
-    }
-
     // Parent mode (#4): a reassuring tone when a parent is talking, in this message or
-    // earlier in the conversation.
+    // earlier in the conversation. Used only when composing an answer intro below.
     const isParent = PARENT_RE.test(message) || priorHistory.some((t) => t.role === 'user' && PARENT_RE.test(t.content))
     // The stored profile drives every answer below — echo it so the student sees their
     // onboarding details are being used and never has to repeat them (V2).
     const echo = profileEcho(profile)
 
-    // Onboarding just completed → confirm the collected profile and INVITE a question.
-    // We do NOT auto-answer here (V2): the student asks next, and every answer then uses
-    // this stored profile automatically.
-    if (!wasComplete) {
-      return finish(onboardingSummary(profile), 'ready')
+    // ── Orchestration Brain: select the route for this turn (decide, don't execute) ──
+    const decision = decideTurn({ message, parsed, priorProfile, profile, wasComplete, hasQuestion })
+
+    // Product analytics for this turn (privacy-safe: kinds/enums/public college names only).
+    for (const ev of turnAnalyticsEvents({
+      conversationId: id,
+      decision,
+      isParent,
+      colleges: parsed.colleges,
+      hasMultipleColleges: parsed.hasMultipleColleges,
+      priorTurns: priorState?.turnCount ?? 0,
+      isCloser: isClosingMessage(message),
+    })) {
+      analytics.track(ev)
     }
-    // Exclusion (#5): "remove / drop / not interested in <college>" — remember it and
-    // re-counsel without that college. The profile itself is unchanged (the mention of
-    // a college here is a rejection, not a new preference), so we re-store priorProfile.
-    if (REMOVE_RE.test(message) && parsed.colleges.length > 0) {
-      const set = excluded.get(id) ?? new Set<string>()
-      parsed.colleges.forEach((c) => set.add(c.toLowerCase()))
-      excluded.set(id, set)
-      await deps.profileStore.set(id, priorProfile)
-      const intro = `Done — I've taken ${parsed.colleges.join(', ')} off your list. Here's the updated guidance:`
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, priorProfile, intro)
+
+    // ── Capability Registry: resolve the decision to a capability and execute it ──
+    // The registry is the single dispatch layer. The coordinator provides the execution
+    // primitives (reasoning via `answer`, deterministic replies via `finish`, and the
+    // exclusion side-effect) — the registry and its handlers own none of them.
+    const capabilityContext: CapabilityContext = {
+      message,
+      profile,
+      priorProfile,
+      echo,
+      isParent,
+      finish,
+      answer: (m, p, intro, outro) => answer(m, id, priorState, priorHistory, p, intro, outro),
+      recordExclusion: async (colleges) => {
+        const set = excluded.get(id) ?? new Set<string>()
+        colleges.forEach((c) => set.add(c.toLowerCase()))
+        excluded.set(id, set)
+        await deps.profileStore!.set(id, priorProfile)
+      },
     }
-    // An explicit profile change (cutoff/community/district/branch) — including one
-    // phrased as a question via change-intent ("switch to ECE") → re-counsel with the
-    // updated, remembered profile (#5).
-    if (!profilesEqual(priorProfile, profile)) {
-      const intro = isParent ? `Understood — I've updated that. Here's my revised guidance for your child:` : `Got it — I've updated that. Here's my revised guidance:`
-      return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, `${echo}\n\n${intro}`)
-    }
-    // Tier view: "dream / target / safe colleges", "reach and safe options" → the
-    // eligibility-band answer (safe / target / dream), routed explicitly BEFORE the
-    // college-based routing so a phantom fuzzy-match on the tier words can't hijack it.
-    // Skipped for a two-college comparison, which owns those.
-    if (
-      !COMPARE_RE.test(message) &&
-      !parsed.hasMultipleColleges &&
-      /\b(dream|target|safe|reach|aspirational|ambitious|realistic)\b/i.test(message) &&
-      /colleg|collage|\boption|\bchoice|\btier|\blist\b|\bget\b/i.test(message)
-    ) {
-      return answer('which colleges can I safely get into', id, priorState, priorHistory, profile, `${echo}\n\nHere are your safe, target and dream options for that rank:`)
-    }
-    // Comparison intent but fewer than two colleges were identified (often an
-    // abbreviation the warehouse doesn't carry) — ask for the full name instead of
-    // silently recommending the one we DID find.
-    if (COMPARE_RE.test(message) && parsed.colleges.length < 2) {
-      const found = parsed.colleges[0]
-      const msg = found
-        ? `I can compare two colleges side by side, but I could only identify ${found} from that. What's the other one's full name? (I sometimes miss abbreviations like "SSN" or "CIT" — the full name works best.)`
-        : `Happy to compare two colleges side by side — give me both full names, e.g. "compare PSG College of Technology and Kumaraguru College of Technology".`
-      return finish(msg, 'ready')
-    }
-    // A scope refinement on the SAME student — government/private, a safety view, or a
-    // stated priority — re-counsel without restarting; the stored profile is preserved (#5/#3).
-    const refine = refinementTrigger(message, parsed)
-    if (refine) return answer(refine.trigger, id, priorState, priorHistory, profile, `${echo}\n\n${refine.intro}`)
-    // Fees / hostel / recruiter names — honestly absent from the official dataset
-    // (whether or not a college is named): say so and steer to what we CAN help with,
-    // rather than guessing (#5, honesty). Skipped for a two-college comparison, which
-    // has its own head-to-head handling.
-    if (!parsed.hasMultipleColleges) {
-      const who = parsed.colleges[0] ? `${parsed.colleges[0]}'s ` : ''
-      if (FEE_RE.test(message)) {
-        return finish(
-          `I don't have ${who}tuition-fee data in the official dataset, so I won't guess. Government colleges are generally the most affordable — say "show government colleges" for your rank, and check any specific college's official fee structure.`,
-          'ready',
-        )
-      }
-      if (HOSTEL_RE.test(message)) {
-        return finish(
-          `I don't have ${who}hostel or campus-life details in the official dataset, so I can't compare those reliably. I can still help with placements, cutoffs, eligibility, or comparing two colleges head-to-head.`,
-          'ready',
-        )
-      }
-      if (RECRUITER_RE.test(message)) {
-        return finish(
-          `The official dataset doesn't list ${who ? `${who}specific recruiters` : 'specific recruiter names'} — I have placement rate and median salary, but not the company names. Ask me about ${who ? 'its ' : ''}placements or median package and I'll give you the figures I do have.`,
-          'ready',
-        )
-      }
-    }
-    // A keyworded follow-up question → answer it directly, using the stored profile.
-    if (hasQuestion) return answer(message, id, priorState, priorHistory, profile, echo)
-    // A pure social / acknowledgement message ("ok", "thanks", "hi") → a light nudge,
-    // no recommendation.
-    if (SOCIAL_RE.test(message.trim())) {
-      return finish(
-        `Happy to help — ask me "which colleges can I get?", to compare two colleges, or about placements, and I'll use your profile.`,
-        'ready',
-      )
-    }
-    // ANYTHING ELSE from a student with a complete profile is a counselling request
-    // ("give me colleges", "college names", "options for me", …) → ANSWER it as a
-    // counsellor with warehouse-grounded recommendations. Never deflect a real ask.
-    return answer(RECOMMEND_TRIGGER, id, priorState, priorHistory, profile, echo)
+    return registry.dispatch(decision, capabilityContext)
   }
 
   return Object.freeze({ handle })
@@ -494,6 +404,8 @@ export interface BuildCounselorChatServiceOptions {
   /** Per-conversation profile store (default: in-memory). Enables the profile layer. */
   readonly profileStore?: ProfileStore
   readonly logger?: ChatLogger
+  /** Privacy-safe product/observability sink. Defaults to structured-log analytics. */
+  readonly analytics?: AnalyticsSink
   readonly clock?: () => number
   readonly idGenerator?: () => string
   readonly opinionConfig?: Partial<OpinionConfig>
@@ -548,12 +460,18 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
 
   return createCounselorChatService({
     opinion,
-    sessionStore: options.sessionStore ?? createInMemorySessionStore(),
+    // Persist the canonical ConversationState in Supabase when configured, so multi-turn
+    // continuity survives across Container App replicas / cold-starts. Degrades to
+    // in-memory automatically when Supabase isn't configured (tests/local) — same pattern
+    // as the profile store below.
+    sessionStore: options.sessionStore ?? createConfiguredSessionStore(env) ?? createInMemorySessionStore(),
     // Persist the profile in Supabase when configured, so onboarding survives across
     // Container App replicas / cold-starts (no more restart loop). Degrades to
     // in-memory automatically when Supabase isn't configured (tests/local).
     profileStore: options.profileStore ?? createConfiguredProfileStore(env) ?? createInMemoryProfileStore(),
     logger: options.logger ?? createConsoleLogger(),
+    // Emit privacy-safe product/observability events to structured logs (scraped by ops).
+    analytics: options.analytics ?? createConsoleAnalytics(),
     clock: options.clock ?? Date.now,
     idGenerator: options.idGenerator ?? (() => randomUUID()),
     timeoutMs,

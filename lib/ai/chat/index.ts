@@ -23,11 +23,53 @@ export {
   errorCodeForLLMStatus,
 } from './errors'
 
-// ── Session store (async; Redis-replaceable) ─────────────────────────────────
+// ── Orchestration Brain (route selection; decides, does not execute) ─────────
+export {
+  type CounselorDecision,
+  type BrainContext,
+  decideTurn,
+  refinementTrigger,
+} from './counselor-brain'
+
+// ── Capability Registry (dispatch a decision → its capability handler) ───────
+export {
+  type CapabilityContext,
+  type CapabilityHandler,
+  type CapabilityRegistry,
+  createCapabilityRegistry,
+  createDefaultCapabilityRegistry,
+  nextStep,
+  preferenceListIntro,
+} from './capability-registry'
+
+// ── Trust Pipeline (Evidence → Grounding → Validation → Narration → Response) ─
+export {
+  type TrustPipeline,
+  type TrustResult,
+  type TrustRunOptions,
+  createOpinionTrustPipeline,
+} from './trust-pipeline'
+
+// ── Analytics & Observability (privacy-safe product events; side-effect only) ─
+export {
+  type AnalyticsEvent,
+  type AnalyticsSink,
+  type RecordingAnalytics,
+  type TurnAnalyticsInput,
+  createConsoleAnalytics,
+  createNullAnalytics,
+  createRecordingAnalytics,
+  isClosingMessage,
+  turnAnalyticsEvents,
+} from './analytics'
+
+// ── Session store (async; in-memory or Supabase-backed) ──────────────────────
 export {
   type SessionStore,
   type InMemoryStoreOptions,
   createInMemorySessionStore,
+  createSupabaseSessionStore,
+  createConfiguredSessionStore,
 } from './session-store'
 
 // ── Structured logging ───────────────────────────────────────────────────────

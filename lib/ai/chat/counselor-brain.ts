@@ -1,0 +1,199 @@
+/**
+ * @module lib/ai/chat/counselor-brain
+ *
+ * The Orchestration Brain for the counselor conversation. It COORDINATES — it does
+ * not execute. Given the current conversation context (the message, the parsed query,
+ * the prior and merged student profile, and whether the profile was already complete /
+ * the message is a question), it selects the single capability/route for this turn and
+ * returns a {@link CounselorDecision}. It performs NO dataset retrieval, NO business
+ * reasoning, NO recommendation generation, NO LLM narration, NO prompt building, and NO
+ * persistence — the {@link CounselorChatService} executes the returned decision.
+ *
+ * This logic was extracted verbatim from the counselor service's `handle()` cascade;
+ * the routing decisions are unchanged.
+ */
+
+import type { ParsedQuery } from '@/lib/ai/orchestration'
+import {
+  nextMissingSlot,
+  PROFILE_SLOTS,
+  profilesEqual,
+  type ProfileSlot,
+  type StudentProfile,
+} from './profile'
+
+// ── Decision-only matchers (moved out of the service; identical patterns) ─────
+const GOVT_RE = /\bgovern(?:ment|ance)?\b|\bgovt\b|\baided\b/i
+const PRIVATE_RE = /\bprivate\b|\bself[ -]?financ\w*\b|\bdeemed\b/i
+const SAFER_RE = /\bsafe(?:r|st)?\b|\bbackup(?:s)?\b|\bsure[ -]?shot\b|\bguaranteed\b|\bwithin reach\b|\blow[ -]?risk\b/i
+const REMOVE_RE =
+  /\b(remove|exclude|drop|without|don'?t (?:want|like|show)|not interested in|take out|leave out|skip|get rid of)\b/i
+const COMPARE_RE = /\b(compare|comparison|versus|difference between|better between)\b|\bvs\.?\b/i
+// A pure social / acknowledgement message — the ONLY complete-profile input that should
+// NOT produce a recommendation. Everything else is treated as a counselling question.
+const SOCIAL_RE = /^(ok(ay)?|k|thanks?|thank you|thx|cool|nice|great|good|got ?it|fine|hmm+|hi+|hello|hey|yo|bye|done|sure|yes|yeah|yep|no|nope|👍|🙏)[\s!.]*$/i
+// Eligibility ("will he get a seat?", "chances?", "can she get admission?") — matches
+// first- AND third-person, since a parent asks on the student's behalf.
+const ELIGIBILITY_RE =
+  /\b(will|can|could|would|does|do)\s+(i|he|she|they|we|my (son|daughter|child|kid|ward))\s+(get|join|make it|get in|get into|qualify)\b|\b(get|getting)\s+(a\s+)?(seat|admission)\b|\bchances?\b|\bdefinitely get\b|\beligib\w*\b|\bqualify\b|\bsafe seat\b/i
+const FEE_RE = /\b(cheap(?:er|est)?|afford\w*|budget|low(?:er)?[ -]?fees?|fees?|tuition|scholarships?|cost\w*)\b/i
+const HOSTEL_RE = /\b(hostels?|accommodations?|mess(?:es)?|campus life|dining|food|canteens?)\b/i
+// Recruiter NAMES aren't in the dataset (placement RATE and median salary ARE) — so
+// "which companies recruit" is honestly declined, while "placements"/"salary" is answered.
+const RECRUITER_RE = /\brecruit\w*\b|\b(which|what|name|list|top)\b[^.?]{0,24}\bcompan\w*|\bfirms?\b|\bplacement partners?\b/i
+// Tier view: "dream / target / safe colleges", "reach and safe options".
+const TIER_WORD_RE = /\b(dream|target|safe|reach|aspirational|ambitious|realistic)\b/i
+const TIER_NOUN_RE = /colleg|collage|\boption|\bchoice|\btier|\blist\b|\bget\b/i
+// Preference-list intent: "build my preference list", "fill my choices", "arrange my
+// college list", "which order should I choose", "generate my TNEA preference list".
+// Conservative: needs an explicit list/choice/preference/order cue (never a bare
+// "options"/"list the best colleges"), so ordinary recommendation asks are untouched.
+const PREFLIST_RE =
+  /\bpreference list\b|\bpref list\b|\b(build|make|create|generate|prepare|fill|arrange|organi[sz]e|sort)\b[^.?]{0,20}\b(list|choices?|preferences?)\b|\bfill (?:in |up )?my (?:choices?|options?|preferences?|list)\b|\b(which|what) order\b|\border (?:should i|my (?:choices?|colleges?|list|preferences?))\b|\bchoice (?:order|filling)\b|\btnea (?:preference|choice)\b/i
+
+/**
+ * A complete-profile message that RE-SCOPES the search to a college TYPE or a SAFETY
+ * view — returns a clean engine trigger + a natural intro. Returns null when the message
+ * names a specific college (so comparisons and college-specific questions are never
+ * hijacked) or isn't a scope refinement. Moved verbatim from the counselor service.
+ */
+export function refinementTrigger(message: string, parsed: ParsedQuery): { trigger: string; intro: string } | null {
+  if (parsed.colleges.length > 0) return null // a named college → a question, not a re-scope
+  if (GOVT_RE.test(message)) {
+    return { trigger: 'recommend the best government colleges for me', intro: 'Sure — here are the government options for your rank and district:' }
+  }
+  if (PRIVATE_RE.test(message)) {
+    return { trigger: 'recommend the best private colleges for me', intro: 'Here are the private options that fit your profile:' }
+  }
+  if (SAFER_RE.test(message)) {
+    return { trigger: 'which colleges can I safely get into', intro: "Let's look at how realistic each seat is for your rank — safest bets first:" }
+  }
+  if (ELIGIBILITY_RE.test(message)) {
+    return { trigger: 'which colleges can I safely get into', intro: "Here's how realistic each option is for that rank — the safe bets first, then the stretches:" }
+  }
+  if (/\b(placement|placements|job|jobs|package|salary|highest paying)\b/i.test(message)) {
+    return { trigger: 'which colleges have the best placements', intro: 'Since placements matter most to you, here they are ranked by placement strength:' }
+  }
+  if (/\b(roi|return on invest|value for money|worth it)\b/i.test(message)) {
+    // Trigger phrasing kept free of tokens the entity extractor mis-reads as an
+    // unverifiable college ("investment" tripped `unverifiedCollege`); "best roi
+    // colleges" parses cleanly and still routes to the ROI strategy.
+    return { trigger: 'best roi colleges', intro: 'Ranking these by return on investment:' }
+  }
+  if (/\b(research|innovation|higher studies|for ms|do ms|phd)\b/i.test(message)) {
+    return { trigger: 'colleges with the best research', intro: 'Ranking by research strength:' }
+  }
+  if (/\b(reputation|brand|prestige|well[ -]?known|nirf|overall ranking)\b/i.test(message)) {
+    return { trigger: 'the best overall colleges', intro: 'Ranking by overall reputation:' }
+  }
+  return null
+}
+
+/** The single route the brain selects for a turn. The service executes it. */
+export type CounselorDecision =
+  /** Still collecting the profile — ask for the given slot (welcome on first contact). */
+  | { readonly kind: 'collectSlot'; readonly slot: ProfileSlot; readonly firstContact: boolean }
+  /** Onboarding just completed — confirm the collected profile and invite a question. */
+  | { readonly kind: 'onboardingSummary' }
+  /** "remove / drop <college>" — record the exclusion and re-counsel. */
+  | { readonly kind: 'exclude'; readonly colleges: readonly string[] }
+  /** An explicit profile change — re-counsel with the updated profile. */
+  | { readonly kind: 'profileChanged' }
+  /** Build a submission-ready TNEA preference list from the eligibility bands. */
+  | { readonly kind: 'preferenceList' }
+  /** Tier view — safe / target / dream bands. */
+  | { readonly kind: 'tier' }
+  /** Comparison intent but fewer than two colleges identified — ask for the second. */
+  | { readonly kind: 'compareNeedsTwo'; readonly found: string | null }
+  /** A scope refinement (govt/private/safer/priority) — re-counsel with a clean trigger. */
+  | { readonly kind: 'refine'; readonly trigger: string; readonly intro: string }
+  /** Fees / hostel / recruiter names — honestly absent from the dataset. */
+  | { readonly kind: 'dataDecline'; readonly topic: 'fee' | 'hostel' | 'recruiter'; readonly college: string | null }
+  /** A keyworded follow-up question — answer it using the stored profile. */
+  | { readonly kind: 'answerQuestion' }
+  /** A pure social / acknowledgement message — a light nudge. */
+  | { readonly kind: 'social' }
+  /** Anything else from a complete profile — a counselling request. */
+  | { readonly kind: 'recommend' }
+
+/** The context the brain reasons over. All values are computed by the coordinator. */
+export interface BrainContext {
+  readonly message: string
+  readonly parsed: ParsedQuery
+  readonly priorProfile: StudentProfile
+  readonly profile: StudentProfile
+  /** Whether the profile was already complete BEFORE this message. */
+  readonly wasComplete: boolean
+  /** Whether this message asks something (vs. a bare slot value / update). */
+  readonly hasQuestion: boolean
+}
+
+/**
+ * Select the single route for this turn. Pure: no side effects, no I/O, no execution.
+ * The cascade order and every predicate are identical to the original service handler.
+ */
+export function decideTurn(ctx: BrainContext): CounselorDecision {
+  const { message, parsed, priorProfile, profile, wasComplete, hasQuestion } = ctx
+
+  // Still collecting → ask the next slot; welcome on first contact.
+  const missing = nextMissingSlot(profile)
+  if (missing) {
+    const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
+    return { kind: 'collectSlot', slot: missing, firstContact }
+  }
+
+  // Onboarding just completed → confirm the collected profile and invite a question.
+  if (!wasComplete) return { kind: 'onboardingSummary' }
+
+  // Exclusion: "remove / drop <college>" — remember it and re-counsel without it.
+  if (REMOVE_RE.test(message) && parsed.colleges.length > 0) {
+    return { kind: 'exclude', colleges: parsed.colleges }
+  }
+
+  // An explicit profile change → re-counsel with the updated profile.
+  if (!profilesEqual(priorProfile, profile)) return { kind: 'profileChanged' }
+
+  // Preference-list intent — build a submission-ready ordered list from the bands.
+  // Placed BEFORE tier so "arrange my safe list" is treated as list-building, not a
+  // one-band view; skipped for a two-college comparison.
+  if (!COMPARE_RE.test(message) && !parsed.hasMultipleColleges && PREFLIST_RE.test(message)) {
+    return { kind: 'preferenceList' }
+  }
+
+  // Tier view — routed BEFORE college-based routing so tier words can't be mis-matched
+  // as a college. Skipped for a two-college comparison, which owns those.
+  if (
+    !COMPARE_RE.test(message) &&
+    !parsed.hasMultipleColleges &&
+    TIER_WORD_RE.test(message) &&
+    TIER_NOUN_RE.test(message)
+  ) {
+    return { kind: 'tier' }
+  }
+
+  // Comparison intent but fewer than two colleges identified — ask for the second name.
+  if (COMPARE_RE.test(message) && parsed.colleges.length < 2) {
+    return { kind: 'compareNeedsTwo', found: parsed.colleges[0] ?? null }
+  }
+
+  // A scope refinement on the SAME student — re-counsel without restarting.
+  const refine = refinementTrigger(message, parsed)
+  if (refine) return { kind: 'refine', trigger: refine.trigger, intro: refine.intro }
+
+  // Fees / hostel / recruiter names — honestly absent from the official dataset.
+  if (!parsed.hasMultipleColleges) {
+    const college = parsed.colleges[0] ?? null
+    if (FEE_RE.test(message)) return { kind: 'dataDecline', topic: 'fee', college }
+    if (HOSTEL_RE.test(message)) return { kind: 'dataDecline', topic: 'hostel', college }
+    if (RECRUITER_RE.test(message)) return { kind: 'dataDecline', topic: 'recruiter', college }
+  }
+
+  // A keyworded follow-up question → answer it directly, using the stored profile.
+  if (hasQuestion) return { kind: 'answerQuestion' }
+
+  // A pure social / acknowledgement message → a light nudge, no recommendation.
+  if (SOCIAL_RE.test(message.trim())) return { kind: 'social' }
+
+  // ANYTHING ELSE from a student with a complete profile → a counselling request.
+  return { kind: 'recommend' }
+}
