@@ -9,10 +9,9 @@ import { useRouter } from "next/navigation"
 import { 
   Search, 
   BarChart3, 
-  Building2, 
-  BookOpen, 
-  Calculator, 
-  FileText, 
+  Building2,
+  BookOpen,
+  FileText,
   Users, 
   Gift, 
   DollarSign, 
@@ -50,16 +49,6 @@ export default function HomePage() {
       route: "/college-search",
       badge: "Main Feature",
       gradient: "from-blue-500 to-blue-600"
-    },
-    {
-      title: "Cutoff Rank Prediction",
-      description: "Predict your chances of getting into colleges based on your rank and previous years' cutoff data.",
-      icon: Calculator,
-      color: "text-green-600",
-      bgColor: "bg-gradient-to-br from-green-50 to-green-100",
-      route: "/cutoff-rank-prediction",
-      badge: "AI Powered",
-      gradient: "from-green-500 to-green-600"
     },
     {
       title: "Compare Colleges",

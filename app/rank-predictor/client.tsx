@@ -247,7 +247,7 @@ export default function RankPredictorClient() {
       doc.setTextColor(0, 0, 0)
       doc.setFontSize(15)
       doc.setFont("helvetica", "bold")
-      const title = "Rank Predictor Results"
+      const title = "College Predictor Results"
       const titleWidth = doc.getTextWidth(title)
       doc.text(title, (pageWidth - titleWidth) / 2, 31)
 
@@ -362,7 +362,7 @@ export default function RankPredictorClient() {
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2 text-[#0B5588]">Rank Predictor</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#0B5588]">College Predictor</h1>
           <p className="text-muted-foreground mb-6">
             Enter your details to validate your rank and get the colleges that match it.
           </p>

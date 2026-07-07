@@ -416,7 +416,7 @@ export default function InsightsDashboard() {
             {/* Action source mini-tiles */}
             <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
               <Kpi label="Choice-filling" value={num(data.actions.bySource.choiceFilling.total)} delta={data.actions.bySource.choiceFilling.delta30} accent={COLORS.choiceFilling} />
-              <Kpi label="Rank Predictor" value={num(data.actions.bySource.rankPredictor.total)} delta={data.actions.bySource.rankPredictor.delta30} accent={COLORS.rankPredictor} />
+              <Kpi label="College Predictor" value={num(data.actions.bySource.rankPredictor.total)} delta={data.actions.bySource.rankPredictor.delta30} accent={COLORS.rankPredictor} />
               <Kpi label="Referrals" value={num(data.actions.bySource.referrals.total)} delta={data.actions.bySource.referrals.delta30} accent={COLORS.referrals} />
               <Kpi
                 label="Votes"
@@ -449,7 +449,7 @@ export default function InsightsDashboard() {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>Choice-filling: <b className="text-foreground">{num(dayActions?.choiceFilling ?? 0)}</b></span>
-                      <span>Rank predictor: <b className="text-foreground">{num(dayActions?.rankPredictor ?? 0)}</b></span>
+                      <span>College predictor: <b className="text-foreground">{num(dayActions?.rankPredictor ?? 0)}</b></span>
                       <span>Referrals: <b className="text-foreground">{num(dayActions?.referrals ?? 0)}</b></span>
                       <span>Votes: <b className="text-foreground">{num(dayActions?.votes ?? 0)}</b></span>
                     </div>
@@ -507,7 +507,7 @@ export default function InsightsDashboard() {
                         <Tooltip {...chartTooltipStyle()} labelFormatter={(l) => shortDate(String(l))} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Line type="monotone" dataKey="choiceFilling" name="Choice-filling" stroke={COLORS.choiceFilling} strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="rankPredictor" name="Rank Predictor" stroke={COLORS.rankPredictor} strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="rankPredictor" name="College Predictor" stroke={COLORS.rankPredictor} strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="referrals" name="Referrals" stroke={COLORS.referrals} strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="votes" name="Votes" stroke={COLORS.votes} strokeWidth={2} dot={false} />
                       </LineChart>

@@ -18,7 +18,6 @@ import {
   Shield,
   DollarSign,
   Users,
-  TrendingUp,
   IndianRupeeIcon
 } from "lucide-react"
 import {
@@ -76,14 +75,9 @@ export function Header() {
 
   const burgerMenuItems = [
     {
-      href: "/cutoff-rank-prediction",
-      icon: TrendingUp,
-      label: "College Predictor"
-    },
-    {
       href: "/rank-predictor",
       icon: LineChart,
-      label: "Rank Predictor"
+      label: "College Predictor"
     },
     {
       href: "/compare-colleges",

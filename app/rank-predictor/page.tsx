@@ -1,7 +1,7 @@
 import ClientWrapper from './client-wrapper'
 
 export const metadata = {
-  title: 'Rank Predictor',
+  title: 'College Predictor',
   description: 'Validate your rank details and get the colleges that match your rank.',
 }
 

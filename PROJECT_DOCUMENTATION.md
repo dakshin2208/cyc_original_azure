@@ -95,7 +95,6 @@ Each lives under `app/<name>/page.tsx`:
 | **Home** | `/home` | Landing page; marketing, stats, links to all features |
 | **College Search & Comparison** | `/college-search` | Search and filter colleges by parameters |
 | **Compare Colleges** | `/compare-colleges` | Side-by-side comparison of selected colleges |
-| **Cutoff Rank Prediction** | `/cutoff-rank-prediction` | Predict admission chances from rank/category |
 | **Branch Explorer** | `/branch-explorer` | Explore branches/departments and their data |
 | **Choice Filling** | `/choice-filling` | ⭐ Flagship: generates a ranked choice list and downloadable PDF (gated by usage/plan) |
 | **Add College Data** | (`/college-management-seat`, `/college-scholarship-seat`, `submit-college-data`) | Crowdsourced data submission → Google Sheets |
