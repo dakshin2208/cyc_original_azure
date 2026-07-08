@@ -15,9 +15,9 @@
 
 import type { ParsedQuery } from '@/lib/ai/orchestration'
 import {
+  isComplete,
   nextMissingSlot,
   PROFILE_SLOTS,
-  profilesEqual,
   type ProfileSlot,
   type StudentProfile,
 } from './profile'
@@ -50,6 +50,35 @@ const TIER_NOUN_RE = /colleg|collage|\boption|\bchoice|\btier|\blist\b|\bget\b/i
 // "options"/"list the best colleges"), so ordinary recommendation asks are untouched.
 const PREFLIST_RE =
   /\bpreference list\b|\bpref list\b|\b(build|make|create|generate|prepare|fill|arrange|organi[sz]e|sort)\b[^.?]{0,20}\b(list|choices?|preferences?)\b|\bfill (?:in |up )?my (?:choices?|options?|preferences?|list)\b|\b(which|what) order\b|\border (?:should i|my (?:choices?|colleges?|list|preferences?))\b|\bchoice (?:order|filling)\b|\btnea (?:preference|choice)\b/i
+// A pure opening/greeting on a fresh session → show the welcome, never front-load profile
+// questions. Anchored so "hi, compare PSG and CIT" is a comparison, not a greeting.
+const GREETING_RE =
+  /^(hi+|hey+|hello+|hii+|yo|hola|namaste|vanakkam|hai|start|begin|get started|let'?s start|help|menu|good (morning|afternoon|evening))[\s!.]*$/i
+
+// Intent-first profile gate: only these capabilities need a student profile. Knowledge,
+// comparison, college-info, and branch guidance are answered WITHOUT any profile.
+const PROFILE_KINDS = new Set<CounselorDecision['kind']>(['recommend', 'preferenceList', 'tier', 'refine', 'profileChanged', 'exclude'])
+// Recommendation / eligibility intents that need a profile even when routed as a bare
+// question — but ONLY when the query is a personalized college-fit ask ("for me", "can I
+// get", "recommend"). This keeps branch guidance ("which branch has the best future?" —
+// classified recommend_college because of "best") answered WITHOUT a profile.
+const PROFILE_INTENTS = new Set<string>(['recommend_college', 'eligibility_query', 'cutoff_query'])
+const COLLEGE_FIT_RE =
+  /\bcolleges?\b|\bfor me\b|\bcan i (get|join)\b|\bwhich college\b|\bmy (cutoff|rank|marks?|community|score)\b|\brecommend\b|\bsuggest\b|\bget (a |an |into )?(seat|admission)\b|\bwhere should i\b/i
+
+/** Whether a PROFILE SLOT (not just a college mention) changed — drives re-counsel. */
+function slotChanged(prior: StudentProfile, profile: StudentProfile): boolean {
+  return PROFILE_SLOTS.some((s) => prior[s] !== profile[s] || prior.answered[s] !== profile.answered[s])
+}
+
+/** Whether the chosen capability requires a student profile before it can answer. */
+function routeNeedsProfile(route: CounselorDecision, parsed: ParsedQuery, message: string): boolean {
+  if (PROFILE_KINDS.has(route.kind)) return true
+  if (route.kind === 'answerQuestion') {
+    return parsed.colleges.length === 0 && PROFILE_INTENTS.has(parsed.intent) && COLLEGE_FIT_RE.test(message)
+  }
+  return false
+}
 
 /**
  * A complete-profile message that RE-SCOPES the search to a college TYPE or a SAFETY
@@ -91,8 +120,11 @@ export function refinementTrigger(message: string, parsed: ParsedQuery): { trigg
 
 /** The single route the brain selects for a turn. The service executes it. */
 export type CounselorDecision =
-  /** Still collecting the profile — ask for the given slot (welcome on first contact). */
-  | { readonly kind: 'collectSlot'; readonly slot: ProfileSlot; readonly firstContact: boolean }
+  /** Fresh-session greeting — show the welcome, do NOT ask for profile (intent-first). */
+  | { readonly kind: 'welcome' }
+  /** Collect the given profile slot — only for a capability that requires a profile.
+   *  `forKind` is the capability that triggered collection (drives the first-slot intro). */
+  | { readonly kind: 'collectSlot'; readonly slot: ProfileSlot; readonly firstContact: boolean; readonly forKind?: CounselorDecision['kind'] }
   /** Onboarding just completed — confirm the collected profile and invite a question. */
   | { readonly kind: 'onboardingSummary' }
   /** "remove / drop <college>" — record the exclusion and re-counsel. */
@@ -129,39 +161,29 @@ export interface BrainContext {
 }
 
 /**
- * Select the single route for this turn. Pure: no side effects, no I/O, no execution.
- * The cascade order and every predicate are identical to the original service handler.
+ * Route to the capability the user actually wants — WITHOUT any profile gate. Pure: no
+ * side effects, no I/O. The cascade order and every predicate are unchanged from before;
+ * only the two upfront profile-collection checks were lifted out (into {@link decideTurn}).
  */
-export function decideTurn(ctx: BrainContext): CounselorDecision {
-  const { message, parsed, priorProfile, profile, wasComplete, hasQuestion } = ctx
-
-  // Still collecting → ask the next slot; welcome on first contact.
-  const missing = nextMissingSlot(profile)
-  if (missing) {
-    const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
-    return { kind: 'collectSlot', slot: missing, firstContact }
-  }
-
-  // Onboarding just completed → confirm the collected profile and invite a question.
-  if (!wasComplete) return { kind: 'onboardingSummary' }
+function baseRoute(ctx: BrainContext): CounselorDecision {
+  const { message, parsed, priorProfile, profile, hasQuestion } = ctx
 
   // Exclusion: "remove / drop <college>" — remember it and re-counsel without it.
   if (REMOVE_RE.test(message) && parsed.colleges.length > 0) {
     return { kind: 'exclude', colleges: parsed.colleges }
   }
 
-  // An explicit profile change → re-counsel with the updated profile.
-  if (!profilesEqual(priorProfile, profile)) return { kind: 'profileChanged' }
+  // A profile SLOT change → re-counsel (also drives slot-by-slot collection: each answered
+  // slot changes the profile). A bare college MENTION is NOT a slot change, so knowledge /
+  // comparison questions are not mis-read as a profile update.
+  if (slotChanged(priorProfile, profile)) return { kind: 'profileChanged' }
 
   // Preference-list intent — build a submission-ready ordered list from the bands.
-  // Placed BEFORE tier so "arrange my safe list" is treated as list-building, not a
-  // one-band view; skipped for a two-college comparison.
   if (!COMPARE_RE.test(message) && !parsed.hasMultipleColleges && PREFLIST_RE.test(message)) {
     return { kind: 'preferenceList' }
   }
 
-  // Tier view — routed BEFORE college-based routing so tier words can't be mis-matched
-  // as a college. Skipped for a two-college comparison, which owns those.
+  // Tier view — routed BEFORE college-based routing so tier words can't be mis-matched.
   if (
     !COMPARE_RE.test(message) &&
     !parsed.hasMultipleColleges &&
@@ -188,12 +210,38 @@ export function decideTurn(ctx: BrainContext): CounselorDecision {
     if (RECRUITER_RE.test(message)) return { kind: 'dataDecline', topic: 'recruiter', college }
   }
 
-  // A keyworded follow-up question → answer it directly, using the stored profile.
+  // A keyworded question → knowledge / comparison / branch guidance / recommendation.
   if (hasQuestion) return { kind: 'answerQuestion' }
 
   // A pure social / acknowledgement message → a light nudge, no recommendation.
   if (SOCIAL_RE.test(message.trim())) return { kind: 'social' }
 
-  // ANYTHING ELSE from a student with a complete profile → a counselling request.
+  // Anything else → a counselling (recommendation) request.
   return { kind: 'recommend' }
+}
+
+/**
+ * Select the single route for this turn — INTENT-FIRST. Pure: no side effects, no I/O.
+ *
+ * 1. A fresh-session greeting → welcome (never front-load profile questions).
+ * 2. Otherwise route to the capability the user wants ({@link baseRoute}).
+ * 3. Collect a profile slot ONLY when that capability requires one and a field is missing
+ *    — knowledge, comparison, college-info and branch guidance answer with no profile.
+ */
+export function decideTurn(ctx: BrainContext): CounselorDecision {
+  const { message, priorProfile, profile, parsed } = ctx
+
+  // Intent-first: greet on a fresh session; a substantive first question is answered below.
+  if (!isComplete(profile) && GREETING_RE.test(message.trim())) return { kind: 'welcome' }
+
+  const route = baseRoute(ctx)
+
+  if (!isComplete(profile) && routeNeedsProfile(route, parsed, message)) {
+    const missing = nextMissingSlot(profile)
+    if (missing) {
+      const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
+      return { kind: 'collectSlot', slot: missing, firstContact, forKind: route.kind }
+    }
+  }
+  return route
 }

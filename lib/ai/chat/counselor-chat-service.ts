@@ -270,9 +270,9 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       confidence: advised.response.confidence,
       followUps: advised.response.followUps,
       conversationId: id,
-      ...(profile
-        ? { profile: toView(profile), stage: isComplete(profile) ? ('ready' as const) : ('collecting' as const) }
-        : {}),
+      // This path always ANSWERS (collection uses the separate collectSlot/finish path),
+      // so the stage is 'ready' even for a knowledge/comparison answer with no profile.
+      ...(profile ? { profile: toView(profile), stage: 'ready' as const } : {}),
     }
     deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: advised.response.usedModel ? 'model' : 'deterministic' })
     return { httpStatus: 200, body }

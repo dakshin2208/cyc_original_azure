@@ -67,8 +67,10 @@ describe('AI Admission Counsellor — next-step guidance (#7)', () => {
   })
 
   it('does NOT append a next step to a profile-collection prompt', async () => {
+    // A recommendation ask on an empty profile → the counsellor collects the profile
+    // (no journey next-step yet). ("hi" now shows the welcome, not a collection prompt.)
     const service = await counselorWithProfile(emptyProfile(), 'c3')
-    const body = ok((await service.handle({ message: 'hi', conversationId: 'c3' })).body)
+    const body = ok((await service.handle({ message: 'which college is best for me?', conversationId: 'c3' })).body)
     expect(body.stage).toBe('collecting')
     expect(body.answer).not.toMatch(/would you like me to compare|shall we build your preference list/i)
   })

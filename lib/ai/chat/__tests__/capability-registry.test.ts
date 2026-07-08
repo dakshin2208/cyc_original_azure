@@ -41,6 +41,7 @@ function fakeContext() {
 }
 
 const ALL_KINDS: CounselorDecision['kind'][] = [
+  'welcome',
   'collectSlot',
   'onboardingSummary',
   'exclude',

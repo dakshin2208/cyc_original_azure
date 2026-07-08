@@ -152,10 +152,19 @@ export function createCapabilityRegistry(): CapabilityRegistry {
  */
 export function createDefaultCapabilityRegistry(): CapabilityRegistry {
   return createCapabilityRegistry()
+    .register('welcome', (_d, ctx) => ctx.finish(WELCOME, 'ready'))
     .register('collectSlot', (d, ctx) => {
-      const prompt =
-        d.slot === 'cutoff' && d.firstContact ? `${WELCOME}\n\n${slotPrompt('cutoff')}` : slotPrompt(d.slot)
-      return ctx.finish(prompt, 'collecting')
+      // Intent-first: on the first slot, explain WHY we need details (the capability that
+      // was requested). No profile is ever asked before a profile-requiring capability.
+      const prompt = slotPrompt(d.slot)
+      if (!d.firstContact) return ctx.finish(prompt, 'collecting')
+      const intro =
+        d.forKind === 'preferenceList'
+          ? "Let's build your preference list. First, a few quick details about you:"
+          : d.forKind === 'tier'
+            ? 'To check how realistic each option is for you, I need a few details:'
+            : "I'd be happy to help with that. To tailor it to you, I need a few quick details:"
+      return ctx.finish(`${intro}\n\n${prompt}`, 'collecting')
     })
     .register('onboardingSummary', (_d, ctx) => ctx.finish(onboardingSummary(ctx.profile), 'ready'))
     .register('exclude', async (d, ctx) => {
