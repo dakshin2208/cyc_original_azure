@@ -133,11 +133,10 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
   }
   const b = (o: { body: unknown }) => o.body as ChatResponse
 
-  it('first conversation asks for the cutoff first', async () => {
+  it('first conversation shows the welcome — intent-first, no profile questions', async () => {
     const out = await make().handle({ message: 'hi' })
-    expect(b(out).answer).toMatch(/cutoff mark/i)
-    expect(b(out).stage).toBe('collecting')
-    expect(b(out).profile?.answered.cutoff).toBe(false)
+    expect(b(out).answer).toMatch(/welcome to chooseyourcollege ai admission counsellor/i)
+    expect(b(out).answer).not.toMatch(/what is your cutoff/i)
   })
 
   it('collects the profile in order, then shows the summary and invites a question (V2)', async () => {
@@ -152,16 +151,11 @@ describe.skipIf(!DIR)('conversation flow (real warehouse)', () => {
     out = await svc.handle({ message: 'Coimbatore', conversationId: cid })
     expect(b(out).answer).toMatch(/branch/i)
     out = await svc.handle({ message: 'CSE', conversationId: cid })
-    // V2: onboarding complete → confirm the profile and INVITE a question (do NOT auto-answer).
-    expect(b(out).answer).toMatch(/your profile/i)
-    expect(b(out).answer).toMatch(/ask me anything/i)
-    expect(b(out).answer).toMatch(/cutoff: 190/i)
+    // Intent-first: completing the profile continues NATURALLY into the recommendation
+    // the student asked for (no "here is your profile, ask me anything" detour).
     expect(b(out).stage).toBe('ready')
     expect(b(out).profile?.complete).toBe(true)
-    // Now the student asks → the answer uses the stored profile (echoed) and recommends.
-    out = await svc.handle({ message: 'Which colleges can I get?', conversationId: cid })
-    expect(b(out).answer).toMatch(/based on your profile/i)
-    expect(b(out).confidence).toBe('high')
+    expect(b(out).answer).toMatch(/based on your profile|top recommendation|guidance/i)
     expect(b(out).answer.length).toBeGreaterThan(50)
   })
 
@@ -285,15 +279,12 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     return b(out).conversationId as string
   }
 
-  it('shows the onboarding summary (not an auto-answer) when the profile completes (V2)', async () => {
+  it('completing the profile continues naturally into a recommendation (no summary)', async () => {
     const out = await make().handle({ message: '190 BC Coimbatore CSE' })
-    expect(b(out).answer).toMatch(/your profile/i)
-    expect(b(out).answer).toMatch(/ask me anything/i)
-    expect(b(out).answer).toMatch(/cutoff: 190/i)
-    expect(b(out).answer).toMatch(/community: BC/i)
-    expect(b(out).answer).toMatch(/coimbatore/i)
     expect(b(out).stage).toBe('ready')
     expect(b(out).profile?.complete).toBe(true)
+    expect(b(out).answer).toMatch(/based on your profile|top recommendation|guidance/i)
+    expect(b(out).answer).not.toMatch(/perfect! now ask me anything/i) // no summary-and-wait detour
   })
 
   it('"show only government colleges" re-scopes without restarting (#5)', async () => {
@@ -372,7 +363,7 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     expect(b(out).answer).not.toMatch(/ — \.\s|—\s*$/) // no dangling "— ."
   })
 
-  it('a parent using third person ("he hasn\'t decided") completes onboarding → summary (V2)', async () => {
+  it('a parent using third person ("he hasn\'t decided") completes onboarding → recommends for the child', async () => {
     const svc = make()
     let out = await svc.handle({ message: 'I am looking for a college for my son, he got 178 cutoff' })
     const cid = b(out).conversationId
@@ -381,8 +372,9 @@ describe.skipIf(!DIR)('counselor refinement & memory (real warehouse)', () => {
     out = await svc.handle({ message: "he hasn't decided the branch yet", conversationId: cid })
     expect(b(out).profile?.complete).toBe(true)
     expect(b(out).profile?.branch).toBeNull() // third-person "hasn't decided" recognised
-    expect(b(out).answer).toMatch(/your profile/i) // onboarding summary
-    expect(b(out).answer).toMatch(/branch: undecided/i)
+    // Intent-first: completes → recommends immediately, parent-framed (no summary detour).
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).answer).toMatch(/based on your profile|guidance|your child/i)
   })
 
   it('answers a third-person eligibility question with the band view, never "share your cutoff"', async () => {
@@ -456,11 +448,11 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
   }
   const b = (o: { body: unknown }) => o.body as ChatResponse
 
-  it('✓ New conversation: greets and asks the cutoff first (does NOT answer immediately)', async () => {
+  it('✓ New conversation: shows the welcome and waits (intent-first, no profile questions)', async () => {
     const out = await make().handle({ message: 'hi' })
-    expect(b(out).answer).toMatch(/welcome to chooseyourcollege ai counselor/i)
-    expect(b(out).answer).toMatch(/what is your cutoff mark/i)
-    expect(b(out).stage).toBe('collecting')
+    expect(b(out).answer).toMatch(/welcome to chooseyourcollege ai admission counsellor/i)
+    expect(b(out).answer).toMatch(/compare psg|placements|preference lists/i) // capability examples
+    expect(b(out).answer).not.toMatch(/what is your cutoff mark/i)
   })
 
   it('✓ Onboarding asks ONE question at a time, in order, with MBC/DNC option', async () => {
@@ -476,14 +468,12 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
     expect(b(out).answer).toMatch(/engineering branch/i)
   })
 
-  it('✓ Complete onboarding → profile summary + "ask me anything" (no auto-answer)', async () => {
+  it('✓ Complete profile in one message → recommends immediately (no summary detour)', async () => {
     const out = await make().handle({ message: '190 BC Coimbatore CSE' })
-    expect(b(out).answer).toMatch(/your profile/i)
-    expect(b(out).answer).toMatch(/cutoff: 190/i)
-    expect(b(out).answer).toMatch(/community: BC/i)
-    expect(b(out).answer).toMatch(/preferred location: coimbatore/i)
-    expect(b(out).answer).toMatch(/perfect! now ask me anything/i)
     expect(b(out).profile?.complete).toBe(true)
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).answer).toMatch(/based on your profile|top recommendation|guidance/i)
+    expect(b(out).answer).not.toMatch(/perfect! now ask me anything/i)
   })
 
   it('✓ Partial onboarding → asks only the next missing slot (does not restart)', async () => {

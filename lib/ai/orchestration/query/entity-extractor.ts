@@ -63,6 +63,13 @@ const COLLEGE_DESCRIPTOR = new Set([
   'engineering', 'technology', 'tech', 'arts', 'science', 'sciences', 'management', 'polytechnic',
 ])
 
+// Plural institution words denote a CATEGORY ("best colleges", "government colleges"),
+// NEVER a specific named college. They must not anchor a name resolution nor seed an
+// "unknown college" decline — while singular forms ("Hogwarts Institute", "Fake College")
+// still do.
+const PLURAL_INSTITUTION_WORDS = new Set(['colleges', 'institutes', 'universities'])
+const isSingularInstitution = (w: string): boolean => INSTITUTION_WORDS.has(w) && !PLURAL_INSTITUTION_WORDS.has(w)
+
 // The 2-letter alias "it" (Information Technology) is also the English pronoun. It is
 // the pronoun — NOT the branch — when it sits in a pronoun context ("is IT good?",
 // "what about IT?"). Only then do we refuse to read it as a branch.
@@ -165,6 +172,23 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
       }
     } else {
       push(best(normalized))
+      // Fallback (RC7 refinement): a real college named AFTER topic/intent noise —
+      // "faculty at Anna University", "will I get into PSG College of Technology" —
+      // dilutes the whole-string fuzzy match to nothing. Recover it by resolving the
+      // span anchored at a proper-noun seed immediately before a SINGULAR institution
+      // word. Plural "colleges" (a category phrase) never anchors, so category
+      // recommendations are unaffected; unknown names still fail to resolve and decline.
+      if (out.length === 0) {
+        const words = normalized.split(' ').filter((t) => t.length > 0)
+        for (let i = 0; i < words.length && out.length === 0; i += 1) {
+          const w = words[i]
+          if (!isDistinctive(w) || INSTITUTION_WORDS.has(w) || COLLEGE_DESCRIPTOR.has(w)) continue
+          const anchored =
+            isSingularInstitution(words[i + 1] ?? '') ||
+            (COLLEGE_DESCRIPTOR.has(words[i + 1] ?? '') && isSingularInstitution(words[i + 2] ?? ''))
+          if (anchored) push(best(words.slice(i).join(' ')))
+        }
+      }
     }
     return out
   }
@@ -266,8 +290,10 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
         (t, i) =>
           isDistinctive(t) &&
           !lexicon.locations.has(t) &&
-          (INSTITUTION_WORDS.has(tokens[i + 1] ?? '') ||
-            (COLLEGE_DESCRIPTOR.has(tokens[i + 1] ?? '') && INSTITUTION_WORDS.has(tokens[i + 2] ?? ''))),
+          // SINGULAR only: "Hogwarts Institute" is an unknown NAME; "reputation colleges"
+          // / "government colleges" (plural) is a CATEGORY phrase, not a named college.
+          (isSingularInstitution(tokens[i + 1] ?? '') ||
+            (COLLEGE_DESCRIPTOR.has(tokens[i + 1] ?? '') && isSingularInstitution(tokens[i + 2] ?? ''))),
       )
 
     return { entities, colleges, branch, community, studentCutoff, location, unverifiedCollege }
