@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Loader2, ArrowRight, Download } from "lucide-react"
+import { Search, Loader2, ArrowRight, Download, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "../contexts/AuthContext"
 import { jsPDF } from "jspdf"
@@ -20,12 +20,22 @@ import autoTable from "jspdf-autotable"
 // rank_list.COMMUNITY and the category columns present in the "Rank" table.
 const COMMUNITIES = ["OC", "BC", "BCM", "MBC", "MBCDNC", "MBCV", "SC", "SCA", "ST"]
 
+// Rank-based match (this year): college by OC closing rank.
 interface CollegeResult {
   collegeCode: string
   collegeName: string
   branchName: string
   district: string
   ocRank: number
+}
+
+// Cutoff-based match (last year): college by the student's community closing cutoff.
+interface CutoffResult {
+  collegeCode: string
+  collegeName: string
+  branchName: string
+  district: string
+  closingCutoff: number
 }
 
 // Parse a rank value that may be stored as a string ("1,234") or a number.
@@ -37,6 +47,13 @@ function toRankNumber(value: unknown): number | null {
   return isNaN(n) ? null : n
 }
 
+// Parse a cutoff mark that may be stored as a string ("195.5") or a number.
+function toCutoffNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  const n = parseFloat(String(value).replace(/[^\d.]/g, ""))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 export default function RankPredictorClient() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
@@ -46,10 +63,12 @@ export default function RankPredictorClient() {
   const [generalRank, setGeneralRank] = useState("")
   const [community, setCommunity] = useState("")
   const [communityRank, setCommunityRank] = useState("")
+  const [cutoff, setCutoff] = useState("")
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [results, setResults] = useState<CollegeResult[] | null>(null)
+  const [cutoffResults, setCutoffResults] = useState<CutoffResult[] | null>(null)
 
   // ---- Require login: send unauthenticated users to /login ----
   useEffect(() => {
@@ -66,6 +85,7 @@ export default function RankPredictorClient() {
     generalRank: number
     community: string
     communityRank: number
+    cutoff: number
   }) {
     try {
       await fetch("/api/rank-predictor-lead", {
@@ -103,10 +123,33 @@ export default function RankPredictorClient() {
     return rows
   }
 
+  // Fetch every row from the "Cutoff" table (last year's closing cutoffs),
+  // paging past Supabase's 1000-row cap.
+  async function fetchAllCutoffRows() {
+    const pageSize = 1000
+    let from = 0
+    const rows: any[] = []
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await supabase
+        .from("Cutoff")
+        .select("*")
+        .range(from, from + pageSize - 1)
+
+      if (error) throw new Error(error.message || "Failed to fetch cutoff data")
+      if (!data || data.length === 0) break
+      rows.push(...data)
+      if (data.length < pageSize) break
+      from += pageSize
+    }
+    return rows
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrorMessage("")
     setResults(null)
+    setCutoffResults(null)
 
     // ---- Basic field validation ----
     if (!name.trim()) return setErrorMessage("Please enter your name.")
@@ -117,6 +160,11 @@ export default function RankPredictorClient() {
     const communityRankNum = toRankNumber(communityRank)
     if (generalRankNum === null || generalRankNum < 1) return setErrorMessage("Please enter a valid general rank.")
     if (communityRankNum === null || communityRankNum < 1) return setErrorMessage("Please enter a valid community rank.")
+
+    const cutoffNum = parseFloat(cutoff)
+    if (!Number.isFinite(cutoffNum) || cutoffNum < 0 || cutoffNum > 200) {
+      return setErrorMessage("Please enter a valid cutoff (0–200).")
+    }
 
     setIsLoading(true)
     try {
@@ -154,6 +202,7 @@ export default function RankPredictorClient() {
         generalRank: generalRankNum,
         community,
         communityRank: communityRankNum,
+        cutoff: cutoffNum,
       })
 
       // ---- Step 2: fetch colleges for the given (general) rank ----
@@ -201,14 +250,65 @@ export default function RankPredictorClient() {
         }
       }
 
+      // Order the rank picks best-first (used later when merging).
+      picked.sort((a, b) => a.oc - b.oc)
+
+      // ---- Step 3: cutoff-based colleges (last year's cutoff data) ----
+      // Match the entered cutoff against the STUDENT'S COMMUNITY closing cutoff
+      // in the Cutoff table (e.g. a BC student vs the "BC" column). Higher cutoff
+      // = better: "above" = closing cutoff >= the student's (reach), "below" =
+      // closing cutoff < the student's (safer). Aim for 2 above + 3 below (an
+      // exact match falls into the "above" set).
+      const cutoffRows = await fetchAllCutoffRows()
+      const bestByCollegeCut = new Map<string, { row: any; cut: number }>()
+      for (const row of cutoffRows) {
+        const cut = toCutoffNumber(row[community])
+        if (cut === null) continue
+        const code = String(row["College Code"] ?? row["College Name"] ?? "").trim()
+        if (!code) continue
+        const existing = bestByCollegeCut.get(code)
+        if (!existing || Math.abs(cut - cutoffNum) < Math.abs(existing.cut - cutoffNum)) {
+          bestByCollegeCut.set(code, { row, cut })
+        }
+      }
+      const cutReps = Array.from(bestByCollegeCut.values())
+      const cutAbove = cutReps.filter((r) => r.cut >= cutoffNum).sort((a, b) => a.cut - b.cut)
+      const cutBelow = cutReps.filter((r) => r.cut < cutoffNum).sort((a, b) => b.cut - a.cut)
+      const cutPicked = [...cutAbove.slice(0, 2), ...cutBelow.slice(0, 3)]
+      if (cutPicked.length < 5) {
+        const leftovers = [...cutAbove.slice(2), ...cutBelow.slice(3)].sort(
+          (a, b) => Math.abs(a.cut - cutoffNum) - Math.abs(b.cut - cutoffNum),
+        )
+        for (const r of leftovers) {
+          if (cutPicked.length >= 5) break
+          cutPicked.push(r)
+        }
+      }
+      // Two independent lists, shown side by side for comparison.
       const chosen: CollegeResult[] = picked
         .sort((a, b) => a.oc - b.oc)
-        .map((r) => toResult(r.row, r.oc))
+        .map((r) => ({
+          collegeCode: String(r.row["College Code"] ?? "").trim(),
+          collegeName: String(r.row["College Name"] ?? "").trim(),
+          branchName: String(r.row["Branch Name"] ?? "").trim(),
+          district: String(r.row["District"] ?? "").trim(),
+          ocRank: r.oc,
+        }))
 
-      if (chosen.length === 0) {
-        setErrorMessage("No colleges found for the given rank.")
-      } else {
-        setResults(chosen)
+      const cutChosen: CutoffResult[] = cutPicked
+        .sort((a, b) => b.cut - a.cut)
+        .map((r) => ({
+          collegeCode: String(r.row["College Code"] ?? "").trim(),
+          collegeName: String(r.row["College Name"] ?? "").trim(),
+          branchName: String(r.row["Branch Name"] ?? "").trim(),
+          district: String(r.row["District"] ?? "").trim(),
+          closingCutoff: r.cut,
+        }))
+
+      setResults(chosen)
+      setCutoffResults(cutChosen)
+      if (chosen.length === 0 && cutChosen.length === 0) {
+        setErrorMessage("No colleges found for the given rank or cutoff.")
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "Something went wrong. Please try again.")
@@ -221,7 +321,7 @@ export default function RankPredictorClient() {
   // (logo + chooseyourcollege.com header, blue separators, footer with page
   // numbers and timestamp).
   function generatePDF() {
-    if (!results || results.length === 0) return
+    if ((!results || results.length === 0) && (!cutoffResults || cutoffResults.length === 0)) return
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
     const pageWidth = doc.internal.pageSize.width
@@ -294,28 +394,43 @@ export default function RankPredictorClient() {
       50,
     )
 
-    // Results table
-    autoTable(doc, {
-      startY: 55,
-      head: [["S.No", "College Name", "Code", "Branch", "District", "OC Closing Rank"]],
-      body: results.map((r, i) => [
+    // Single comparison table with grouped "Last Year" / "This Year" headers.
+    const maxLen = Math.max(cutoffResults?.length ?? 0, results?.length ?? 0)
+    const body = Array.from({ length: maxLen }).map((_, i) => {
+      const c = cutoffResults?.[i]
+      const r = results?.[i]
+      return [
         (i + 1).toString(),
-        r.collegeName || "-",
-        r.collegeCode || "-",
-        r.branchName || "-",
-        r.district || "-",
-        r.ocRank.toString(),
-      ]),
-      styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak", halign: "left", font: "helvetica" },
+        c ? c.collegeCode : "-",
+        c ? c.collegeName : "-",
+        c?.branchName || "-",
+        r ? r.collegeCode : "-",
+        r ? r.collegeName : "-",
+        r?.branchName || "-",
+      ]
+    })
+    autoTable(doc, {
+      startY: 56,
+      head: [
+        [
+          { content: "#", rowSpan: 2 },
+          { content: "College's that the students got for their Rank in the previous year", colSpan: 3, styles: { halign: "center" as const } },
+          { content: "College's that you might get for your Rank this year", colSpan: 3, styles: { halign: "center" as const } },
+        ],
+        ["Code", "College", "Branch", "Code", "College", "Branch"],
+      ],
+      body,
+      styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak", halign: "left", font: "helvetica" },
       columnStyles: {
-        0: { cellWidth: 12 },
-        1: { cellWidth: 62 },
-        2: { cellWidth: 16 },
-        3: { cellWidth: 45 },
-        4: { cellWidth: 22 },
-        5: { cellWidth: 23 },
+        0: { cellWidth: 8 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 46 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 14 },
+        5: { cellWidth: 46 },
+        6: { cellWidth: 26 },
       },
-      headStyles: { fillColor: [11, 85, 136], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      headStyles: { fillColor: [11, 85, 136], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8, halign: "center" },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 15, right: 15, top: 40, bottom: 25 },
       theme: "grid",
@@ -330,17 +445,7 @@ export default function RankPredictorClient() {
     }
 
     const timestamp = new Date().toISOString().split("T")[0]
-    doc.save(`rank-predictor-results-${timestamp}.pdf`)
-  }
-
-  function toResult(row: any, oc: number): CollegeResult {
-    return {
-      collegeCode: String(row["College Code"] ?? "").trim(),
-      collegeName: String(row["College Name"] ?? "").trim(),
-      branchName: String(row["Branch Name"] ?? "").trim(),
-      district: String(row["District"] ?? "").trim(),
-      ocRank: oc,
-    }
+    doc.save(`college-predictor-results-${timestamp}.pdf`)
   }
 
   // While auth is resolving (or redirecting an unauthenticated user), show a loader
@@ -366,6 +471,16 @@ export default function RankPredictorClient() {
           <p className="text-muted-foreground mb-6">
             Enter your details to validate your rank and get the colleges that match it.
           </p>
+
+          {/* Anti-spam notice */}
+          <div className="mb-6 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              To prevent spam and misuse, we collect and validate only genuine student data. Please
+              enter your real details — your rank and community are verified against official records
+              before any results are shown.
+            </span>
+          </div>
 
           <Card>
             <form onSubmit={handleSubmit}>
@@ -448,6 +563,18 @@ export default function RankPredictorClient() {
                     onChange={(e) => setCommunityRank(e.target.value.replace(/\D/g, ""))}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cutoff">Cutoff</Label>
+                  <Input
+                    id="cutoff"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Enter your cutoff (0–200)"
+                    value={cutoff}
+                    onChange={(e) => setCutoff(e.target.value.replace(/[^\d.]/g, ""))}
+                  />
+                </div>
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button type="submit" disabled={isLoading}>
@@ -467,12 +594,13 @@ export default function RankPredictorClient() {
             </form>
           </Card>
 
-          {results && (
+          {(results || cutoffResults) && (
             <Card className="mt-8">
               <CardHeader>
                 <CardTitle>Recommended Colleges</CardTitle>
                 <CardDescription>
-                  Colleges matched to your general rank ({generalRank}) based on OC closing ranks.
+                  Last year&apos;s colleges for your {community} cutoff ({cutoff}) shown alongside this
+                  year&apos;s colleges for your rank ({generalRank}).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -480,23 +608,44 @@ export default function RankPredictorClient() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>College Name</TableHead>
+                        <TableHead rowSpan={2} className="align-bottom">#</TableHead>
+                        <TableHead colSpan={3} className="text-center">Last Year</TableHead>
+                        <TableHead colSpan={3} className="text-center border-l">This Year</TableHead>
+                      </TableRow>
+                      <TableRow>
                         <TableHead>Code</TableHead>
+                        <TableHead>College</TableHead>
                         <TableHead>Branch</TableHead>
-                        <TableHead>District</TableHead>
-                        <TableHead>OC Closing Rank</TableHead>
+                        <TableHead className="border-l">Code</TableHead>
+                        <TableHead>College</TableHead>
+                        <TableHead>Branch</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {results.map((r, index) => (
-                        <TableRow key={`${r.collegeCode}-${index}`}>
-                          <TableCell className="font-medium">{r.collegeName || "-"}</TableCell>
-                          <TableCell>{r.collegeCode || "-"}</TableCell>
-                          <TableCell>{r.branchName || "-"}</TableCell>
-                          <TableCell>{r.district || "-"}</TableCell>
-                          <TableCell>{r.ocRank}</TableCell>
+                      {Array.from({
+                        length: Math.max(cutoffResults?.length ?? 0, results?.length ?? 0),
+                      }).map((_, i) => {
+                        const c = cutoffResults?.[i]
+                        const r = results?.[i]
+                        return (
+                          <TableRow key={i}>
+                            <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                            <TableCell>{c?.collegeCode || "-"}</TableCell>
+                            <TableCell className="font-medium">{c?.collegeName || "-"}</TableCell>
+                            <TableCell>{c?.branchName || "-"}</TableCell>
+                            <TableCell className="border-l">{r?.collegeCode || "-"}</TableCell>
+                            <TableCell className="font-medium">{r?.collegeName || "-"}</TableCell>
+                            <TableCell>{r?.branchName || "-"}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                      {(results?.length ?? 0) === 0 && (cutoffResults?.length ?? 0) === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            No colleges found for your rank or cutoff.
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -512,7 +661,8 @@ export default function RankPredictorClient() {
                 {/* CTA to Choice Filling */}
                 <div className="mt-6 flex flex-col items-center gap-3 rounded-md border bg-muted/40 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
                   <p className="text-sm text-muted-foreground">
-                    To know more colleges, use Choice Filling.
+                    If you want to know more colleges that you&apos;ll get for your rank and cutoff,
+                    you can find them using Choice Filling.
                   </p>
                   <Button onClick={() => router.push("/choice-filling")}>
                     Go to Choice Filling

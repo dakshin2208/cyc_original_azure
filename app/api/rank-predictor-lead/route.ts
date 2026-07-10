@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { name, phone, generalRank, community, communityRank, userId, userEmail } = body
+    const { name, phone, generalRank, community, communityRank, cutoff, userId, userEmail } = body
 
     // Basic validation
     if (!name || !phone || !community || generalRank == null || communityRank == null) {
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       general_rank: Number(generalRank),
       community: String(community).trim(),
       community_rank: Number(communityRank),
+      cutoff: cutoff == null ? null : Number(cutoff),
       user_id: userId ?? null,
       user_email: userEmail ?? null,
     })

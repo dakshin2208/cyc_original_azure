@@ -80,6 +80,11 @@ export function Header() {
       label: "College Predictor"
     },
     {
+      href: "/choice-filling-guide",
+      icon: BookOpen,
+      label: "Choice Filling Guide"
+    },
+    {
       href: "/compare-colleges",
       icon: Scale,
       label: "Compare Colleges"
