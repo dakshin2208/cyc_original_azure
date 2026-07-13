@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, Trophy, Users, IndianRupee, ArrowUp, ArrowDown, ArrowRight, Minus } from "lucide-react"
 import { jsPDF } from "jspdf"
 import autoTable from 'jspdf-autotable'
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { planAllowsAiMethod, planAllowsPowerScore, planAspirationalLimit } from "@/lib/plans"
 import { LoginForm } from "@/app/components/LoginForm"
@@ -43,6 +43,7 @@ type Message = {
   showDistrictSelection?: boolean
   availableDistricts?: string[]
   showBranchSelection?: boolean
+  showCollegeSelection?: boolean
   availableBranches?: string[]
   showSelectedOptions?: boolean
   showPricingPlans?: boolean
@@ -258,6 +259,15 @@ const reservationCategories = [
   "OC", "BC", "BCM", "MBC", "MBCDNC", "MBCV", "SC", "SCA", "ST"
 ]
 
+// Choice-method options shown in the chat. The method NAME must come first and
+// any description must sit in parentheses — the response handler strips
+// everything from "(" onwards to recover the method name.
+const CHOICE_METHOD_OPTIONS = [
+  'Traditional Method (Using Last year Cutoff)',
+  'Power Score (A Placement focussed proprietary score of CYC - which you can use to find better colleges at lower cut off)',
+  'AI Method (Rank based results along with the Power Score)',
+]
+
 // Add this constant near the top with other constants
 const BRANCH_PRIORITY_ORDER = [
   [1, "Computer Science and Engineering"],
@@ -340,6 +350,12 @@ export default function ChoiceFilling() {
   // New state variables for user data management
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null)
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
+  // Set once the final question is answered; an effect then generates the results
+  // (deferred so the latest preferences have committed first).
+  const [pendingResultType, setPendingResultType] = useState<'cutoff' | 'rank' | null>(null)
+  // Persistent inline error shown on the details form (e.g. when the entered
+  // rank/category/community-rank don't match the TNEA records).
+  const [detailsError, setDetailsError] = useState("")
   const [userDataLoaded, setUserDataLoaded] = useState(false)
   const [isLoadingUserData, setIsLoadingUserData] = useState(true)
   
@@ -809,14 +825,10 @@ export default function ChoiceFilling() {
     if (isSelectingColleges && selectedCollegeCodes.length === (userPreferences.requiredCollegeCount || 5)) {
       setIsSelectingColleges(false)
       setUserPreferences(prev => ({ ...prev, selectedColleges: selectedCollegeCodes }))
-      const nextMessage: Message = {
-        type: 'bot',
-        content: 'Do you want the results based on your Cutoff or AI Based?',
-        options: ['Cutoff based', 'AI Based']
-      }
-      setMessages(prev => [...prev, nextMessage])
+      // Result type already comes from the chosen method — go straight to results.
+      setPendingResultType(userPreferences.resultType ?? 'cutoff')
     }
-  }, [isSelectingColleges, selectedCollegeCodes, userPreferences.requiredCollegeCount])
+  }, [isSelectingColleges, selectedCollegeCodes, userPreferences.requiredCollegeCount, userPreferences.resultType])
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -895,6 +907,13 @@ export default function ChoiceFilling() {
     return isNaN(n) ? null : n
   }
 
+  // Parse a marks/cutoff value (0–200, may be decimal) stored as string or number.
+  const toMarkNumber = (value: unknown): number | null => {
+    if (value === null || value === undefined) return null
+    const n = parseFloat(String(value).replace(/[^\d.]/g, ""))
+    return Number.isFinite(n) ? n : null
+  }
+
   // Validate the student's General Rank + Reservation Category + Community Rank
   // against the rank_list table. All three must match a single stored row before
   // the user is allowed into choice filling and the details are frozen.
@@ -903,24 +922,35 @@ export default function ChoiceFilling() {
   // rank in memory (robust to number/string storage). Returns true on an exact
   // match, false (after surfacing an error toast) otherwise.
   const validateRankDetails = async (): Promise<boolean> => {
+    // Surface validation problems both as a toast and as a persistent inline
+    // banner on the form, so the user always sees why it didn't proceed.
+    const fail = (message: string): false => {
+      setDetailsError(message)
+      toast.error(message)
+      return false
+    }
+
+    setDetailsError("")
+
     const generalRankNum = toRankNumber(formData.rank)
     const communityRankNum = toRankNumber(formData.communityRank)
+    const cutoffNum = toMarkNumber(formData.cutoff)
     const category = (formData.category || '').trim().toUpperCase()
     // OC (open category) candidates do not have a separate community rank, so
-    // only the general rank + category are matched for them.
+    // only the general rank + category + cutoff are matched for them.
     const isOC = category === 'OC'
 
     if (generalRankNum === null || generalRankNum < 1) {
-      toast.error('Please enter a valid general rank.')
-      return false
+      return fail('Please enter a valid general rank.')
     }
     if (!category) {
-      toast.error('Please select your reservation category.')
-      return false
+      return fail('Please select your reservation category.')
     }
     if (!isOC && (communityRankNum === null || communityRankNum < 1)) {
-      toast.error('Please enter a valid community rank.')
-      return false
+      return fail('Please enter a valid community rank.')
+    }
+    if (cutoffNum === null || cutoffNum <= 0 || cutoffNum > 200) {
+      return fail('Please enter valid marks so your cutoff can be calculated.')
     }
 
     try {
@@ -931,30 +961,35 @@ export default function ChoiceFilling() {
 
       if (error) {
         console.error('rank_list validation error:', error)
-        toast.error('Could not verify your details. Please try again.')
-        return false
+        return fail('Could not verify your details. Please try again.')
       }
 
+      // All four details must match a single stored row: general rank (already
+      // filtered server-side), community, community rank and the cutoff
+      // (rank_list."AGGREGATE MARK").
       const matchedRow = (matches || []).find((row) => {
         const storedCommunity = String(row['COMMUNITY'] ?? '').trim().toUpperCase()
         if (storedCommunity !== category) return false
-        // OC has no community rank stored — matching on general rank + category
-        // is sufficient.
+
+        const storedAggregate = toMarkNumber(row['AGGREGATE MARK'])
+        if (storedAggregate === null || Math.abs(storedAggregate - cutoffNum) > 0.01) return false
+
+        // OC has no community rank stored — general rank + community + cutoff
+        // are sufficient.
         if (isOC) return true
+
         const storedCommunityRank = toRankNumber(row['COMMUNITY RANK'])
         return storedCommunityRank === communityRankNum
       })
 
       if (!matchedRow) {
-        toast.error('Invalid details. Your general rank, category and community rank do not match our records.')
-        return false
+        return fail('We are connected to the TNEA portal data — only correct data will fetch the results. Please enter your correct data.')
       }
 
       return true
     } catch (err) {
       console.error('rank_list validation exception:', err)
-      toast.error('Could not verify your details. Please try again.')
-      return false
+      return fail('Could not verify your details. Please try again.')
     }
   }
 
@@ -1151,6 +1186,20 @@ export default function ChoiceFilling() {
     }
   }
 
+  // Flatten the grouped (college -> branches) smart results into one entry per
+  // college-branch, so each BRANCH gets its own choice number — matching how the
+  // PDF numbers them. Branches are ordered by rank (rank-based) or branchNo.
+  const flattenSmartChoices = (colleges: any[]): { college: any; branch: any }[] =>
+    (colleges || []).flatMap((college: any) =>
+      [...(college.branches || [])]
+        .sort((a: any, b: any) =>
+          userPreferences.resultType === 'rank'
+            ? (a.rank || 0) - (b.rank || 0)
+            : (a.branchNo || 0) - (b.branchNo || 0)
+        )
+        .map((branch: any) => ({ college, branch }))
+    )
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -1290,6 +1339,65 @@ export default function ChoiceFilling() {
     }
   }
 
+  // Results are generated as soon as the last question is answered — the result
+  // type comes from the chosen method (Traditional / Power Score -> cutoff,
+  // AI Method -> rank), so we no longer ask "Cutoff or AI Based?" separately.
+  //
+  // We can't call the generators inline from a handler: they read `userPreferences`
+  // from their closure, and preferences set in that same handler (collegeOption,
+  // selectedColleges, ...) haven't committed yet. Setting this flag defers the
+  // generation to an effect that runs after the state has committed.
+  const triggerResultsGeneration = (resultType: 'cutoff' | 'rank') => {
+    setPendingResultType(resultType)
+  }
+
+  useEffect(() => {
+    if (!pendingResultType) return
+    const resultType = pendingResultType
+    setPendingResultType(null)
+
+    const run = async () => {
+      setIsAIProcessing(true)
+      const loadingMessage: Message = {
+        type: 'bot',
+        content: '🤖 AI is working the magic... Please wait while I analyze your preferences and generate the perfect choices for you! ✨'
+      }
+      setMessages(prev => [...prev, loadingMessage])
+
+      if (resultType === 'rank') {
+        await generateRankBasedResults()
+      } else {
+        await generateResultsBasedOnChoiceType()
+      }
+    }
+    void run()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingResultType])
+
+  // When the user picks an option their current plan doesn't include, never drop
+  // it silently: explain what it is, show the upgrade plans inline, and say what
+  // we'll continue with instead so the flow keeps moving.
+  const showUpgradeUpsell = (opts: {
+    feature: string
+    description?: string
+    continuingWith: string
+  }) => {
+    const content = [
+      `${opts.feature} isn't available on your current plan.`,
+      opts.description,
+      `We'll continue with ${opts.continuingWith} for now — upgrade any time to unlock it:`,
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    const upsellMessage: Message = {
+      type: 'bot',
+      content,
+      showPricingPlans: true
+    }
+    setMessages(prev => [...prev, upsellMessage])
+  }
+
   const handleChatResponse = async (message: Message, response: string) => {
     // Add user's response to chat
     const userMessage: Message = {
@@ -1401,15 +1509,13 @@ export default function ChoiceFilling() {
           showSelectedOptions: true
         }
         
-        // Then add the choice type question. Options are gated by plan (see pricing
-        // page): Traditional Method is always available; Power Score on paid plans.
+        // Then add the choice type question. Both methods are always shown; if a
+        // free-plan user picks Power Score the handler falls back to Traditional
+        // and explains why.
         const choiceTypeMessage: Message = {
           type: 'bot',
           content: 'Which method would you like to use for your choices?',
-          options: [
-            'Traditional Method',
-            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
-          ]
+          options: [...CHOICE_METHOD_OPTIONS]
         }
         
         // Add both messages in sequence
@@ -1426,33 +1532,47 @@ export default function ChoiceFilling() {
         options: ['Yes', 'No']
       }
     } else if (message.content.includes('Which method would you like to use for your choices')) {
-      const option = response.split(':')[0].trim()
-      // Engine: Traditional Method -> cutoff/rank sort ('traditional');
-      // Power Score and AI Method -> PowerScore-ranked engine ('smart').
+      // Options carry a parenthetical description (e.g. "Power Score (…)") — strip
+      // it (and any trailing ":") to recover the bare method name.
+      const option = response.split(':')[0].split('(')[0].trim()
+      // Each method fixes BOTH the engine and the data source, so we no longer ask
+      // "Cutoff or AI Based?" separately:
+      //   Traditional Method -> traditional engine, cutoff data
+      //   Power Score        -> PowerScore ('smart') engine, cutoff data
+      //   AI Method          -> PowerScore ('smart') engine, rank data
       let choiceType: 'traditional' | 'smart' = option === 'Traditional Method' ? 'traditional' : 'smart'
+      let resultType: 'cutoff' | 'rank' = option === 'AI Method' ? 'rank' : 'cutoff'
       let choiceMethodLabel = option
-      // Enforce plan gating (defensive — ineligible options are not shown, but a
-      // stale message could still be clicked). AI Method needs Assured or higher;
-      // Power Score needs any paid plan.
+      // Enforce plan gating. AI Method needs Assured or higher; Power Score needs
+      // any paid plan. Both fall back to a cutoff-based method.
       if (option === 'AI Method' && !planAllowsAiMethod(usageData?.planType)) {
-        if (planAllowsPowerScore(usageData?.planType)) {
-          toast.error('AI Method is available on the Assured plan or higher — using Power Score instead.')
-          choiceMethodLabel = 'Power Score'
-          choiceType = 'smart'
-        } else {
-          toast.error('AI Method is available on the Assured plan or higher — using Traditional Method instead.')
-          choiceMethodLabel = 'Traditional Method'
-          choiceType = 'traditional'
-        }
+        const fallbackToPowerScore = planAllowsPowerScore(usageData?.planType)
+        choiceMethodLabel = fallbackToPowerScore ? 'Power Score' : 'Traditional Method'
+        choiceType = fallbackToPowerScore ? 'smart' : 'traditional'
+        resultType = 'cutoff'
+        toast.error(`AI Method needs the Assured plan or higher — continuing with ${choiceMethodLabel}.`)
+        showUpgradeUpsell({
+          feature: 'AI Method',
+          description: 'It gives rank-based results along with the Power Score, and needs the Assured plan or higher.',
+          continuingWith: fallbackToPowerScore ? 'Power Score' : 'the Traditional Method',
+        })
       } else if (option === 'Power Score' && !planAllowsPowerScore(usageData?.planType)) {
-        toast.error('Power Score is available on paid plans — using Traditional Method instead.')
+        toast.error('Power Score is available on paid plans — continuing with the Traditional Method.')
         choiceMethodLabel = 'Traditional Method'
         choiceType = 'traditional'
+        resultType = 'cutoff'
+        showUpgradeUpsell({
+          feature: 'Power Score',
+          description:
+            "It's our placement-focused proprietary score that helps you find better colleges at a lower cutoff.",
+          continuingWith: 'the Traditional Method',
+        })
       }
       setUserPreferences(prev => ({
         ...prev,
         choiceType,
-        choiceMethodLabel
+        choiceMethodLabel,
+        resultType
       }))
 
       // Ask about colleges in mind after choice type selection
@@ -1468,13 +1588,14 @@ export default function ChoiceFilling() {
 
       if (option === 'Yes' && aspirationalLimit <= 0) {
         // Aspirational (specific-college) choices are not available on the Free plan
-        toast.error('Aspirational choices are available on paid plans. Upgrade to pick specific colleges.')
+        toast.error('Aspirational choices are available on paid plans — continuing with colleges that match your cutoff.')
         setUserPreferences(prev => ({ ...prev, collegeOption: 'cutoff' }))
-        nextMessage = {
-          type: 'bot',
-          content: 'Do you want the results based on your Cutoff or AI Based?',
-          options: ['Cutoff based', 'AI Based']
-        }
+        showUpgradeUpsell({
+          feature: 'Aspirational choices',
+          description: 'They let you hand-pick specific colleges to add to your list.',
+          continuingWith: 'colleges that match your cutoff',
+        })
+        triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
       } else if (option === 'Yes') {
         // Show specific college selection options, capped at the plan's aspirational limit
         const counts = new Set<number>()
@@ -1491,16 +1612,11 @@ export default function ChoiceFilling() {
         }
       } else if (option === 'No') {
         // User chose No, so use cutoff-based colleges
-        setUserPreferences(prev => ({ 
-          ...prev, 
+        setUserPreferences(prev => ({
+          ...prev,
           collegeOption: 'cutoff'
         }))
-        // Ask about result type instead of directly generating results
-        nextMessage = {
-          type: 'bot',
-          content: 'Do you want the results based on your Cutoff or AI Based?',
-          options: ['Cutoff based', 'AI Based']
-        }
+        triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
       }
     } else if (message.content.includes('How many specific colleges would you like to select')) {
       const option = response.split(':')[0].trim()
@@ -1523,7 +1639,8 @@ export default function ChoiceFilling() {
           nextMessage = {
             type: 'bot',
             content: `Please select ${collegeCount} college${collegeCount > 1 ? 's' : ''} from the list below. You can search for colleges by name or code.`,
-            options: []
+            options: [],
+            showCollegeSelection: true
           }
         } catch (error) {
           console.error('Error in college selection:', error)
@@ -1556,7 +1673,8 @@ export default function ChoiceFilling() {
           nextMessage = {
             type: 'bot',
             content: `Please select ${collegeCount} college${collegeCount > 1 ? 's' : ''} from the list below. You can search for colleges by name or code.`,
-            options: []
+            options: [],
+            showCollegeSelection: true
           }
         } catch (error) {
           console.error('Error in college selection:', error)
@@ -1576,62 +1694,20 @@ export default function ChoiceFilling() {
           setIsSelectingColleges(false)
         }
       } else {
-        // Ask about result type instead of directly generating results
-        nextMessage = {
-          type: 'bot',
-          content: 'Do you want the results based on your Cutoff or AI Based?',
-          options: ['Cutoff based', 'AI Based']
-        }
+        triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
       }
     } else if (isSelectingColleges) {
       const requiredCount = userPreferences.requiredCollegeCount || 5
       if (selectedCollegeCodes.length === requiredCount) {
         setIsSelectingColleges(false)
         setUserPreferences(prev => ({ ...prev, selectedColleges: selectedCollegeCodes }))
-        
-        // Ask about result type instead of directly generating results
-        nextMessage = {
-          type: 'bot',
-          content: 'Do you want the results based on your Cutoff or AI Based?',
-          options: ['Cutoff based', 'AI Based']
-        }
+        triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
       }
     } else if (message.content.includes('college codes')) {
       // Handle college selection
       const selectedColleges = response.split(',').map(c => c.trim())
       setUserPreferences(prev => ({ ...prev, selectedColleges }))
-      
-      // Ask about result type instead of directly generating results
-      nextMessage = {
-        type: 'bot',
-        content: 'Do you want the results based on your Cutoff or AI Based?',
-        options: ['Cutoff based', 'AI Based']
-      }
-    } else if (message.content.includes('Do you want the results based on your Cutoff or AI Based')) {
-      const option = response.split(':')[0].trim()
-      const resultType = option === 'Cutoff based' ? 'cutoff' : 'rank'
-      
-      setUserPreferences(prev => ({ 
-        ...prev, 
-        resultType: resultType
-      }))
-
-      // Show AI loading message first
-      setIsAIProcessing(true)
-      const loadingMessage: Message = {
-        type: 'bot',
-        content: '🤖 AI is working the magic... Please wait while I analyze your preferences and generate the perfect choices for you! ✨'
-      }
-      setMessages(prev => [...prev, loadingMessage])
-
-      // Generate results based on the selected type using the local variable
-      if (resultType === 'rank') {
-        console.log('=== DEBUG: Calling generateRankBasedResults directly ===')
-        await generateRankBasedResults()
-      } else {
-        console.log('=== DEBUG: Calling generateResultsBasedOnChoiceType for cutoff ===')
-        await generateResultsBasedOnChoiceType()
-      }
+      triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
     }
 
     if (nextMessage) {
@@ -4397,6 +4473,11 @@ export default function ChoiceFilling() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {detailsError && (
+                    <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                      {detailsError}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="fullName">Full Name</Label>
@@ -5152,74 +5233,57 @@ export default function ChoiceFilling() {
                             </div>
                             <div className="overflow-x-auto">
                               {userPreferences.choiceType === 'smart' ? (
-                                // Smart AI Choices display - grouped by college
-                                <div className="space-y-6">
-                                  {collegeResults.map((college: any, collegeIndex: number) => (
-                                    <div
-                                      key={`${college.code}-${collegeIndex}`}
-                                      className={`border rounded-lg overflow-hidden ${bucketCardClass(getCollegeAggregateBucket(college))}`}
-                                    >
-                                      <div className={`p-4 ${bucketHeaderClass(getCollegeAggregateBucket(college))}`}>
-                                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                                          <span className="text-blue-600 dark:text-blue-400">Choice {collegeIndex + 1}</span>
-                                          <span>{college.name}</span>
-                                          <span className="text-sm text-gray-600 dark:text-gray-400">({college.code})</span>
-                                          {getCollegeAggregateBucket(college) === 'aspirational' && (
-                                            <span className="ml-2 px-2 py-1 text-xs bg-green-600 text-white rounded-full">Aspirational</span>
+                                // Smart display — one numbered choice per college-branch
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-[80px]">Choice No</TableHead>
+                                      <TableHead>College Code</TableHead>
+                                      <TableHead>College Name</TableHead>
+                                      <TableHead>Branch</TableHead>
+                                      <TableHead>District</TableHead>
+                                      <TableHead>PowerScore</TableHead>
+                                      {userPreferences.resultType === 'rank' && <TableHead>Rank</TableHead>}
+                                      <TableHead>Trend Rate</TableHead>
+                                      <TableHead>Type</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {flattenSmartChoices(collegeResults).map(({ college, branch }, index) => {
+                                      const bucket = getBranchBucket(college, branch)
+                                      return (
+                                        <TableRow
+                                          key={`${college.code}-${branch.name}-${index}`}
+                                          className={bucketRowClass(bucket)}
+                                        >
+                                          <TableCell className="font-medium text-blue-600 dark:text-blue-400">
+                                            {index + 1}
+                                          </TableCell>
+                                          <TableCell>{college.code}</TableCell>
+                                          <TableCell className="font-medium">{college.name}</TableCell>
+                                          <TableCell>{branch.name}</TableCell>
+                                          <TableCell>{college.district || '-'}</TableCell>
+                                          <TableCell>{branch.powerScore || 0}</TableCell>
+                                          {userPreferences.resultType === 'rank' && (
+                                            <TableCell>{branch.rank || 0}</TableCell>
                                           )}
-                                          {getCollegeAggregateBucket(college) === 'matching' && (
-                                            <span className="ml-2 px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Matching</span>
-                                          )}
-                                          {getCollegeAggregateBucket(college) === 'safe' && (
-                                            <span className="ml-2 px-2 py-1 text-xs bg-pink-500 text-white rounded-full">Safe</span>
-                                          )}
-                                        </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                          District: {college.district}
-                                        </p>
-                                      </div>
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Branch</TableHead>
-                                            <TableHead>PowerScore</TableHead>
-                                            {userPreferences.resultType === 'rank' && <TableHead>Rank</TableHead>}
-                                            <TableHead>Trend Rate</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {college.branches
-                                            .sort((a: any, b: any) => {
-                                              // For rank-based results, sort by rank (ascending)
-                                              if (userPreferences.resultType === 'rank') {
-                                                return a.rank - b.rank
-                                              }
-                                              // For cutoff-based results, sort by branchNo
-                                              return a.branchNo - b.branchNo
-                                            })
-                                            .map((branch: any, branchIndex: number) => {
-                                              console.log('DEBUG - Display branch:', branch)
-                                              console.log('DEBUG - Display branch.powerScore:', branch.powerScore, 'type:', typeof branch.powerScore)
-                                              console.log('DEBUG - Display branch.medianSalary:', branch.medianSalary, 'type:', typeof branch.medianSalary)
-                                              console.log('DEBUG - Display branch.placementPercentage:', branch.placementPercentage, 'type:', typeof branch.placementPercentage)
-                                              
-                                              return (
-                                              <TableRow
-                                                key={`${college.code}-${branch.name}-${branchIndex}`}
-                                                className={bucketRowClass(getBranchBucket(college, branch))}
-                                              >
-                                                <TableCell className="font-medium">{branch.name}</TableCell>
-                                                <TableCell>{branch.powerScore || 0}</TableCell>
-                                                {userPreferences.resultType === 'rank' && <TableCell>{branch.rank || 0}</TableCell>}
-                                                <TableCell>{renderTrendRate(branch.trendRate)}</TableCell>
-                                              </TableRow>
-                                              )
-                                            })}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  ))}
-                                </div>
+                                          <TableCell>{renderTrendRate(branch.trendRate)}</TableCell>
+                                          <TableCell>
+                                            {bucket === 'aspirational' && (
+                                              <span className="px-2 py-1 text-xs bg-green-600 text-white rounded-full">Aspirational</span>
+                                            )}
+                                            {bucket === 'matching' && (
+                                              <span className="px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Matching</span>
+                                            )}
+                                            {bucket === 'safe' && (
+                                              <span className="px-2 py-1 text-xs bg-pink-500 text-white rounded-full">Safe</span>
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      )
+                                    })}
+                                  </TableBody>
+                                </Table>
                               ) : (
                                 // Traditional cutoff display - original table format
                                 <Table>
@@ -5363,15 +5427,13 @@ export default function ChoiceFilling() {
                                           showSelectedOptions: true
                                         }
                                         
-                                        // Then add the choice type question, gated by plan:
-                                        // Power Score is available on paid plans.
+                                        // Then add the choice type question. Both methods are always
+                                        // shown; a free-plan user picking Power Score falls back to
+                                        // Traditional with an explanation.
                                         const choiceTypeMessage: Message = {
                                           type: 'bot',
                                           content: 'Which method would you like to use for your choices?',
-                                          options: [
-                                            'Traditional Method',
-                                            ...(planAllowsPowerScore(usageData?.planType) ? ['Power Score'] : []),
-                                          ]
+                                          options: [...CHOICE_METHOD_OPTIONS]
                                         }
                                         
                                         // Add both messages in sequence
@@ -5380,6 +5442,88 @@ export default function ChoiceFilling() {
                                     >
                                       Done
                                     </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* College Selection UI — rendered inline, directly under its question */}
+                            {message.showCollegeSelection && isSelectingColleges && (
+                              <div className="mt-4 space-y-4 border rounded-md p-4">
+                                <Input
+                                  placeholder="Search colleges by name or code..."
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                <div className="max-h-[300px] overflow-y-auto border rounded-md p-3">
+                                  <div className="space-y-2">
+                                    {availableColleges
+                                      .filter(college =>
+                                        college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        college.code.toLowerCase().includes(searchQuery.toLowerCase())
+                                      )
+                                      .map((college) => (
+                                        <div
+                                          key={`${college.code}-${college.name}`}
+                                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+                                        >
+                                          <Checkbox
+                                            id={`college-${college.code}-${college.name}`}
+                                            checked={selectedCollegeCodes.includes(college.code)}
+                                            onCheckedChange={(checked) => {
+                                              const requiredCount = userPreferences.requiredCollegeCount || 5
+                                              if (checked) {
+                                                if (selectedCollegeCodes.length < requiredCount) {
+                                                  setSelectedCollegeCodes([...selectedCollegeCodes, college.code])
+                                                  // Reached the required count -> lock in and generate.
+                                                  if (selectedCollegeCodes.length + 1 === requiredCount) {
+                                                    const finalSelectedColleges = [...selectedCollegeCodes, college.code]
+                                                    setIsSelectingColleges(false)
+                                                    setUserPreferences(prev => ({ ...prev, selectedColleges: finalSelectedColleges }))
+                                                    // Echo the picked colleges into the chat, under this question.
+                                                    const selectedNames = availableColleges
+                                                      .filter(c => finalSelectedColleges.includes(c.code))
+                                                      .map(c => `${c.name} (${c.code})`)
+                                                    setMessages(prev => [...prev, {
+                                                      type: 'bot',
+                                                      content: `Selected colleges:\n${selectedNames.map(n => `• ${n}`).join('\n')}`
+                                                    }])
+                                                    setPendingResultType(userPreferences.resultType ?? 'cutoff')
+                                                  }
+                                                } else {
+                                                  toast.error(`You can only select ${requiredCount} colleges`)
+                                                }
+                                              } else {
+                                                setSelectedCollegeCodes(selectedCollegeCodes.filter(code => code !== college.code))
+                                              }
+                                            }}
+                                          />
+                                          <label
+                                            htmlFor={`college-${college.code}-${college.name}`}
+                                            className="text-sm font-medium leading-none flex-1 cursor-pointer"
+                                          >
+                                            <div className="flex justify-between gap-2">
+                                              <span>{college.name}</span>
+                                              <span className="text-gray-500">{college.code}</span>
+                                            </div>
+                                          </label>
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Selected: {selectedCollegeCodes.length}/{userPreferences.requiredCollegeCount || 5} colleges
+                                </div>
+                                {selectedCollegeCodes.length > 0 && (
+                                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                                    <h4 className="font-medium mb-2">Currently Selected Colleges:</h4>
+                                    <ul className="list-disc list-inside">
+                                      {availableColleges
+                                        .filter(college => selectedCollegeCodes.includes(college.code))
+                                        .map(college => (
+                                          <li key={college.code}>{college.name} ({college.code})</li>
+                                        ))}
+                                    </ul>
                                   </div>
                                 )}
                               </div>
@@ -5415,101 +5559,6 @@ export default function ChoiceFilling() {
               </CardContent>
             </Card>
 
-            {isSelectingColleges && (
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle>Select {userPreferences.requiredCollegeCount || 5} Colleges</CardTitle>
-                  <CardDescription>
-                    Search and select exactly {userPreferences.requiredCollegeCount || 5} colleges from the list below
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Search colleges by name or code..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="mb-4"
-                    />
-                    <div className="h-[400px] overflow-y-auto border rounded-md p-4">
-                      <div className="space-y-2">
-                        {availableColleges
-                          .filter(college => 
-                            college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            college.code.toLowerCase().includes(searchQuery.toLowerCase())
-                          )
-                          .map((college) => (
-                            <div 
-                              key={`${college.code}-${college.name}`}
-                              className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
-                            >
-                              <Checkbox
-                                id={`${college.code}-${college.name}`}
-                                checked={selectedCollegeCodes.includes(college.code)}
-                                onCheckedChange={(checked) => {
-                                  const requiredCount = userPreferences.requiredCollegeCount || 5
-                                  if (checked) {
-                                    if (selectedCollegeCodes.length < requiredCount) {
-                                      setSelectedCollegeCodes([...selectedCollegeCodes, college.code])
-                                      // If we've reached the required count, automatically proceed
-                                      if (selectedCollegeCodes.length + 1 === requiredCount) {
-                                        const finalSelectedColleges = [...selectedCollegeCodes, college.code]
-                                        console.log('Debug - selectedCollegeCodes:', selectedCollegeCodes)
-                                        console.log('Debug - college.code being added:', college.code)
-                                        console.log('Debug - finalSelectedColleges:', finalSelectedColleges)
-                                        console.log('Debug - finalSelectedColleges length:', finalSelectedColleges.length)
-                                        
-                                        setIsSelectingColleges(false)
-                                        setUserPreferences(prev => ({ ...prev, selectedColleges: finalSelectedColleges }))
-                                        
-                                        // Ask about result type instead of directly generating results
-                                        const nextMessage: Message = {
-                                          type: 'bot',
-                                          content: 'Do you want the results based on your Cutoff or AI Based?',
-                                          options: ['Cutoff based', 'AI Based']
-                                        }
-                                        setMessages(prev => [...prev, nextMessage])
-                                      }
-                                    } else {
-                                      toast.error(`You can only select ${requiredCount} colleges`)
-                                    }
-                                  } else {
-                                    setSelectedCollegeCodes(selectedCollegeCodes.filter(code => code !== college.code))
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor={`${college.code}-${college.name}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
-                              >
-                                <div className="flex justify-between">
-                                  <span>{college.name}</span>
-                                  <span className="text-gray-500">{college.code}</span>
-                                </div>
-                              </label>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-500 mt-2">
-                      Selected: {selectedCollegeCodes.length}/{userPreferences.requiredCollegeCount || 5} colleges
-                    </div>
-                    {selectedCollegeCodes.length > 0 && (
-                      <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                        <h4 className="font-medium mb-2">Currently Selected Colleges:</h4>
-                        <ul className="list-disc list-inside">
-                          {availableColleges
-                            .filter(college => selectedCollegeCodes.includes(college.code))
-                            .map(college => (
-                              <li key={college.code}>{college.name} ({college.code})</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
       </main>

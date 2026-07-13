@@ -182,14 +182,24 @@ export default function RankPredictorClient() {
         throw new Error(validationError.message || "Could not verify your details. Please try again.")
       }
 
+      // All four details must match a single stored row: general rank (already
+      // filtered server-side), community, community rank and the cutoff
+      // (rank_list."AGGREGATE MARK").
       const matchedRow = (matches || []).find((row) => {
         const storedCommunity = String(row["COMMUNITY"] ?? "").trim().toUpperCase()
+        if (storedCommunity !== community.toUpperCase()) return false
+
         const storedCommunityRank = toRankNumber(row["COMMUNITY RANK"])
-        return storedCommunity === community.toUpperCase() && storedCommunityRank === communityRankNum
+        if (storedCommunityRank !== communityRankNum) return false
+
+        const storedAggregate = toCutoffNumber(row["AGGREGATE MARK"])
+        return storedAggregate !== null && Math.abs(storedAggregate - cutoffNum) <= 0.01
       })
 
       if (!matchedRow) {
-        setErrorMessage("Invalid details. Please enter valid details.")
+        setErrorMessage(
+          "We are connected to the TNEA portal data — only correct data will fetch the results. Please enter your correct data.",
+        )
         setIsLoading(false)
         return
       }
@@ -394,43 +404,71 @@ export default function RankPredictorClient() {
       50,
     )
 
-    // Single comparison table with grouped "Last Year" / "This Year" headers.
-    const maxLen = Math.max(cutoffResults?.length ?? 0, results?.length ?? 0)
-    const body = Array.from({ length: maxLen }).map((_, i) => {
-      const c = cutoffResults?.[i]
-      const r = results?.[i]
-      return [
-        (i + 1).toString(),
-        c ? c.collegeCode : "-",
-        c ? c.collegeName : "-",
-        c?.branchName || "-",
-        r ? r.collegeCode : "-",
-        r ? r.collegeName : "-",
-        r?.branchName || "-",
-      ]
-    })
+    // Two tables, one below the other.
+    const commonStyles = { fontSize: 8, cellPadding: 2.5, overflow: "linebreak" as const, halign: "left" as const, font: "helvetica" }
+    const commonCols = {
+      0: { cellWidth: 9 },
+      1: { cellWidth: 15 },
+      2: { cellWidth: 60 },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 24 },
+      5: { cellWidth: 32 },
+    }
+    const commonHead = {
+      fillColor: [11, 85, 136] as [number, number, number],
+      textColor: [255, 255, 255] as [number, number, number],
+      fontStyle: "bold" as const,
+      fontSize: 8,
+    }
+
+    let y = 56
+    const sectionTitle = (text: string) => {
+      doc.setTextColor(11, 85, 136)
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "bold")
+      const lines = doc.splitTextToSize(text, pageWidth - 30) as string[]
+      lines.forEach((line, i) => doc.text(line, 15, y + i * 4.5))
+      y += lines.length * 4.5 + 1
+    }
+
+    // Table 1 — previous year (cutoff-based)
+    sectionTitle("College's that the students got for their Rank in the previous year")
     autoTable(doc, {
-      startY: 56,
-      head: [
-        [
-          { content: "#", rowSpan: 2 },
-          { content: "College's that the students got for their Rank in the previous year", colSpan: 3, styles: { halign: "center" as const } },
-          { content: "College's that you might get for your Rank this year", colSpan: 3, styles: { halign: "center" as const } },
-        ],
-        ["Code", "College", "Branch", "Code", "College", "Branch"],
-      ],
-      body,
-      styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak", halign: "left", font: "helvetica" },
-      columnStyles: {
-        0: { cellWidth: 8 },
-        1: { cellWidth: 14 },
-        2: { cellWidth: 46 },
-        3: { cellWidth: 26 },
-        4: { cellWidth: 14 },
-        5: { cellWidth: 46 },
-        6: { cellWidth: 26 },
-      },
-      headStyles: { fillColor: [11, 85, 136], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8, halign: "center" },
+      startY: y,
+      head: [["#", "Code", "College", "Branch", "District", "Closing Cutoff"]],
+      body: (cutoffResults ?? []).map((r, i) => [
+        (i + 1).toString(),
+        r.collegeCode || "-",
+        r.collegeName || "-",
+        r.branchName || "-",
+        r.district || "-",
+        r.closingCutoff.toString(),
+      ]),
+      styles: commonStyles,
+      columnStyles: commonCols,
+      headStyles: commonHead,
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 15, right: 15, top: 40, bottom: 25 },
+      theme: "grid",
+    })
+    y = (doc as any).lastAutoTable.finalY + 10
+
+    // Table 2 — this year (rank-based)
+    sectionTitle("College's that you might get for your Rank this year")
+    autoTable(doc, {
+      startY: y,
+      head: [["#", "Code", "College", "Branch", "District", "OC Closing Rank"]],
+      body: (results ?? []).map((r, i) => [
+        (i + 1).toString(),
+        r.collegeCode || "-",
+        r.collegeName || "-",
+        r.branchName || "-",
+        r.district || "-",
+        r.ocRank.toString(),
+      ]),
+      styles: commonStyles,
+      columnStyles: commonCols,
+      headStyles: commonHead,
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 15, right: 15, top: 40, bottom: 25 },
       theme: "grid",
@@ -595,82 +633,117 @@ export default function RankPredictorClient() {
           </Card>
 
           {(results || cutoffResults) && (
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Recommended Colleges</CardTitle>
-                <CardDescription>
-                  Last year&apos;s colleges for your {community} cutoff ({cutoff}) shown alongside this
-                  year&apos;s colleges for your rank ({generalRank}).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead rowSpan={2} className="align-bottom">#</TableHead>
-                        <TableHead colSpan={3} className="text-center">Last Year</TableHead>
-                        <TableHead colSpan={3} className="text-center border-l">This Year</TableHead>
-                      </TableRow>
-                      <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>College</TableHead>
-                        <TableHead>Branch</TableHead>
-                        <TableHead className="border-l">Code</TableHead>
-                        <TableHead>College</TableHead>
-                        <TableHead>Branch</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Array.from({
-                        length: Math.max(cutoffResults?.length ?? 0, results?.length ?? 0),
-                      }).map((_, i) => {
-                        const c = cutoffResults?.[i]
-                        const r = results?.[i]
-                        return (
-                          <TableRow key={i}>
-                            <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                            <TableCell>{c?.collegeCode || "-"}</TableCell>
-                            <TableCell className="font-medium">{c?.collegeName || "-"}</TableCell>
-                            <TableCell>{c?.branchName || "-"}</TableCell>
-                            <TableCell className="border-l">{r?.collegeCode || "-"}</TableCell>
-                            <TableCell className="font-medium">{r?.collegeName || "-"}</TableCell>
-                            <TableCell>{r?.branchName || "-"}</TableCell>
-                          </TableRow>
-                        )
-                      })}
-                      {(results?.length ?? 0) === 0 && (cutoffResults?.length ?? 0) === 0 && (
+            <div className="mt-8 space-y-6">
+              {/* Table 1 — Last Year (cutoff-based) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>College&apos;s that the students got for their Rank in the previous year</CardTitle>
+                  <CardDescription>
+                    Based on last year&apos;s {community} closing cutoff, for your cutoff ({cutoff}).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground">
-                            No colleges found for your rank or cutoff.
-                          </TableCell>
+                          <TableHead>#</TableHead>
+                          <TableHead>Code</TableHead>
+                          <TableHead>College</TableHead>
+                          <TableHead>Branch</TableHead>
+                          <TableHead>District</TableHead>
+                          <TableHead>Closing Cutoff</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {(cutoffResults ?? []).map((r, index) => (
+                          <TableRow key={`cut-${r.collegeCode}-${index}`}>
+                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                            <TableCell>{r.collegeCode || "-"}</TableCell>
+                            <TableCell className="font-medium">{r.collegeName || "-"}</TableCell>
+                            <TableCell>{r.branchName || "-"}</TableCell>
+                            <TableCell>{r.district || "-"}</TableCell>
+                            <TableCell>{r.closingCutoff}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(cutoffResults?.length ?? 0) === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                              No colleges found for this cutoff.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Download the results as a PDF */}
-                <div className="mt-4 flex justify-end">
-                  <Button variant="outline" onClick={generatePDF}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download PDF
-                  </Button>
-                </div>
+              {/* Table 2 — This Year (rank-based) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>College&apos;s that you might get for your Rank this year</CardTitle>
+                  <CardDescription>
+                    Based on your general rank ({generalRank}) and OC closing ranks.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Code</TableHead>
+                          <TableHead>College</TableHead>
+                          <TableHead>Branch</TableHead>
+                          <TableHead>District</TableHead>
+                          <TableHead>OC Closing Rank</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(results ?? []).map((r, index) => (
+                          <TableRow key={`rank-${r.collegeCode}-${index}`}>
+                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                            <TableCell>{r.collegeCode || "-"}</TableCell>
+                            <TableCell className="font-medium">{r.collegeName || "-"}</TableCell>
+                            <TableCell>{r.branchName || "-"}</TableCell>
+                            <TableCell>{r.district || "-"}</TableCell>
+                            <TableCell>{r.ocRank}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(results?.length ?? 0) === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                              No colleges found for this rank.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* CTA to Choice Filling */}
-                <div className="mt-6 flex flex-col items-center gap-3 rounded-md border bg-muted/40 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
-                  <p className="text-sm text-muted-foreground">
-                    If you want to know more colleges that you&apos;ll get for your rank and cutoff,
-                    you can find them using Choice Filling.
-                  </p>
-                  <Button onClick={() => router.push("/choice-filling")}>
-                    Go to Choice Filling
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Download the results as a PDF */}
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={generatePDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+
+              {/* CTA to Choice Filling */}
+              <div className="flex flex-col items-center gap-3 rounded-md border bg-muted/40 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
+                <p className="text-sm text-muted-foreground">
+                  If you want to know more colleges that you&apos;ll get for your rank and cutoff,
+                  you can find them using Choice Filling.
+                </p>
+                <Button onClick={() => router.push("/choice-filling")}>
+                  Go to Choice Filling
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </main>
