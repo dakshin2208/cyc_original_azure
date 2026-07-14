@@ -114,7 +114,7 @@ export const REAL_DATA_SCENARIOS: readonly GoldenScenario[] = [
     mode: 'lock', // ✅ M3: elite tier dominates — CIT ranks in the top spread
     note: 'Coimbatore Institute of Technology (elite) must appear in the top 3',
     request: FLAGSHIP_REQUEST,
-    expect: { top3: ['COIMBATORE INSTITUTE OF TECHNOLOGY'] },
+    expect: { top3: ['Coimbatore Institute of Technology'] },
   },
   {
     id: 'flagship-elite-over-midtier',
@@ -123,7 +123,7 @@ export const REAL_DATA_SCENARIOS: readonly GoldenScenario[] = [
     request: FLAGSHIP_REQUEST,
     expect: {
       before: [
-        ['COIMBATORE INSTITUTE OF TECHNOLOGY', 'Sri Krishna College of Engineering and Technology'],
+        ['Coimbatore Institute of Technology', 'Sri Krishna College of Engineering and Technology'],
         ['PSG College of Technology', 'Sri Eshwar College of Engineering'],
       ],
     },

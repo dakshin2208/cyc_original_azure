@@ -17,6 +17,18 @@ import { normalizeCollegeName } from '../normalization'
 import { requireFields, type ValidationIssue } from '../validation'
 import { parseIntOrNull, textOrNull } from './values'
 
+/**
+ * The district named by a NIRF submission filename — "… Karuppur Salem District 636011.pdf"
+ * → "Salem". The district is the word immediately before "District". Used ONLY to tell
+ * same-name colleges apart (the Government Colleges of Engineering); returns `null` when the
+ * filename does not state one, in which case no guess is made.
+ */
+function districtFromSourceFile(sourceFile: string | null): string | null {
+  if (!sourceFile) return null
+  const m = /([A-Za-z]+)\s+District\b/i.exec(sourceFile)
+  return m ? m[1] : null
+}
+
 /** Output of a transform step: the models plus any issues encountered. */
 export interface TransformOutput<T> {
   readonly items: readonly T[]
@@ -45,10 +57,32 @@ export function transformColleges(
   const issues: ValidationIssue[] = []
   const byId = new Map<string, CollegeDraft>()
 
+  // IDENTITY = normalized name + CITY. The master's `nirf_id` must NOT be part of the key:
+  // it is unreliable (dozens of codes are shared by unrelated colleges — e.g. all four
+  // Government Colleges of Engineering carry one code), so keying on it both fuses distinct
+  // colleges and splits single ones. Two rows are the SAME college only when the name AND
+  // the city match; the same name in a DIFFERENT city is a DIFFERENT college (Government
+  // College of Engineering at Krishnagiri / Tirunelveli / Salem / Theni are four colleges).
+  // Only a colliding name is city-suffixed, so every other college keeps its plain
+  // `col:<slug>` id and no existing reference churns.
+  const citiesBySlug = new Map<string, Set<string>>()
+  for (const row of masterRows) {
+    if (!row.name) continue
+    const { slug } = normalizeCollegeName(row.name)
+    const set = citiesBySlug.get(slug) ?? new Set<string>()
+    set.add(slugify(textOrNull(row.city) ?? ''))
+    citiesBySlug.set(slug, set)
+  }
+  const masterId = (name: string, slug: string, city: string | null): string => {
+    const base = generateCollegeId({ name }) as string
+    const citySlug = slugify(city ?? '')
+    return (citiesBySlug.get(slug)?.size ?? 0) > 1 && citySlug ? `${base}:${citySlug}` : base
+  }
+
   for (const row of masterRows) {
     if (!requireFields('tn_nirf_299_colleges', row, ['name'], issues)) continue
     const { name, slug } = normalizeCollegeName(row.name)
-    const id = generateCollegeId({ name })
+    const id = masterId(name, slug, textOrNull(row.city))
     const nirf = textOrNull(row.nirf_id)
     const existing = byId.get(id)
     if (existing) {
@@ -75,18 +109,35 @@ export function transformColleges(
     })
   }
 
+  // Index the master colleges by name-slug so an institution row can be attached to the
+  // college it actually names.
+  const bySlug = new Map<string, CollegeDraft[]>()
+  for (const draft of byId.values()) {
+    const list = bySlug.get(draft.nameSlug) ?? []
+    list.push(draft)
+    bySlug.set(draft.nameSlug, list)
+  }
+  const linked = new Set<string>() // drafts already given an authoritative code (first wins)
+
   for (const row of institutionRows) {
     if (!requireFields('institutions', row, ['nirf_id', 'institution_name'], issues)) continue
     const { name, slug } = normalizeCollegeName(row.institution_name)
-    const baseId = generateCollegeId({ name })
     const nirf = nirfId(row.nirf_id)
-    const match = byId.get(baseId)
+    const candidates = bySlug.get(slug) ?? []
 
-    // Merge only when the name matches AND the nirf is absent or identical, so we
-    // never drop an institution's NIRF linkage (which would orphan its facts).
-    if (match && (match.nirfId === null || match.nirfId === nirf)) {
-      if (!match.nirfId) match.nirfId = nirf // backfill the linkage
-      match.hasNirfData = true
+    // `institutions.csv` is the AUTHORITATIVE name↔NIRF-code mapping (it comes from the NIRF
+    // submissions themselves); the master's `nirf_id` is not. So when the name identifies
+    // exactly ONE college, bind the code to THAT college — overwriting the master's unreliable
+    // value — rather than registering a second, factless ghost record for the same college.
+    // (This is what split "Coimbatore Institute of Technology" in two: the master carried
+    // another college's code, so the real, data-bearing CIT was registered separately.)
+    if (candidates.length === 1) {
+      const match = candidates[0]
+      if (!linked.has(match.id)) {
+        match.nirfId = nirf
+        match.hasNirfData = true
+        linked.add(match.id)
+      }
       issues.push({
         severity: 'warning',
         kind: 'duplicate',
@@ -97,9 +148,26 @@ export function transformColleges(
       continue
     }
 
-    // No match, or a name clash with a different nirf: register a distinct college
-    // (disambiguated by nirf) so every institution — and thus every fact — has a home.
-    const id = match ? (`${baseId}:${slugify(nirf)}` as CollegeDraft['id']) : baseId
+    // Several same-name colleges (the Government Colleges of Engineering). The name alone
+    // cannot tell them apart, but the NIRF submission filename states the district
+    // ("… Karuppur Salem District 636011.pdf"), so bind the code to the college in THAT
+    // district. Deterministic and source-derived — never a guess.
+    if (candidates.length > 1) {
+      const district = districtFromSourceFile(textOrNull(row.source_file))
+      const key = slugify(district ?? '')
+      const inDistrict = key ? candidates.filter((c) => slugify(c.city ?? '') === key) : []
+      if (inDistrict.length === 1 && !linked.has(inDistrict[0].id)) {
+        inDistrict[0].nirfId = nirf
+        inDistrict[0].hasNirfData = true
+        linked.add(inDistrict[0].id)
+        continue
+      }
+    }
+
+    // Still ambiguous, or unknown to the master: register a distinct college —
+    // disambiguated by its NIRF code — so its facts still have a home.
+    const baseId = generateCollegeId({ name }) as string
+    const id = (candidates.length > 1 ? `${baseId}:${slugify(nirf)}` : baseId) as CollegeDraft['id']
     if (byId.has(id)) continue
     byId.set(id, {
       id,
