@@ -79,6 +79,45 @@ const IT_PRONOUN_BEFORE = new Set([
 const IT_PRONOUN_AFTER = new Set([
   'a', 'an', 'the', 'is', 'was', 'good', 'better', 'worth', 'ok', 'okay', 'fine', 'nice', 'bad', 'really', 'very', 'too', 'out',
 ])
+/**
+ * Whether a query token is a credible reference to a college's NAME — it must line up with a
+ * WHOLE WORD of that name, not merely appear somewhere inside it.
+ *
+ * This is the guard that separates a real short reference from conversational noise, and it
+ * has to be structural rather than a score threshold: the ranker awards FIXED scores by match
+ * type, so a bare substring hit and a genuine acronym are worth exactly the same. "son" scores
+ * 0.85 against "SONa College of Technology" (prefix) and "psg" scores 0.85 against "PSG College
+ * of Technology" (prefix) — identical. No threshold can keep one and drop the other.
+ *
+ * What DOES separate them is word alignment: "psg" and "kumaraguru" ARE words of their names;
+ * "son" is a fragment of the word "Sona", and "him" is buried mid-word inside "NacHIMuthu".
+ *
+ * The prefix arm preserves misspelling tolerance ("kumaragur…" → "Kumaraguru") but requires
+ * BOTH sides to be >= 5 chars. That length floor is load-bearing on both ends: without it a
+ * short name word swallows anything sharing its opening letters — "ST" (of "St. Mother
+ * Theresa") is a prefix of "STARK", which would silently resolve the fabricated "Stark
+ * Institute of Technology" instead of honestly declining it.
+ */
+const NAME_PREFIX_MIN = 5
+
+function alignsToName(token: string, name: string): boolean {
+  const t = comparisonKey(token)
+  if (!t) return false
+  // Both sides through comparisonKey so the casing/punctuation normalization is identical
+  // ("M.P.Nachimuthu" → words MP, NACHIMUTHU).
+  return name
+    .split(/[^A-Za-z0-9]+/)
+    .map((w) => comparisonKey(w))
+    .filter((w) => w.length > 0)
+    .some(
+      (w) =>
+        w === t ||
+        (t.length >= NAME_PREFIX_MIN &&
+          w.length >= NAME_PREFIX_MIN &&
+          (w.startsWith(t) || t.startsWith(w))),
+    )
+}
+
 const isPronounIt = (tokens: readonly string[]): boolean => {
   const i = tokens.indexOf('it')
   if (i < 0) return false
@@ -151,8 +190,7 @@ export function createEntityExtractor(lexicon: QueryLexicon): EntityExtractor {
       // generic institution words — else "Hogwarts Engineering College" fuzzy-matches
       // an arbitrary "… Engineering College". Reject an unverifiable match.
       const coreTokens = words.filter((w, i) => isNameSeed(words, i) && !lexicon.locations.has(w))
-      const key = comparisonKey(top.name)
-      const reflected = coreTokens.length === 0 || coreTokens.some((t) => key.includes(comparisonKey(t)))
+      const reflected = coreTokens.length === 0 || coreTokens.some((t) => alignsToName(t, top.name))
       return reflected ? top : null
     }
 

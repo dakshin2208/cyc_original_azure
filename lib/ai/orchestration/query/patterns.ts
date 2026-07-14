@@ -173,6 +173,14 @@ export const COLLEGE_SKIP_TOKENS: ReadonlySet<string> = new Set([
   // deictic / reference words (a pronoun like "there" must never fuzzy-match a college
   // — "recruit there" once resolved to "St. Mother THEREsa Engineering College")
   'there', 'here', 'them', 'they', 'their', 'these', 'those', 'this', 'that', 'then', 'than',
+  // the PEOPLE a parent talks about, and the pronouns standing in for them. A parent says
+  // "my SON got 168" and "is it realistic for HIM" — neither names a college, yet both once
+  // resolved one ("son" → SONa College, "him" → NacHIMuthu). Same family as "there" above.
+  'son', 'sons', 'daughter', 'daughters', 'child', 'children', 'kid', 'kids', 'ward',
+  'boy', 'girl', 'student', 'students', 'he', 'him', 'his', 'she', 'her', 'hers', 'we', 'us', 'our',
+  // conversational filler (an adverb framing the question is never part of a college name
+  // — "honestly" fuzzy-matched "PonjESLY College")
+  'honestly', 'really', 'actually', 'basically', 'maybe', 'perhaps', 'sure', 'okay',
   // quantifiers (never a distinctive name — "any college" is not a college called "Any")
   'any', 'some', 'few', 'many', 'all', 'each', 'every', 'more', 'other', 'others', 'name', 'names',
   // counselling-tier words ("dream/target/safe colleges" are tiers, not a college's name)

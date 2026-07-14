@@ -140,3 +140,30 @@ describe.skipIf(!DIR)('branch is optional — a profile with cutoff + community 
     expect(b(out).profile?.complete).toBe(true)
   })
 })
+
+describe.skipIf(!DIR)('no phantom college is written into the profile', () => {
+  const make = () => buildCounselorChatService({
+    dataDir: DIR,
+    logger: createNullLogger(),
+    provider: createUnavailableProvider('none'),
+  })
+  const b = (o: { body: unknown }) => o.body as ChatResponse
+
+  it('✓ "my son got 168 cutoff…" leaves preferredCollege NULL (no Sona phantom)', async () => {
+    const out = b(await make().handle({ message: "my son got 168 cutoff, he's BC, we're in Coimbatore" }))
+    expect(out.profile?.preferredCollege).toBeNull()
+  })
+
+  it('✓ "is it realistic for him?" adds no phantom, and is not answered ABOUT a college nobody named', async () => {
+    const svc = make()
+    const first = b(await svc.handle({ message: "my son got 168 cutoff, he's BC, we're in Coimbatore" }))
+    const out = b(await svc.handle({ message: 'is it realistic for him?', conversationId: first.conversationId }))
+    expect(out.profile?.preferredCollege).toBeNull() // no M.P.Nachimuthu phantom
+    expect(out.answer).not.toMatch(/Nachimuthu|Ponjesly/i) // never names a college nobody mentioned
+  })
+
+  it('✓ a REAL college mention is still stored as the preferred college', async () => {
+    const out = b(await make().handle({ message: 'is kumaraguru good?' }))
+    expect(out.profile?.preferredCollege).toMatch(/Kumaraguru/i)
+  })
+})
