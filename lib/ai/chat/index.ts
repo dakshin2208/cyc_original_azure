@@ -31,6 +31,14 @@ export {
   refinementTrigger,
 } from './counselor-brain'
 
+// ── Conversational memory (co-reference: "it", "the top two you just mentioned") ──
+export {
+  type ConversationMemory,
+  EMPTY_MEMORY,
+  readMemory,
+  resolveReference,
+} from './conversation-memory'
+
 // ── Capability Registry (dispatch a decision → its capability handler) ───────
 export {
   type CapabilityContext,

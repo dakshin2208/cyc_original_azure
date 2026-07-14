@@ -29,6 +29,7 @@ import {
   type OpinionService,
 } from '@/lib/opinion'
 import { decideTurn } from './counselor-brain'
+import { readMemory, resolveReference } from './conversation-memory'
 import { createOpinionTrustPipeline } from './trust-pipeline'
 import { createConsoleAnalytics, createNullAnalytics, isClosingMessage, turnAnalyticsEvents, type AnalyticsSink } from './analytics'
 import { RECOMMEND_TRIGGER } from './constants'
@@ -304,13 +305,23 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
 
     // 3b. Conversational profile layer: collect the profile, then answer using it.
     const priorProfile = (conversationId ? await deps.profileStore.get(conversationId) : undefined) ?? emptyProfile()
-    const parsed = trust.parse(message)
+    const parsedRaw = trust.parse(message)
+
+    // ── Conversational memory: resolve "it" / "the top two you just mentioned" ──────────
+    // The reference is resolved by REWRITING the message with the remembered CANONICAL name
+    // (read off the persisted ConversationState), so the parser re-resolves it by exact match.
+    // The pronoun itself is never handed to the fuzzy matcher — that is what keeps the
+    // phantom-college guard intact. With nothing remembered there is no rewrite, and the
+    // counsellor asks which college, exactly as before.
+    const resolved = resolveReference(message, parsedRaw, readMemory(priorState))
+    const text = resolved ?? message
+    const parsed = resolved ? trust.parse(resolved) : parsedRaw
 
     // Domain / unknown-entity guards apply at ANY stage — decline immediately rather
     // than collecting a profile for a query the warehouse cannot serve.
     if (parsed.outOfDomain !== null || parsed.unverifiedCollege) {
       analytics.track({ type: 'honest_limitation', conversationId: id, topic: parsed.outOfDomain !== null ? 'out_of_domain' : 'unverified_college' })
-      return answer(message, id, priorState, priorHistory, priorProfile)
+      return answer(text, id, priorState, priorHistory, priorProfile)
     }
 
     const wasComplete = isComplete(priorProfile)
@@ -328,8 +339,12 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // (#5). A bare question ("is CIT good?") leaves the profile intact. During
     // collection every message is merged so the slots fill.
     const explicitChange = CHANGE_RE.test(message)
+    // The profile is merged from what the USER actually typed (`message`/`parsedRaw`), never
+    // from the memory-resolved text: a substituted name like "Coimbatore Institute of
+    // Technology" carries a district token, and merging it would silently set a district the
+    // parent never asked for. Memory answers the question; it must not rewrite the student.
     let profile =
-      wasComplete && hasQuestion && !explicitChange ? priorProfile : mergeMessage(priorProfile, parsed, message)
+      wasComplete && hasQuestion && !explicitChange ? priorProfile : mergeMessage(priorProfile, parsedRaw, message)
     // Normalize a typed district to a known one, tolerating misspellings ("coimbaore"
     // → "coimbatore"), so the district filter matches instead of returning nothing.
     if (deps.resolveDistrict && profile.district) {
@@ -355,6 +370,11 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     const echo = profileEcho(profile)
 
     // ── Orchestration Brain: select the route for this turn (decide, don't execute) ──
+    // ROUTE on what the user SAID; ANSWER with what they MEANT. The brain's matchers read the
+    // raw message, so they must never see the substituted name: injecting "… College of
+    // Technology" into "is it realistic for him?" would trip the tier matcher (TIER_WORD
+    // "realistic" + TIER_NOUN "colleg") and re-route the turn to a profile prompt. The RESOLVED
+    // colleges still reach it via `parsed`, which is what the routing actually needs.
     const decision = decideTurn({ message, parsed, priorProfile, profile, wasComplete, hasQuestion })
 
     // Product analytics for this turn (privacy-safe: kinds/enums/public college names only).
@@ -375,7 +395,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // primitives (reasoning via `answer`, deterministic replies via `finish`, and the
     // exclusion side-effect) — the registry and its handlers own none of them.
     const capabilityContext: CapabilityContext = {
-      message,
+      message: text,
       profile,
       priorProfile,
       echo,

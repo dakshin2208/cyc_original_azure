@@ -22,6 +22,7 @@ export function createConversationState(sessionId: SessionId): ConversationState
     previousRecommendations: Object.freeze([]),
     previousComparisons: Object.freeze([]),
     clarificationRequests: Object.freeze([]),
+    lastDiscussedCollege: null,
   })
 }
 
@@ -52,6 +53,18 @@ export function applyTurn(
       ? dedupe([...state.clarificationRequests, ...context.followUpQuestions.map((q) => q.question)])
       : state.clarificationRequests
 
+  // The antecedent for a later "it" / "that one". Sources, in order:
+  //   1. a turn that named EXACTLY ONE college — `parsed.colleges` only ever holds resolved,
+  //      warehouse-verified names, so a phantom can never land here;
+  //   2. otherwise the TOP PICK of a recommendation shown this turn (engine output);
+  //   3. otherwise whatever was being discussed before.
+  // A turn naming TWO+ colleges (a comparison) deliberately falls through to (2)/(3) rather
+  // than picking one: "compare A and B" then "is it good?" is genuinely ambiguous, and a
+  // silent choice would be a guess. Leaving it unchanged makes the counsellor ask instead.
+  const named = parsed.colleges.length === 1 ? parsed.colleges[0] : null
+  const lastDiscussedCollege =
+    named ?? context.recommendations[0]?.college.name ?? state.lastDiscussedCollege ?? null
+
   return Object.freeze({
     sessionId: state.sessionId,
     turnCount: state.turnCount + 1,
@@ -61,5 +74,6 @@ export function applyTurn(
     previousRecommendations,
     previousComparisons,
     clarificationRequests,
+    lastDiscussedCollege,
   })
 }
