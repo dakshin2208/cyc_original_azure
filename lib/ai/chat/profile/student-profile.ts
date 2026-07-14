@@ -49,10 +49,29 @@ export function emptyProfile(): StudentProfile {
   }
 }
 
+/**
+ * The slots that genuinely GATE counselling: cutoff + community determine eligibility, so
+ * nothing realistic can be said without them. District and branch are REFINEMENTS — the
+ * recommendation engine ranks across all branches when `branch` is null (it reports "any
+ * branch"), so a parent who gives rank + community + city must get colleges, never a fourth
+ * "which branch?" prompt.
+ */
+export const REQUIRED_SLOTS = ['cutoff', 'community'] as const
+
+/** Whether the profile is complete ENOUGH to counsel (cutoff + community). */
 export function isComplete(p: StudentProfile): boolean {
-  return PROFILE_SLOTS.every((s) => p.answered[s])
+  return REQUIRED_SLOTS.every((s) => p.answered[s])
 }
 
+/** The next REQUIRED slot still missing — the only thing that may block an answer. */
+export function nextMissingRequiredSlot(p: StudentProfile): ProfileSlot | null {
+  return REQUIRED_SLOTS.find((s) => !p.answered[s]) ?? null
+}
+
+/**
+ * The next unanswered slot in the onboarding walk (including the optional district/branch).
+ * Used to gather refinements progressively — never to block a question.
+ */
 export function nextMissingSlot(p: StudentProfile): ProfileSlot | null {
   return PROFILE_SLOTS.find((s) => !p.answered[s]) ?? null
 }

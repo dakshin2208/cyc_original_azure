@@ -484,14 +484,19 @@ describe.skipIf(!DIR)('AI Counselor V2 onboarding', () => {
     expect(b(out).answer).toMatch(/district or location/i) // asks the next slot, not cutoff again
   })
 
-  it('✓ Missing branch: asks ONLY for the branch, not the whole onboarding', async () => {
+  it('✓ Missing branch: offers the branch question once, then NEVER blocks on it', async () => {
     const svc = make()
     let out = await svc.handle({ message: '190 BC Coimbatore' }) // branch missing
     const cid = b(out).conversationId
-    expect(b(out).answer).toMatch(/engineering branch/i)
+    expect(b(out).answer).toMatch(/engineering branch/i) // asked once, while filling the profile
+    // Branch is OPTIONAL: cutoff + community already gate eligibility, so a genuine
+    // recommendation ask must be ANSWERED — across all branches — not deadlocked on branch.
     out = await svc.handle({ message: 'suggest colleges', conversationId: cid }) // still no branch
-    expect(b(out).answer).toMatch(/engineering branch/i) // asks branch only
+    expect(b(out).answer).not.toMatch(/engineering branch/i) // does NOT re-ask
     expect(b(out).answer).not.toMatch(/what is your cutoff/i) // never restarts
+    expect(b(out).stage).toBe('ready')
+    expect(b(out).answer).toMatch(/any branch/i) // ranks across all branches
+    expect(b(out).answer).toMatch(/top recommendation/i) // a REAL recommendation
   })
 
   it('✓ Session memory: the stored profile is echoed and used on every answer', async () => {

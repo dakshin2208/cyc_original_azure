@@ -16,6 +16,7 @@
 import type { ParsedQuery } from '@/lib/ai/orchestration'
 import {
   isComplete,
+  nextMissingRequiredSlot,
   nextMissingSlot,
   PROFILE_SLOTS,
   type ProfileSlot,
@@ -241,11 +242,21 @@ export function decideTurn(ctx: BrainContext): CounselorDecision {
 
   const route = baseRoute(ctx)
 
-  if (!isComplete(profile) && routeNeedsProfile(route, parsed, message)) {
-    const missing = nextMissingSlot(profile)
-    if (missing) {
-      const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
-      return { kind: 'collectSlot', slot: missing, firstContact, forKind: route.kind }
+  if (routeNeedsProfile(route, parsed, message)) {
+    const firstContact = PROFILE_SLOTS.every((s) => !priorProfile.answered[s])
+
+    // BLOCK only on a REQUIRED slot (cutoff / community) — they gate eligibility, so no
+    // realistic answer exists without them.
+    const required = nextMissingRequiredSlot(profile)
+    if (required) return { kind: 'collectSlot', slot: required, firstContact, forKind: route.kind }
+
+    // The refinements (district, branch) are gathered progressively while the user is still
+    // FILLING the profile — i.e. this very message set a slot. A genuine question is NEVER
+    // blocked on them: with cutoff + community in hand the engine ranks across all branches
+    // ("any branch"), so a parent asking for colleges gets colleges, not a fourth prompt.
+    if (route.kind === 'profileChanged') {
+      const refinement = nextMissingSlot(profile)
+      if (refinement) return { kind: 'collectSlot', slot: refinement, firstContact, forKind: route.kind }
     }
   }
   return route

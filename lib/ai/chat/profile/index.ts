@@ -6,11 +6,13 @@
 
 export {
   PROFILE_SLOTS,
+  REQUIRED_SLOTS,
   type ProfileSlot,
   type StudentProfile,
   type StudentProfileView,
   emptyProfile,
   isComplete,
+  nextMissingRequiredSlot,
   nextMissingSlot,
   profilesEqual,
   mergeMessage,
