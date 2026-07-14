@@ -117,6 +117,32 @@ const PARENT_RE = /\bmy (son|daughter|child|kid|ward|boy|girl)\b|\bour (son|daug
 const CHANGE_RE =
   /\b(instead|actually|switch(?:ing)? to|change (?:it |that |my )?to|change my|make it|rather|no,? i (want|meant)|i meant|update (?:my|to))\b/i
 
+/**
+ * Is the message actually ASKING FOR COLLEGES?
+ *
+ * This gates the recommendation retry below. The retry exists because a genuine ask can be
+ * phrased in a way the keyword table misses ("tell me the collage what i get", "options for
+ * me") — those must still get colleges. But it fired on ANY un-understood message, so a
+ * complete-profile parent asking "when is the TNEA deadline?" was answered with "my top
+ * recommendation is Chennai Institute of Technology…" — a confident answer to a question
+ * nobody asked, which is worse than admitting ignorance.
+ *
+ * A POSITIVE predicate, deliberately: the message must mention colleges/options/seats before
+ * we are allowed to rewrite it into "recommend the best colleges for me". Anything else is
+ * something we did not understand, and we say so. (Includes the "collage" misspelling, which
+ * real users type constantly.)
+ */
+const RECOMMENDATION_ASK_RE =
+  /\bcolleg\w*|\bcollag\w*|\boptions?\b|\bchoices?\b|\bsuggest\w*|\brecommend\w*|\bshortlist\b|\b(pick|choose|prefer|opt for|go for)\b|\bwhich (one|ones|should|shall|would|do|can)\b|\bwhere (should|can|do) (i|he|she|we|my)\b|\bwhat (can|should) (i|he|she|we) (get|pick|choose|join|take|do)\b|\b(i|he|she) (can|will|would) get\b|\bseats?\b|\badmission\b|\bfor me\b|\bfor my (son|daughter|child|kid|ward)\b/i
+
+/**
+ * Topics the official dataset simply does not cover — TNEA PROCESS, not college FACTS.
+ * Only consulted when the engine already failed to answer AND the message isn't a college ask,
+ * so it just picks the wording of the honest decline; it never routes a real question away.
+ */
+const UNSUPPORTED_TOPIC_RE =
+  /\b(deadline|last date|due date|dates?|schedule|timeline)\b|\bwhen (is|are|do|does|will|can)\b|\b(document|documents|certificate|certificates|proof)\b|\b(apply|application|registration|register|form filling)\b|\b(round \d|counselling (round|process|procedure|schedule)|allotment|allot)\b|\bchange (my |his |her |the )?(branch|course|college)\b|\btransfer\b|\b(rule|rules|policy|procedure)\b/i
+
 // Capability selection / clarification / refinement matchers were extracted to the
 // Orchestration Brain (`./counselor-brain`), which owns the routing decision. The
 // service only EXECUTES the decision the brain returns.
@@ -186,6 +212,11 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     outro?: string,
   ): Promise<ChatOutcome> => {
     const startedAt = deps.clock()
+    // Set when we answer with an honest "that's not in my data". Such a reply must NOT be
+    // dressed in the counselling framing — a profile echo ("Based on your profile — Cutoff
+    // 190 · OC …") and a "compare this with another college?" outro around "I don't have TNEA
+    // deadlines" reads like the bot didn't hear the question.
+    let declined = false
     let advised: { response: import('@/lib/opinion').OpinionResponse; state: ConversationState }
     try {
       const exSet = excluded.get(id)
@@ -195,13 +226,25 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         trust.run(message, { priorState, history: priorHistory, overrides }),
         deps.timeoutMs,
       )
-      // Guarantee colleges: a complete profile must never get a "no evidence" deflection.
-      // The raw phrasing may not parse to a recommendation intent ("tell me the collage
-      // what i get"), so retry with a RELIABLE recommendation query; and if the DISTRICT
-      // still matches nothing, broaden across Tamil Nadu.
+      // Guarantee colleges: a complete profile must never get a "no evidence" deflection when
+      // it ASKED FOR COLLEGES. The raw phrasing may not parse to a recommendation intent
+      // ("tell me the collage what i get"), so retry with a RELIABLE recommendation query;
+      // and if the DISTRICT still matches nothing, broaden across Tamil Nadu.
+      //
+      // The RECOMMENDATION_ASK_RE gate is the fix for a live bug: without it, ANY message the
+      // classifier failed to understand was rewritten into "recommend the best colleges for
+      // me". "when is the TNEA deadline?" and "can he change branch after first year?" both
+      // came back as "my top recommendation is Chennai Institute of Technology…" — confidently
+      // answering a question the parent never asked. If they didn't ask for colleges, we do not
+      // hand them colleges; we say we don't know (below).
       const hasCols = (a: typeof advised): boolean =>
         a.response.recommendationSummary.some((s) => s.colleges.length > 0)
-      if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
+      if (
+        profile &&
+        isComplete(profile) &&
+        advised.response.strategy === 'insufficient_evidence' &&
+        RECOMMENDATION_ASK_RE.test(message)
+      ) {
         const ov = { ...toOverrides(profile), exclude }
         let retry = await withTimeout(
           trust.run(RECOMMEND_TRIGGER, { priorState, history: priorHistory, overrides: ov }),
@@ -228,18 +271,35 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     }
     const latencyMs = deps.clock() - startedAt
 
-    // A COMPLETE profile must never be told "share your cutoff and community" — that
-    // happens when a vague/unparseable message ("???", "hmm") yields insufficient
-    // evidence. Re-orient to what we CAN do instead of asking for details already given.
+    // Still no answer for a COMPLETE profile. Two very different situations, and conflating
+    // them is what produced the "confidently wrong" bug:
+    //
+    //   • The parent asked something the OFFICIAL DATASET DOES NOT COVER — TNEA deadlines,
+    //     documents, counselling rounds, branch-change rules. Say so honestly. Never guess,
+    //     and never substitute a college recommendation for an answer.
+    //   • The message was simply vague/unparseable ("???", "hmm"). Re-orient to what we CAN
+    //     do — but never ask for details they already gave.
     if (profile && isComplete(profile) && advised.response.strategy === 'insufficient_evidence') {
+      const unsupported = !RECOMMENDATION_ASK_RE.test(message) && UNSUPPORTED_TOPIC_RE.test(message)
+      if (unsupported) {
+        declined = true
+        analytics.track({ type: 'honest_limitation', conversationId: id, topic: 'unsupported_topic' })
+      }
       const where = profile.district ? ` in ${profile.district}` : ''
+      // No URL is named on purpose: the portal address is a fact, and inventing or
+      // half-remembering one would be exactly the fabrication this system exists to prevent.
+      const decline =
+        "I don't have that one. TNEA process details — deadlines, application steps, documents, " +
+        'counselling rounds, branch-change rules — are not in the official college dataset I work ' +
+        "from, so I won't guess at them. Please check the official TNEA counselling portal or your " +
+        'counselling centre for those.\n\n' +
+        'What I can do with your profile: show the colleges you can realistically get, compare any ' +
+        'two of them, or go deeper on placements, cutoffs and rankings.'
+      const reorient =
+        `I have your details saved (cutoff, community, district and branch). Ask me "which colleges can I get?", to compare two colleges, or about placements — and if you'd like more options${where ? ` beyond${where}` : ''}, say "anywhere in Tamil Nadu" to widen the search and I'll pull them from the data.`
       advised = {
         ...advised,
-        response: {
-          ...advised.response,
-          answer:
-            `I have your details saved (cutoff, community, district and branch). Ask me "which colleges can I get?", to compare two colleges, or about placements — and if you'd like more options${where ? ` beyond${where}` : ''}, say "anywhere in Tamil Nadu" to widen the search and I'll pull them from the data.`,
-        },
+        response: { ...advised.response, answer: unsupported ? decline : reorient },
       }
     }
 
@@ -272,7 +332,9 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     })
 
     const body: ChatResponse = {
-      answer: [intro, advised.response.answer, outro].filter((s): s is string => !!s).join('\n\n'),
+      answer: [declined ? null : intro, advised.response.answer, declined ? null : outro]
+        .filter((s): s is string => !!s)
+        .join('\n\n'),
       citations: advised.response.evidence,
       confidence: advised.response.confidence,
       followUps: advised.response.followUps,
