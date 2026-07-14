@@ -167,8 +167,30 @@ export function createAIOrchestrator(
       community: parsed.community ?? undefined,
     }
 
+    /**
+     * A NAMED college → answer ABOUT it: rank it within the full Tamil Nadu peer set and
+     * keep only that college, so its RANK and score are preserved. Never a global top-N —
+     * a resolved entity is never silently dropped. Mirrors the `eligibility_query` subject
+     * filter below. District is deliberately not applied: the rank is TN-wide.
+     */
+    const rankedSubjects = (): readonly RecommendationResult[] =>
+      safe('subject_rank', () => {
+        const full = reco.recommendBestCollege({
+          limit: 1000,
+          studentCutoff: opts.studentCutoff,
+          community: opts.community,
+        })
+        return full.filter((r) => subjectIds.has(r.college.id))
+      }, [])
+
     switch (parsed.intent) {
       case 'recommend_college':
+        // Defence in depth: even if the intent stays `recommend_college`, a single named
+        // college must be answered ABOUT — not replaced by a global recommendation.
+        if (subjects.length > 0) {
+          recommendations = rankedSubjects()
+          break
+        }
         recommendations = safe('recommend', () => {
           if (isGov) return reco.recommendGovernmentColleges(opts)
           if (isPriv) return reco.recommendPrivateColleges(opts)
@@ -216,6 +238,11 @@ export function createAIOrchestrator(
         }
         break
       case 'general_information':
+        // A single-college opinion/information ask ("is X good?", "tell me about X") —
+        // rank that college within the TN peer set so the answer can state where it
+        // actually stands, instead of a bare fact dump.
+        if (subjects.length > 0) recommendations = rankedSubjects()
+        break
       case 'unknown':
       default:
         break

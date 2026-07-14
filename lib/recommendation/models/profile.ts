@@ -23,4 +23,11 @@ export interface CollegeProfile {
   readonly district: string | null
   /** OC closing cutoff (from the 2026 dataset), or `null`. Selectivity / demand signal. */
   readonly ocCutoff: number | null
+  /**
+   * The CYC Power Score [0,100] — the branded 4-vector percentile composite from the 2026
+   * dataset — or `null` when the college has none. NOT the engine's internal match score.
+   */
+  readonly powerScore: number | null
+  /** 1-based Tamil Nadu rank BY CYC Power Score, or `null` when the college has no score. */
+  readonly powerScoreRank: number | null
 }

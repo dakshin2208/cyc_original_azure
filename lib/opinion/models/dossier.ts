@@ -33,8 +33,18 @@ export interface CollegeDossier {
   readonly trend: readonly TrendPoint[]
   /** Eligibility band for the student, when a cutoff dataset is wired. */
   readonly eligibility: EligibilityAssessment | null
-  /** Overall weighted score in [0, 1]. */
+  /**
+   * The recommendation engine's INTERNAL match score in [0, 1] (how well this college fits
+   * the query). NOT the CYC Power Score — never present it under that label.
+   */
   readonly overallScore: number
+  /**
+   * The CYC Power Score [0,100] — the branded 4-vector percentile composite from the
+   * warehouse — or `null` when the college has none on file (then it is not displayed).
+   */
+  readonly powerScore: number | null
+  /** 1-based Tamil Nadu rank BY CYC Power Score — consistent with {@link powerScore}. */
+  readonly powerScoreRank: number | null
   readonly confidence: ConfidenceLevel
   /** Ids of the evidence items that back this dossier. */
   readonly evidenceIds: readonly string[]

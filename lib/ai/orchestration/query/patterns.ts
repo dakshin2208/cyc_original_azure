@@ -40,6 +40,17 @@ export const INTENT_RULES: readonly IntentRule[] = [
   { intent: 'general_information', weight: 1, phrases: ['tell me about', 'about', 'information', 'details', 'overview', 'where is', 'located', 'what is'] },
 ]
 
+/**
+ * An EVALUATIVE question about a college — "is X good", "is X the best", "how good is X",
+ * "is X worth it", "should I pick X". When exactly ONE college is named, such a query is a
+ * question ABOUT that college, NOT a request for a global "best colleges" list: the named
+ * entity must out-weigh the weak "best"/"good" scaffolding above (see the intent
+ * classifier's single-college rule). With zero colleges named it is a true global ask, and
+ * with two+ it is a comparison — both are unaffected.
+ */
+export const EVALUATIVE_RE =
+  /\b(is|are|was)\b[^?]*\b(good|best|better|great|decent|reputed|reputable|worth|worthwhile|top)\b|\bhow (good|is)\b|\bworth (it|joining|going)\b|\bshould i (pick|choose|join|go for|take|opt|prefer)\b|\bany good\b/i
+
 /** Tie-break priority when two intents score equally (higher = preferred). */
 export const INTENT_PRIORITY: Readonly<Record<QueryIntent, number>> = {
   compare_colleges: 110,

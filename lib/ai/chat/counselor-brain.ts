@@ -216,6 +216,11 @@ function baseRoute(ctx: BrainContext): CounselorDecision {
   // A pure social / acknowledgement message → a light nudge, no recommendation.
   if (SOCIAL_RE.test(message.trim())) return { kind: 'social' }
 
+  // A NAMED college without an explicit question marker ("tell me about PSG") is still a
+  // question ABOUT that college — never a global recommendation (which would wrongly
+  // demand a profile before answering).
+  if (parsed.colleges.length > 0) return { kind: 'answerQuestion' }
+
   // Anything else → a counselling (recommendation) request.
   return { kind: 'recommend' }
 }

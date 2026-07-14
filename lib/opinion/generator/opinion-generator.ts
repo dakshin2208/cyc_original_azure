@@ -49,6 +49,14 @@ function stars(normalized: number): string {
  *  counselor would actually say (no per-cohort/patent noise). */
 function reasonsFor(dossier: CollegeDossier): string[] {
   const rs: string[] = []
+  // Where it actually stands — the BRANDED CYC Power Score from the warehouse, plus the TN
+  // rank BY THAT SAME SCORE (so rank and score are always consistent). Omitted entirely
+  // when the college has no Power Score on file — never substituted with the engine's
+  // internal match score (`overallScore`), which is a different number.
+  if (dossier.powerScore != null) {
+    rs.push(`CYC Power Score ${dossier.powerScore.toFixed(1)}/100`)
+    if (dossier.powerScoreRank != null) rs.push(`#${dossier.powerScoreRank} in Tamil Nadu by Power Score`)
+  }
   if (dossier.strengths.length > 0) {
     rs.push(`strong ${dossier.strengths.map((d) => DIMENSION_LABEL[d].toLowerCase()).join(' and ')}`)
   }
@@ -69,7 +77,11 @@ function risksFor(dossier: CollegeDossier, priorities: readonly Priority[]): str
   const rs: string[] = []
   const cat = dossier.eligibility?.category
   if (cat === 'dream' || cat === 'reach') rs.push('Admission is a stretch — at or below the historical closing cutoff.')
-  else if (!dossier.eligibility || cat === 'unknown') rs.push('Eligibility is unconfirmed (no historical cutoff data).')
+  // Two DIFFERENT causes — never blame the dataset for a missing user input:
+  //  (a) no eligibility was assessed  → we don't know the STUDENT's cutoff/community;
+  //  (b) assessed but 'unknown'       → the COLLEGE genuinely has no closing cutoff on file.
+  else if (!dossier.eligibility) rs.push("I need your cutoff and community to check eligibility.")
+  else if (cat === 'unknown') rs.push('This college has no closing cutoff on record.')
   if (dossier.confidence === 'low') rs.push('Limited data — treat this with caution.')
   if (priorities.includes('budget')) rs.push('Tuition fees are not available in the dataset.')
   return rs

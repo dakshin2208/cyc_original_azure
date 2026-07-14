@@ -93,6 +93,10 @@ export function buildOpinionContext(
     evidenceByCollege.set(item.collegeName, list)
   }
 
+  // A single named college ranked against the full TN peer set (see the orchestrator's
+  // `rankedSubjects`) — the only case where a TN-wide rank exists.
+  const isSingleSubject = context.subjects.length === 1 && context.recommendations.length === 1
+
   const candidates: CollegeDossier[] = candidateColleges.map((college) => {
     const profile = profiles.getProfile(college)
     const result = byId.get(college.id) ?? null
@@ -116,6 +120,12 @@ export function buildOpinionContext(
       trend: profile.placement?.salaryTrend ?? [],
       eligibility: result?.eligibility ?? null,
       overallScore: score?.total ?? 0,
+      // The BRANDED CYC Power Score + its TN rank, read from the warehouse (never derived
+      // from `overallScore`). Surfaced only for the single-college (subject) answer, so a
+      // multi-college recommendation list stays concise; the values themselves are always
+      // the real ones, and `null` when the college has no Power Score on file.
+      powerScore: isSingleSubject ? profile.powerScore : null,
+      powerScoreRank: isSingleSubject ? profile.powerScoreRank : null,
       confidence: result?.confidence.level ?? bandOf(score?.dataCompleteness ?? 0),
       evidenceIds: evidenceByCollege.get(college.name) ?? [],
     }

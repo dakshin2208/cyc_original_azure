@@ -9,7 +9,7 @@
 
 import type { QueryIntent } from '../models'
 import type { ExtractionOutput } from './entity-extractor'
-import { INTENT_PRIORITY, INTENT_RULES } from './patterns'
+import { EVALUATIVE_RE, INTENT_PRIORITY, INTENT_RULES } from './patterns'
 
 /** An intent decision with confidence. */
 export interface IntentDecision {
@@ -46,6 +46,14 @@ export function createIntentClassifier(): IntentClassifier {
     if (extraction.studentCutoff !== null && extraction.community !== null) add('eligibility_query', 3)
     if (extraction.studentCutoff !== null) add('eligibility_query', 1)
     if (extraction.branch !== null) add('branch_advice', 1)
+
+    // A NAMED college out-weighs the weak "best"/"good" scaffolding: "is Kumaraguru the
+    // best college?" is a question ABOUT Kumaraguru, not a request for a global top-N.
+    // Only when EXACTLY ONE college is resolved — zero colleges is a true global ask
+    // ("which college is best for me?"), and two+ is a comparison (boosted above).
+    if (extraction.colleges.length === 1 && EVALUATIVE_RE.test(normalized)) {
+      add('general_information', 4)
+    }
 
     // Rank the candidates.
     const ranked = [...scores.entries()].sort(

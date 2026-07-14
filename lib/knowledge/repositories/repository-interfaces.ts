@@ -36,6 +36,18 @@ export interface CollegeRepository {
   /** OC closing cutoff (from the 2026 enrichment dataset) for a college, or `null` if unknown. */
   ocCutoffOf(id: CanonicalCollegeId): number | null
   /**
+   * The CYC Power Score [0,100] (the 4-vector percentile composite, from the 2026
+   * dataset), or `null` when the college has none on file. This is the BRANDED score —
+   * distinct from the recommendation engine's internal match score.
+   */
+  powerScoreOf(id: CanonicalCollegeId): number | null
+  /**
+   * 1-based Tamil Nadu rank BY CYC Power Score (1 = highest), or `null` when the college
+   * has no Power Score. Ranked by the same number it is displayed with, so rank and score
+   * are always consistent.
+   */
+  powerScoreRankOf(id: CanonicalCollegeId): number | null
+  /**
    * College-level median closing cutoff for a specific community (from the TNEA cutoff
    * dataset), or `null` if unknown. Lets a reserved student be judged on their OWN
    * community's marks rather than the OC band.

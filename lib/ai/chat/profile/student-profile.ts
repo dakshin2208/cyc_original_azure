@@ -236,6 +236,9 @@ export function onboardingSummary(p: StudentProfile): string {
  * can see their onboarding details are being used (and never has to repeat them).
  */
 export function profileEcho(p: StudentProfile): string {
+  // Intent-first: with NOTHING collected there is no profile to echo — emitting
+  // "Based on your profile — Cutoff — · — · …" would be broken and confusing.
+  if (PROFILE_SLOTS.every((s) => !p.answered[s])) return ''
   const loc = titleCasePlace(p.district) ?? 'Anywhere in TN'
   const branch = p.branch ?? 'any branch'
   return `Based on your profile — Cutoff ${p.cutoff !== null ? p.cutoff : '—'} · ${p.community ?? '—'} · ${loc} · ${branch}:`

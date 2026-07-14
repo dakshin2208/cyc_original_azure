@@ -50,6 +50,10 @@ export function createProfileProvider(
       // Selectivity signal: the 2026 OC cutoff, falling back to the TNEA OC median so
       // colleges missing a 2026 cutoff (e.g. PSG) still get a selectivity score.
       ocCutoff: repos.colleges.ocCutoffOf(college.id) ?? repos.colleges.communityCutoffOf(college.id, OC),
+      // The BRANDED CYC Power Score + its TN rank, straight from the warehouse. Never
+      // derived from the engine's internal match score.
+      powerScore: repos.colleges.powerScoreOf(college.id),
+      powerScoreRank: repos.colleges.powerScoreRankOf(college.id),
     })
   }
 

@@ -46,6 +46,8 @@ function dossier(
       ? { category: o.eligibility, studentCutoff: 180, closingCutoff: 175, margin: 5, hasData: true, basis: 'x' }
       : null,
     overallScore: 0.7,
+    powerScore: null, // no Power Score on file → the label is omitted entirely
+    powerScoreRank: null,
     confidence: o.confidence ?? 'high',
     evidenceIds: [`ev:${name}`],
   }
@@ -100,7 +102,11 @@ describe('generateOpinions', () => {
     expect(kinds).toEqual(['top_pick', 'alternative'])
     const top = result.recommendations[0]
     expect(top.tradeoffs.join(' ')).toMatch(/weaker research/i)
-    expect(top.risks.join(' ')).toMatch(/eligibility is unconfirmed/i)
+    // The fixture has no eligibility assessment → the STUDENT's cutoff is unknown. We must
+    // ask for it, NOT blame the dataset ("no historical cutoff data") — the college may well
+    // have a cutoff on file. (A college that genuinely has none says so explicitly.)
+    expect(top.risks.join(' ')).toMatch(/need your cutoff and community/i)
+    expect(top.risks.join(' ')).not.toMatch(/no historical cutoff data/i)
     expect(result.evidenceIds).toContain('ev:Top')
   })
 
