@@ -60,6 +60,7 @@ export {
   type Grounding,
   type ValidationOutcome,
   type GuardOutcome,
+  REMOVED_SENTENCE_CODE,
   buildGrounding,
   validateResponse,
   applyHallucinationGuard,

@@ -41,7 +41,14 @@ export { generateOpinions } from './generator/opinion-generator'
 export { buildOpinionPrompt } from './prompt/opinion-prompt-builder'
 
 // ── Module 5: Validator ──────────────────────────────────────────────────────
-export { type OpinionValidation, validateOpinionResponse } from './validator/opinion-validator'
+export {
+  type OpinionValidation,
+  type OpinionIssue,
+  type DiscardCode,
+  DISCARD_CODES,
+  toDiscardCode,
+  validateOpinionResponse,
+} from './validator/opinion-validator'
 
 // ── Module 6: Formatter ──────────────────────────────────────────────────────
 export { formatOpinion } from './formatter/opinion-formatter'

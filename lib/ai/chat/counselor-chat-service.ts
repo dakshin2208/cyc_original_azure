@@ -263,6 +263,12 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       usedModel: advised.response.usedModel,
       fallback: !advised.response.usedModel,
       evidenceCount: advised.response.evidence.length,
+      // Trust observability: WHY the prose was discarded, and whether the hallucination
+      // guard silently repaired an answer that still shipped (usedModel stays true for a
+      // 'repaired' turn — the case that was previously invisible on live traffic).
+      llmStatus: advised.response.llmStatus,
+      discardReasons: advised.response.discardReasons,
+      repairedSentenceCount: advised.response.repairedSentenceCount,
     })
 
     const body: ChatResponse = {

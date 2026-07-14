@@ -171,6 +171,14 @@ export interface GuardOutcome {
 }
 
 /**
+ * The issue code emitted ONCE PER SENTENCE the guard strips. Counting these is how the
+ * hallucination guard becomes observable: `status: 'repaired'` says the guard fired, this
+ * says how hard. The issue's MESSAGE is the removed sentence itself (model prose that can
+ * paraphrase the student's own details), so only ever count these — never log the message.
+ */
+export const REMOVED_SENTENCE_CODE = 'removed_unsupported_sentence'
+
+/**
  * Remove unsupported factual sentences; replace the whole answer with the given
  * insufficient-evidence text if nothing supported remains.
  */
@@ -194,7 +202,7 @@ export function applyHallucinationGuard(
     }
     if (colleges.length > 0 || fabricated) {
       removed.push(sentence)
-      issues.push({ code: 'removed_unsupported_sentence', message: sentence, severity: 'warning' })
+      issues.push({ code: REMOVED_SENTENCE_CODE, message: sentence, severity: 'warning' })
     } else {
       kept.push(sentence)
     }

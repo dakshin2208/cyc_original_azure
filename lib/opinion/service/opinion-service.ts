@@ -66,6 +66,10 @@ const OUT_OF_DOMAIN_RESPONSE: OpinionResponse = {
   recommendationSummary: [],
   strategy: 'general_counseling',
   usedModel: false,
+  // A fixed decline: the model is never called, so there is nothing to discard or repair.
+  llmStatus: 'not_attempted',
+  discardReasons: [],
+  repairedSentenceCount: 0,
 }
 
 /** The fixed decline for a named-but-unverifiable college (RC7). */
@@ -77,6 +81,9 @@ const UNVERIFIED_COLLEGE_RESPONSE: OpinionResponse = {
   recommendationSummary: [],
   strategy: 'general_counseling',
   usedModel: false,
+  llmStatus: 'not_attempted',
+  discardReasons: [],
+  repairedSentenceCount: 0,
 }
 
 /**

@@ -9,7 +9,7 @@
  * "I don't have enough evidence…" when appropriate). No AI.
  */
 
-import type { LLMResult } from '@/lib/ai/llm'
+import { REMOVED_SENTENCE_CODE, type LLMResult } from '@/lib/ai/llm'
 import type { FollowUpQuestion, ResponseCitation } from '@/lib/ai/orchestration'
 import type {
   OpinionContext,
@@ -17,7 +17,7 @@ import type {
   OpinionResult,
   RecommendationSummaryItem,
 } from '../models'
-import type { OpinionValidation } from '../validator/opinion-validator'
+import { toDiscardCode, type DiscardCode, type OpinionValidation } from '../validator/opinion-validator'
 
 const MAX_CITATIONS = 12
 
@@ -113,5 +113,31 @@ export function formatOpinion(input: {
     recommendationSummary: summarize(result),
     strategy: result.strategy,
     usedModel,
+    // Surface what was ALREADY computed and then thrown away. The decision above is
+    // unchanged — this only makes it observable. Codes and counts only: the matching
+    // messages embed model prose (a stripped sentence, a cited college name), which must
+    // never leave the process.
+    llmStatus: llm.status,
+    discardReasons: discardReasons(usedModel, validation, llm),
+    repairedSentenceCount: llm.issues.filter((i) => i.code === REMOVED_SENTENCE_CODE).length,
   }
+}
+
+/**
+ * Why the prose was discarded — empty when it was accepted.
+ *
+ * A grounding failure is usually caught in the LLM layer FIRST: the adapter rejects the
+ * response, retries, gives up, and the opinion validator can only report the generic
+ * `llm_unusable`. So the LLM layer's own error codes are appended — otherwise "was this
+ * discarded for a citation failure, or did the provider just time out?" stays unanswerable,
+ * which is the whole point of this signal. Every code passes through `toDiscardCode`, so only
+ * the closed enum can ever be emitted.
+ */
+function discardReasons(usedModel: boolean, validation: OpinionValidation, llm: LLMResult): readonly DiscardCode[] {
+  if (usedModel) return []
+  const codes = [
+    ...validation.codes,
+    ...llm.issues.filter((i) => i.severity === 'error').map((i) => toDiscardCode(i.code)),
+  ]
+  return [...new Set(codes)]
 }

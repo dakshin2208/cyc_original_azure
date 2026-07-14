@@ -7,10 +7,16 @@
  * capability usage, drop-off, comparisons, unsupported asks, fallback rate, confidence.
  *
  * PRIVACY (enforced by construction): events carry ONLY non-identifying signals —
- * capability/decision kinds, coarse enums (strategy, confidence LEVEL, topic), booleans,
- * counts, a random conversationId, and PUBLIC college names (the entity asked about, not
- * the student). They NEVER carry the raw message, a student name, or the cutoff / community
- * / district VALUES. This mirrors the logger's "length, never content" rule.
+ * capability/decision kinds, coarse enums (strategy, confidence LEVEL, topic, discard CODE),
+ * booleans, counts, a random conversationId, and PUBLIC college names (the entity asked
+ * about, not the student). They NEVER carry the raw message, a student name, or the cutoff /
+ * community / district VALUES. This mirrors the logger's "length, never content" rule.
+ *
+ * The trust fields obey the same rule and it is deliberate: the validator and the
+ * hallucination guard both produce human-readable MESSAGES that embed model prose (a
+ * stripped sentence, a cited college name) — those never leave the process. Only the closed
+ * enum of CODES and a COUNT of stripped sentences are emitted. A code is countable; a
+ * sentence is a leak.
  */
 
 import type { CounselorDecision } from './counselor-brain'
@@ -37,6 +43,21 @@ export type AnalyticsEvent =
       readonly usedModel: boolean
       readonly fallback: boolean
       readonly evidenceCount: number
+      /**
+       * How the LLM pipeline resolved the turn: 'ok' | 'repaired' | 'unparseable' |
+       * 'rejected' | 'provider_error' | 'not_attempted'. `usedModel` alone cannot
+       * distinguish a clean model from one the guard is constantly saving — 'repaired'
+       * ships with usedModel=true.
+       */
+      readonly llmStatus: string
+      /**
+       * Why the model's prose was rejected — a CLOSED enum of codes from the opinion
+       * validator (e.g. 'citation_unknown_evidence'). Never a message: the messages embed
+       * model-supplied text (a cited college name, a stripped sentence).
+       */
+      readonly discardReasons: readonly string[]
+      /** How many sentences the hallucination guard stripped. A COUNT — never the text. */
+      readonly repairedSentenceCount: number
     }
   | { readonly type: 'conversation_completed'; readonly conversationId: string; readonly turns: number }
 
