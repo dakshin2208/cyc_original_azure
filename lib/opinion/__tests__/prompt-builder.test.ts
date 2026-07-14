@@ -76,7 +76,7 @@ describe('buildOpinionPrompt', () => {
   })
 
   it('includes the citable evidence, conversation history, and missing-info sections', () => {
-    expect(prompt.context).toContain('EVIDENCE (cite these ids)')
+    expect(prompt.context).toContain('EVIDENCE (use these ids ONLY in the "citations" array')
     expect(prompt.context).toContain('CONVERSATION SO FAR')
     expect(prompt.context).toContain('I want strong placements')
     expect(prompt.context).toMatch(/MISSING[\s\S]*fees/)

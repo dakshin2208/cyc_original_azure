@@ -53,7 +53,7 @@ export {
 } from './response'
 
 // ── Parser ───────────────────────────────────────────────────────────────────
-export { type ParseResult, extractJsonObject, parseAIResponse } from './parser'
+export { type ParseResult, extractJsonObject, parseAIResponse, stripEvidenceIds } from './parser'
 
 // ── Validation + hallucination guard ─────────────────────────────────────────
 export {

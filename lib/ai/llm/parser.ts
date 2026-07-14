@@ -106,6 +106,44 @@ function coerceFollowUps(v: unknown): FollowUpQuestion[] {
   return out
 }
 
+// ── Evidence-id scrubbing (presentation only — citations are untouched) ──────
+//
+// The prompt hands the model its evidence as `[retrieval-psg-…-total-faculty-283]`, so it
+// echoes those keys straight into the prose: "283 faculty members, with 140 holding PhDs
+// ([retrieval-psg-…-total-faculty-283], [retrieval-psg-…-nirf-ranked-yes])". A parent sees
+// internal database keys in the first ten seconds. The prompt now forbids it (belt), and this
+// strips whatever still slips through (suspenders) — models are not reliable about formatting.
+//
+// This runs at PARSE time, before validation and the hallucination guard, deliberately: the ids
+// carry digits ("…-phd-140", "…-rate-69-6") and the guard scans sentences for numeric claims, so
+// the tokens pollute its input as well as the user's screen. `citations` are NEVER touched —
+// grounding, validation and the UI keep the full evidence trail.
+
+/** A bracketed evidence key: lowercase, hyphenated, 3+ segments — never ordinary prose. */
+const BRACKETED_ID = /\[\s*[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\s*\]/g
+/** The same key written without brackets, which some models do. */
+const BARE_ID = /(?<![\w-])(?:retrieval|comparison|recommendation|evidence|fact)-[a-z0-9]+(?:-[a-z0-9]+)+/g
+
+/**
+ * Remove evidence ids from user-facing prose, leaving clean English — no orphaned "( )",
+ * no " ." and no double spaces. Exported for direct testing.
+ */
+export function stripEvidenceIds(text: string): string {
+  return text
+    .replace(BRACKETED_ID, '')
+    .replace(BARE_ID, '')
+    .replace(/\(\s*(?:[,;]\s*)*\)/g, '') // "(, )" left behind by the removal
+    .replace(/\[\s*(?:[,;]\s*)*\]/g, '')
+    .replace(/[ \t]*([,.;:!?])/g, '$1') // " ." → "."
+    .replace(/([,;])\s*([.;:!?])/g, '$2') // ", ." → "."
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .trim()
+}
+
 /** Parse a raw completion string into an {@link AIResponse}. */
 export function parseAIResponse(raw: string): ParseResult {
   const jsonText = extractJsonObject(raw)
@@ -123,9 +161,14 @@ export function parseAIResponse(raw: string): ParseResult {
   if (answer === null || answer.trim().length === 0) {
     return { ok: false, error: 'missing or empty "answer"' }
   }
+  // Scrub internal evidence keys from the prose. If the model wrote NOTHING but ids, the
+  // answer is now empty and the response is rejected — the deterministic fallback then serves,
+  // which is the correct outcome (an "answer" made only of database keys is not an answer).
+  const prose = stripEvidenceIds(answer)
+  if (prose.length === 0) return { ok: false, error: 'answer contained no prose (evidence ids only)' }
 
   const value: AIResponse = {
-    answer: answer.trim(),
+    answer: prose,
     citations: coerceCitations(parsed.citations),
     followUps: coerceFollowUps(parsed.followUps),
     confidence: coerceConfidence(parsed.confidence),

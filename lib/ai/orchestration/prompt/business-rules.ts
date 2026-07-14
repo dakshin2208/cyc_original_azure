@@ -42,7 +42,9 @@ export const FORMATTING_RULES =
   '"followUps": [{"question": string, "expects": string, "reason": string}], ' +
   '"confidence": "high"|"medium"|"low", "hadMissingInformation": boolean}. ' +
   'Every factual sentence in "answer" must be backed by at least one citation whose ' +
-  'evidenceId appears in the EVIDENCE section.'
+  'evidenceId appears in the EVIDENCE section. Evidence ids belong ONLY in "citations" — ' +
+  'the "answer" string must contain NO evidence ids, no bracketed keys, and no citation ' +
+  'markers of any kind; it is prose a parent reads.'
 
 /** Compose the full system instruction block from the policy constants. */
 export function composeSystemPrompt(): string {

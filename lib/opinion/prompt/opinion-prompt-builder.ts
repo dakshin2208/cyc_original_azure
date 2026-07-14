@@ -42,7 +42,9 @@ const OPINION_SYSTEM =
   'instead of guessing.\n' +
   "- If the recommendations indicate insufficient evidence, say you don't have enough to recommend " +
   'confidently and ask ONE useful clarifying question.\n' +
-  '- Attach the supporting evidence ids to every factual claim.'
+  '- Back every factual claim with evidence ids in the STRUCTURED "citations" ARRAY.\n' +
+  '- NEVER write an evidence id, a bracketed key, or any citation marker inside "answer". The answer is\n' +
+  '  what a parent reads aloud: plain English sentences — no database keys, no square-bracketed markers.'
 
 function serializeRecommendations(result: OpinionResult): string {
   if (result.recommendations.length === 0) return 'RECOMMENDATIONS: none.'
@@ -68,7 +70,9 @@ function serializeEvidence(context: OpinionContext, limit: number): string {
     return `  [${e.id}] ${who}${e.label} = ${value} (${e.source}, ${e.confidenceLevel})`
   })
   const extra = context.evidence.count - shown.length
-  return `EVIDENCE (cite these ids):\n${lines.join('\n')}${extra > 0 ? `\n  … (+${extra} more)` : ''}`
+  // The ids are shown in brackets so the model can reference them — but ONLY in the citations
+  // array. Saying "cite these ids" next to `[id]` is what taught it to echo them into the prose.
+  return `EVIDENCE (use these ids ONLY in the "citations" array — never inside "answer"):\n${lines.join('\n')}${extra > 0 ? `\n  … (+${extra} more)` : ''}`
 }
 
 function serializeHistory(history: readonly ConversationTurn[]): string {
