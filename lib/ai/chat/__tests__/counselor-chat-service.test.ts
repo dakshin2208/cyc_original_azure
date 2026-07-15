@@ -74,7 +74,9 @@ describe('counselor chat service — LLM reasoning path', () => {
     const outcome = await service.handle({ message: 'Which college is best for AI & DS with my cutoff?' })
     expect(outcome.httpStatus).toBe(200)
     const body = ok(outcome.body)
-    expect(body.answer).toBe('Based on the verified evidence, here is my counsel.')
+    // The grounded model answer is used verbatim; a no-profile turn appends ONE closing offer
+    // to personalise (never a gate), so the model's prose is contained, not the whole string.
+    expect(body.answer).toContain('Based on the verified evidence, here is my counsel.')
     expect(body.citations.length).toBeGreaterThan(0)
     expect(['high', 'medium', 'low']).toContain(body.confidence)
   })

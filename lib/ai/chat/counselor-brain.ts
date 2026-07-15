@@ -137,6 +137,9 @@ function slotChanged(prior: StudentProfile, profile: StudentProfile): boolean {
 
 /** Whether the chosen capability requires a student profile before it can answer. */
 function routeNeedsProfile(route: CounselorDecision, parsed: ParsedQuery, message: string): boolean {
+  // A global category/dimension/branch ranking is served from the warehouse with no profile —
+  // never gate it. Personalisation is offered as a CLOSING line by the coordinator, not demanded.
+  if (isGlobalRanking(parsed, message)) return false
   if (PROFILE_KINDS.has(route.kind)) return true
   if (route.kind === 'answerQuestion') {
     return parsed.colleges.length === 0 && PROFILE_INTENTS.has(parsed.intent) && COLLEGE_FIT_RE.test(message)

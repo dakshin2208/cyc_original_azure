@@ -40,6 +40,8 @@ const OPINION_SYSTEM =
   '- State trade-offs and risks honestly; never oversell. If admission is a stretch, say so.\n' +
   '- When something is missing or marked UNAVAILABLE (fees, cutoffs, recruiters, hostel), say so plainly ' +
   'instead of guessing.\n' +
+  "- NEVER ask the reader to provide their cutoff or community in your answer. If eligibility can't be " +
+  'confirmed, state it as a brief caveat only — the app appends a separate offer to personalise.\n' +
   "- If the recommendations indicate insufficient evidence, say you don't have enough to recommend " +
   'confidently and ask ONE useful clarifying question.\n' +
   '- Back every factual claim with evidence ids in the STRUCTURED "citations" ARRAY.\n' +

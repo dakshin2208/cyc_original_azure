@@ -347,8 +347,18 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       repairedSentenceCount: advised.response.repairedSentenceCount,
     })
 
+    // Closing personalisation OFFER — one soft line when we answered a global/overview query
+    // WITHOUT a profile and gave real colleges. This is the sanctioned place for the cutoff ask:
+    // the answer already stands on its own; the offer only invites sharpening it. Never a gate.
+    // Skipped for a complete profile (already personalised) and for declines (they use `finish`).
+    const gaveColleges = advised.response.recommendationSummary.some((s) => s.colleges.length > 0)
+    const offer =
+      !declined && (!profile || !isComplete(profile)) && gaveColleges
+        ? "If you tell me your cutoff and community, I'll show which of these you can realistically get into."
+        : null
+
     const body: ChatResponse = {
-      answer: [declined ? null : intro, advised.response.answer, declined ? null : outro]
+      answer: [declined ? null : intro, advised.response.answer, declined ? null : outro, offer]
         .filter((s): s is string => !!s)
         .join('\n\n'),
       citations: advised.response.evidence,
@@ -492,12 +502,17 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // (#5). A bare question ("is CIT good?") leaves the profile intact. During
     // collection every message is merged so the slots fill.
     const explicitChange = CHANGE_RE.test(message)
+    // A GLOBAL ranking ("best colleges for CSE", "top government colleges") must not mutate the
+    // profile: merging its branch/category would flip the turn to `profileChanged` ("Got it, I've
+    // updated…") and stamp a preference the user never set. The branch still reaches the engine
+    // from the message parse, so the CSE filter still applies — it just isn't stored as theirs.
+    const globalRanking = isGlobalRanking(parsedRaw, message)
     // The profile is merged from what the USER actually typed (`message`/`parsedRaw`), never
     // from the memory-resolved text: a substituted name like "Coimbatore Institute of
     // Technology" carries a district token, and merging it would silently set a district the
     // parent never asked for. Memory answers the question; it must not rewrite the student.
     let profile =
-      wasComplete && hasQuestion && !explicitChange ? priorProfile : mergeMessage(priorProfile, parsedRaw, message)
+      (wasComplete && hasQuestion && !explicitChange) || globalRanking ? priorProfile : mergeMessage(priorProfile, parsedRaw, message)
     // Normalize a typed district to a known one, tolerating misspellings ("coimbaore"
     // → "coimbatore"), so the district filter matches instead of returning nothing.
     if (deps.resolveDistrict && profile.district) {
