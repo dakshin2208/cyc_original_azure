@@ -51,6 +51,7 @@ const ALL_KINDS: CounselorDecision['kind'][] = [
   'compareNeedsTwo',
   'refine',
   'dataDecline',
+  'listColleges',
   'answerQuestion',
   'social',
   'recommend',

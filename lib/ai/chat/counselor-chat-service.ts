@@ -19,7 +19,7 @@
 import { randomUUID } from 'crypto'
 import { buildWarehouseFromDirectory, createRepositories } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
-import { createCommunityCutoffLookup, type CutoffLookup } from '@/lib/recommendation'
+import { createCommunityCutoffLookup, createRecommendationEngine, type CutoffLookup } from '@/lib/recommendation'
 import type { ConversationState } from '@/lib/ai/orchestration'
 import { composeCounselorSystem, resolveConfiguredProvider, type LLMProvider } from '@/lib/ai/llm'
 import {
@@ -93,6 +93,11 @@ export interface CounselorChatServiceDeps {
    * service then broadens the recommendation statewide). Absent → no normalization.
    */
   readonly resolveDistrict?: (input: string) => string | null
+  /**
+   * Deterministic directory listing: N ranked colleges in a city (optional branch), as a
+   * numbered list. Returns null when the city is unknown to the warehouse. No profile involved.
+   */
+  readonly listColleges?: (city: string, count: number, branch: string | null) => string | null
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -476,6 +481,12 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         excluded.set(id, set)
         await deps.profileStore!.set(id, priorProfile)
       },
+      listColleges: (city, count, branch) => {
+        const list = deps.listColleges?.(city, count, branch)
+        if (list) return finish(list, 'ready')
+        // The city resolved for routing but yielded no colleges — honest, not a crash.
+        return finish(`I don't have colleges on record for "${city}" in the dataset. Try a nearby district, or ask me to recommend across Tamil Nadu.`, 'ready')
+      },
     }
     return registry.dispatch(decision, capabilityContext)
   }
@@ -546,6 +557,33 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     if (d) knownDistricts.add(d.toLowerCase())
   }
 
+  // Deterministic directory listing (Bug 2): the SAME engine the recommender uses, filtered to a
+  // city and capped at the requested count — presented as a plain numbered list, never a
+  // "top recommendation", and never gated on a profile.
+  const listEngine = createRecommendationEngine(repos, retrieval, { cutoffs })
+  const titleCasePlace = (s: string): string => s.replace(/\b\w/g, (c) => c.toUpperCase())
+  const listColleges = (city: string, count: number, branch: string | null): string | null => {
+    const opts = { district: city, limit: Math.max(1, Math.min(25, count)) }
+    const results = branch ? listEngine.recommendByBranch(branch, opts) : listEngine.recommendBestCollege(opts)
+    if (results.length === 0) return null
+    const lines = results.map((r, i) => {
+      const s = retrieval.placements.getSummary(r.college.id) as
+        | { medianSalary: number | null; placementPercentage: number | null }
+        | null
+      const bits: string[] = []
+      if (s?.medianSalary != null) bits.push(`₹${(s.medianSalary / 100000).toFixed(1)}L median`)
+      if (s?.placementPercentage != null) bits.push(`${Math.round(s.placementPercentage)}% placed`)
+      return `${i + 1}. ${r.college.name}${bits.length ? ` — ${bits.join(', ')}` : ''}`
+    })
+    const branchNote = branch ? ` for ${branch}` : ''
+    const askedNote = count > results.length ? ` (that's all ${results.length} on record${branchNote})` : ''
+    return (
+      `Here ${lines.length === 1 ? 'is 1 college' : `are ${lines.length} colleges`} in ${titleCasePlace(city)}${branchNote}, ranked by overall strength${askedNote}:\n\n` +
+      `${lines.join('\n')}\n\n` +
+      `Ask me to compare any two, or tell me your cutoff and community and I'll flag which you can realistically get.`
+    )
+  }
+
   return createCounselorChatService({
     opinion,
     // Persist the canonical ConversationState in Supabase when configured, so multi-turn
@@ -565,5 +603,6 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     timeoutMs,
     maxMessageLength: options.maxMessageLength,
     resolveDistrict: (input) => resolveDistrict(input, knownDistricts),
+    listColleges,
   })
 }

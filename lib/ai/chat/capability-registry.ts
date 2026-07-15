@@ -42,6 +42,12 @@ export interface CapabilityContext {
   ) => Promise<ChatOutcome>
   /** Record an exclusion request (remembered across turns) and re-store the prior profile. */
   readonly recordExclusion: (colleges: readonly string[]) => Promise<void>
+  /**
+   * Return a DETERMINISTIC directory listing of colleges in a city (optionally a branch),
+   * as a numbered list — never framed as a personalised recommendation, and never gated on a
+   * profile. Built from the warehouse via the recommendation engine.
+   */
+  readonly listColleges: (city: string, count: number, branch: string | null) => ChatOutcome
 }
 
 /** A handler for one decision kind. Executes; does not decide. */
@@ -203,6 +209,7 @@ export function createDefaultCapabilityRegistry(): CapabilityRegistry {
         : `Happy to compare two colleges side by side — give me both full names, e.g. "compare PSG College of Technology and Kumaraguru College of Technology".`
       return ctx.finish(msg, 'ready')
     })
+    .register('listColleges', (d, ctx) => ctx.listColleges(d.city, d.count, d.branch))
     .register('refine', (d, ctx) => ctx.answer(d.trigger, ctx.profile, `${ctx.echo}\n\n${d.intro}`, nextStep('refine', ctx.isParent)))
     .register('dataDecline', (d, ctx) => {
       const who = d.college ? `${d.college}'s ` : ''

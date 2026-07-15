@@ -55,6 +55,26 @@ const PREFLIST_RE =
 // questions. Anchored so "hi, compare PSG and CIT" is a comparison, not a greeting.
 const GREETING_RE =
   /^(hi+|hey+|hello+|hii+|yo|hola|namaste|vanakkam|hai|start|begin|get started|let'?s start|help|menu|good (morning|afternoon|evening))[\s!.]*$/i
+// A DIRECTORY listing ask: an explicit "list/show/name/top-N … colleges" cue, or "colleges in
+// <place>". Paired with a resolved location in the router; the personalised "which colleges can
+// I get" is a recommendation and is intentionally NOT matched here.
+const LISTING_RE =
+  /\b(list|show|give|name|display)\b[^?]*\bcolle\w+|\btop\s+\d+\b[^?]*\bcolle\w+|\bcolle\w+\s+(in|at|near|around|within)\b|\bhow many colle\w+/i
+/** The count requested by a listing ask ("top 10 …", "10 colleges …"); default 10, capped 25. */
+function listingCount(message: string): number {
+  const m = /\btop\s+(\d{1,3})\b/i.exec(message) ?? /\b(\d{1,3})\s+colle\w+/i.exec(message)
+  const n = m ? Number(m[1]) : 10
+  return Math.max(1, Math.min(25, Number.isFinite(n) ? n : 10))
+}
+
+/**
+ * A DIRECTORY listing ask — an explicit list cue AND a resolved location, with no named college
+ * and no comparison. Exported so the coordinator can skip the profile MERGE for it (a directory
+ * query must not silently set the student's district preference).
+ */
+export function isListingAsk(message: string, parsed: ParsedQuery): boolean {
+  return !COMPARE_RE.test(message) && parsed.colleges.length === 0 && Boolean(parsed.location) && LISTING_RE.test(message)
+}
 
 // Intent-first profile gate: only these capabilities need a student profile. Knowledge,
 // comparison, college-info, and branch guidance are answered WITHOUT any profile.
@@ -142,6 +162,8 @@ export type CounselorDecision =
   | { readonly kind: 'refine'; readonly trigger: string; readonly intro: string }
   /** Fees / hostel / recruiter names — honestly absent from the dataset. */
   | { readonly kind: 'dataDecline'; readonly topic: 'fee' | 'hostel' | 'recruiter'; readonly college: string | null }
+  /** A directory listing — N colleges in a city/branch. Needs NO profile. */
+  | { readonly kind: 'listColleges'; readonly city: string; readonly count: number; readonly branch: string | null }
   /** A keyworded follow-up question — answer it using the stored profile. */
   | { readonly kind: 'answerQuestion' }
   /** A pure social / acknowledgement message — a light nudge. */
@@ -172,6 +194,16 @@ function baseRoute(ctx: BrainContext): CounselorDecision {
   // Exclusion: "remove / drop <college>" — remember it and re-counsel without it.
   if (REMOVE_RE.test(message) && parsed.colleges.length > 0) {
     return { kind: 'exclude', colleges: parsed.colleges }
+  }
+
+  // Directory listing — "top 10 colleges in coimbatore", "list colleges in chennai". Needs NO
+  // profile (a directory is public), so it is routed FIRST (before the profile-slot check) and
+  // excluded from the profile gate: "in coimbatore" would otherwise be read as a district-slot
+  // update and hijack the turn into onboarding. `isListingAsk` gates it — an explicit list cue
+  // plus a resolved location — so "which colleges can I get" (a personalised recommendation) is
+  // never caught here.
+  if (isListingAsk(message, parsed)) {
+    return { kind: 'listColleges', city: parsed.location as string, count: listingCount(message), branch: parsed.branch }
   }
 
   // A profile SLOT change → re-counsel (also drives slot-by-slot collection: each answered
