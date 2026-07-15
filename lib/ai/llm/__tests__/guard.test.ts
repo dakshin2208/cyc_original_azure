@@ -69,4 +69,30 @@ describe('hallucination guard', () => {
     expect(out.response.answer).toBe(answer)
     expect(out.removed).toHaveLength(0)
   })
+
+  // Bug 3: a repair must never ship a fragment that opens with a dangling connective/pronoun.
+  describe('repair leaves coherent prose (no dangling opener)', () => {
+    it('strips a leading connective left by a removed sentence', () => {
+      // Sentence 1 fabricates a figure (removed); sentence 2 opens with "However,".
+      const bad = `Its median salary is 8888888 rupees.`
+      const kept = `However, ${NAME.psg} has a strong academic reputation.`
+      const out = applyHallucinationGuard(reply(`${bad} ${kept}`), grounding, INSUFFICIENT)
+      expect(out.removed).toContain(bad)
+      expect(out.response.answer).not.toMatch(/^However/i) // the dangling opener, gone
+      expect(out.response.answer).toMatch(/academic reputation/i) // the real content survives
+    })
+
+    it('drops an orphaned pronoun opener when another supported sentence remains', () => {
+      // Sentence 1 fabricates (removed) and was the pronoun's antecedent; two clean sentences remain.
+      const bad = `Its placement rate is 42% into foreign universities.`
+      const out = applyHallucinationGuard(
+        reply(`${bad} It is well regarded. ${NAME.psg} has a good reputation.`),
+        grounding,
+        INSUFFICIENT,
+      )
+      expect(out.removed).toContain(bad)
+      expect(out.response.answer).not.toMatch(/^It\b/) // no orphaned pronoun subject
+      expect(out.response.answer).toMatch(/good reputation/i)
+    })
+  })
 })

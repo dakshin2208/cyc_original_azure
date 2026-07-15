@@ -210,9 +210,42 @@ export function applyHallucinationGuard(
 
   if (removed.length === 0) return { response, issues, removed }
 
-  const answer = kept.length > 0 ? kept.join(' ') : insufficientEvidenceText
+  const answer = kept.length > 0 ? repairOpener(kept) : insufficientEvidenceText
   if (kept.length === 0) {
     issues.push({ code: 'no_supported_content', message: 'no supported sentences remained', severity: 'warning' })
   }
   return { response: { ...response, answer }, issues, removed }
+}
+
+// A sentence that only makes sense AFTER the sentence before it: a leading connective, or a bare
+// pronoun/demonstrative subject whose antecedent was in the removed text.
+const LEADING_CONNECTIVE = /^(however|additionally|also|moreover|furthermore|but|and|so|then|therefore|thus|besides|still|yet|meanwhile|consequently|in addition|on the other hand|that said)\b[\s,:—-]*/i
+const ORPHAN_PRONOUN_OPENER = /^(it|this|that|these|those|they|he|she)\b/i
+
+/**
+ * After a repair removed sentences, the FIRST survivor can be left dangling — "However, keep in
+ * mind…" or "It has strong placements…" where the subject was in a deleted sentence. Deterministic
+ * cleanup (no re-ask, no extra LLM call): strip a leading connective and re-capitalise; if the
+ * opener is a bare pronoun/demonstrative with an antecedent that is now gone, drop that one
+ * orphaned sentence. Always keep at least one sentence.
+ */
+function repairOpener(kept: string[]): string {
+  const sentences = [...kept]
+  let first = sentences[0]
+
+  // Drop a leading connective ("However, X" → "X").
+  const stripped = first.replace(LEADING_CONNECTIVE, '')
+  if (stripped !== first && stripped.length > 0) first = stripped
+
+  // A bare pronoun/demonstrative subject is only orphaned if its antecedent was removed — i.e.
+  // this is the FIRST surviving sentence and nothing before it names a subject. Drop it, but only
+  // when another supported sentence remains to carry the answer.
+  if (ORPHAN_PRONOUN_OPENER.test(first) && sentences.length > 1) {
+    sentences.shift()
+    return sentences.join(' ').trim()
+  }
+
+  first = first.charAt(0).toUpperCase() + first.slice(1)
+  sentences[0] = first
+  return sentences.join(' ').trim()
 }
