@@ -61,6 +61,21 @@ export type AnalyticsEvent =
     }
   | { readonly type: 'conversation_completed'; readonly conversationId: string; readonly turns: number }
   | {
+      /**
+       * How this turn was orchestrated (production-safe migration). The LLM tool plan is the
+       * PRIMARY path; the deterministic router is a FALLBACK used only on failure.
+       */
+      readonly type: 'orchestration'
+      readonly conversationId: string
+      /** 'llm' = the LLM tool plan drove the turn; 'deterministic_fallback' = the router did. */
+      readonly path: 'llm' | 'deterministic_fallback'
+      /**
+       * When path='deterministic_fallback', WHY the LLM path yielded nothing actionable:
+       * timeout | malformed | empty | unsupported | error. Null on the 'llm' path.
+       */
+      readonly fallbackReason: 'timeout' | 'malformed' | 'empty' | 'unsupported' | 'error' | null
+    }
+  | {
       /** The LLM planner ran this turn. Enums only — never the message, never a college name. */
       readonly type: 'planner_decision'
       readonly conversationId: string

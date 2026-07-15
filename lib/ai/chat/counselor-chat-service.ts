@@ -35,6 +35,12 @@ import { createOpinionTrustPipeline } from './trust-pipeline'
 import { createConsoleAnalytics, createNullAnalytics, isClosingMessage, turnAnalyticsEvents, type AnalyticsSink } from './analytics'
 import { RECOMMEND_TRIGGER } from './constants'
 import {
+  createDefaultToolRegistry,
+  createToolUnderstanding,
+  type RecommendArgs,
+  type ToolResult,
+} from '@/lib/ai/tools'
+import {
   createDefaultCapabilityRegistry,
   type CapabilityContext,
   type CapabilityRegistry,
@@ -105,6 +111,42 @@ export interface CounselorChatServiceDeps {
    * numbered list. Returns null when the city is unknown to the warehouse. No profile involved.
    */
   readonly listColleges?: (city: string, count: number, branch: string | null) => string | null
+  /**
+   * LLM UNDERSTAND — the PRIMARY path. It plans tool calls and returns a NEUTRAL
+   * {@link ToolResult} (recommend / list / route), or null. A non-null result drives
+   * the turn (LLM orchestration is the default). `null` — LLM timeout, malformed JSON,
+   * empty plan, unsupported tool, or an unexpected failure — routes to the deterministic
+   * FALLBACK (planner + classifier). A failure NEVER kills a turn.
+   */
+  readonly understand?: (message: string, conversationId: string) => Promise<ToolResult | null>
+}
+
+/**
+ * Commit 3: overlay a `recommend` tool result's args onto the profile, so the
+ * LLM-understood values become the overrides the EXISTING pipeline consumes. Only the
+ * fields the tool actually provided are set (a missing district/branch leaves the
+ * stored value intact); the provided ones win for this turn.
+ */
+function applyToolArgs(profile: StudentProfile, args: RecommendArgs): StudentProfile {
+  const answered = { ...profile.answered }
+  let { cutoff, community, district, branch } = profile
+  if (args.cutoff !== undefined) {
+    cutoff = args.cutoff
+    answered.cutoff = true
+  }
+  if (args.community !== undefined) {
+    community = args.community
+    answered.community = true
+  }
+  if (args.district !== undefined) {
+    district = args.district
+    answered.district = true
+  }
+  if (args.branch !== undefined) {
+    branch = args.branch
+    answered.branch = true
+  }
+  return { ...profile, cutoff, community, district, branch, answered }
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -428,6 +470,34 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       QUESTION_RE.test(parsedRaw.normalized) ||
       /^(is|are|does|do|did|has|have|can|could|will|would|should)\b/i.test(message.trim())
 
+    // ── LLM UNDERSTAND — the PRIMARY path. It plans tool calls; the executor runs them (no
+    //    tool-name conditionals) and returns a NEUTRAL routing instruction. `recommend` overlays
+    //    the profile + runs the existing recommend capability; `list` runs the existing directory
+    //    capability; `route` rewrites the message so the EXISTING brain routes it. The REMAINDER —
+    //    engine, retrieval, LLM reasoning, validator, formatter — runs exactly as today. A `null`
+    //    (timeout / malformed / empty / unsupported / failure) routes to the DETERMINISTIC FALLBACK
+    //    below. Gated like the planner (question turns, not memory-resolved); never fatal.
+    let toolResult: ToolResult | null = null
+    if (deps.understand && hasQuestion && !resolved) {
+      try {
+        toolResult = await deps.understand(message, id)
+      } catch {
+        // Understand must never break a turn — fall back to the deterministic path.
+      }
+    }
+    // A `route` result behaves like the planner's rewrite: re-parse so the phantom-college guard
+    // (unresolved name → drop) and the whole existing brain route the understood question.
+    if (toolResult?.kind === 'route') {
+      const reparsed = trust.parse(toolResult.message)
+      if (!(toolResult.needsCollege && reparsed.colleges.length === 0)) {
+        text = toolResult.message
+        brainMessage = toolResult.message
+        parsed = reparsed
+      } else {
+        toolResult = null
+      }
+    }
+
     // ── LLM PLANNER (owns understanding for EVERY question turn) ─────────────────────────────
     // The planner reads the question and decides WHAT is being asked; the engine still FETCHES and
     // the guard still POLICES the prose. It returns WORDS + an action, and every field is
@@ -443,7 +513,12 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // colleges" or promise data we don't hold. (Phantom names, out-of-scope process questions, and
     // "cutoff comes only from the profile" are enforced elsewhere and are unchanged.)
     const guardDecline = dataDeclineFor(message, parsedRaw)
-    if (deps.planner && hasQuestion && !resolved) {
+    // The legacy planner is SUPERSEDED by the LLM understanding. When `understand` is wired
+    // (production), the fallback for a null tool result is the pure deterministic router
+    // (decideTurn) — the legacy planner is bypassed, so its known mis-routes (a personal "which
+    // colleges can I get" → directory listing; branch guidance → out-of-scope decline) never fire.
+    // The planner still runs for legacy callers that have NO `understand` (kept, not removed).
+    if (!toolResult && !deps.understand && deps.planner && hasQuestion && !resolved) {
       const plan = await deps.planner.plan({
         message,
         profile: isComplete(priorProfile) || priorProfile.answered.cutoff ? toView(priorProfile) : null,
@@ -513,6 +588,9 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // parent never asked for. Memory answers the question; it must not rewrite the student.
     let profile =
       (wasComplete && hasQuestion && !explicitChange) || globalRanking ? priorProfile : mergeMessage(priorProfile, parsedRaw, message)
+    // Commit 3: a `recommend` tool result's args ARE the profile for this turn — they become
+    // the overrides the existing pipeline consumes (district normalized below).
+    if (toolResult?.kind === 'recommend') profile = applyToolArgs(profile, toolResult.args)
     // Normalize a typed district to a known one, tolerating misspellings ("coimbaore"
     // → "coimbatore"), so the district filter matches instead of returning nothing.
     if (deps.resolveDistrict && profile.district) {
@@ -549,7 +627,15 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // Technology" into "is it realistic for him?" would trip the tier matcher (TIER_WORD
     // "realistic" + TIER_NOUN "colleg") and re-route the turn to a profile prompt. The RESOLVED
     // colleges still reach it via `parsed`, which is what the routing actually needs.
-    const decision = forcedDecision ?? decideTurn({ message: brainMessage, parsed, priorProfile, profile, wasComplete, hasQuestion })
+    // Commit 3: apply the neutral tool result — `recommend`/`list` force the matching EXISTING
+    // capability; `route` (already rewrote the message above) and "no tool" fall through to the
+    // deterministic brain. No tool NAMES are known here — only the neutral kind, applied uniformly.
+    const decision: CounselorDecision =
+      toolResult?.kind === 'recommend'
+        ? { kind: 'recommend' }
+        : toolResult?.kind === 'list'
+          ? { kind: 'listColleges', city: toolResult.city, count: toolResult.count, branch: toolResult.branch }
+          : forcedDecision ?? decideTurn({ message: brainMessage, parsed, priorProfile, profile, wasComplete, hasQuestion })
 
     // Product analytics for this turn (privacy-safe: kinds/enums/public college names only).
     for (const ev of turnAnalyticsEvents({
@@ -689,6 +775,29 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
   // configured — then routing is purely deterministic (and the suite/offline path is unaffected).
   const planner = provider.name === 'none' ? undefined : createCounselorPlanner(provider)
 
+  // Privacy-safe product/observability sink (hoisted so the understanding factory can emit the
+  // orchestration path/reason with the same sink the coordinator uses).
+  const analytics = options.analytics ?? createConsoleAnalytics()
+
+  // The PRIMARY path: plan tool calls, run them through the GENERIC Tool Registry + executor,
+  // with an understand-call TIMEOUT so a slow LLM falls back rather than hanging. A null result
+  // (timeout / malformed / empty / unsupported / error) routes to the deterministic FALLBACK, and
+  // every turn's path+reason is emitted for observability. Uses the SAME provider as narration;
+  // skipped when none is configured (then routing is purely deterministic).
+  const toolRegistry = createDefaultToolRegistry()
+  const parsedUnderstandTimeout = Number(env.COUNSELOR_UNDERSTAND_TIMEOUT_MS)
+  const understandTimeoutMs =
+    Number.isFinite(parsedUnderstandTimeout) && parsedUnderstandTimeout > 0 ? parsedUnderstandTimeout : 8_000
+  const understand =
+    provider.name === 'none'
+      ? undefined
+      : createToolUnderstanding(provider, {
+          registry: toolRegistry,
+          timeoutMs: understandTimeoutMs,
+          onOutcome: (conversationId, outcome) =>
+            analytics.track({ type: 'orchestration', conversationId, path: outcome.path, fallbackReason: outcome.reason }),
+        })
+
   return createCounselorChatService({
     opinion,
     // Persist the canonical ConversationState in Supabase when configured, so multi-turn
@@ -702,13 +811,14 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     profileStore: options.profileStore ?? createConfiguredProfileStore(env) ?? createInMemoryProfileStore(),
     logger: options.logger ?? createConsoleLogger(),
     // Emit privacy-safe product/observability events to structured logs (scraped by ops).
-    analytics: options.analytics ?? createConsoleAnalytics(),
+    analytics,
     clock: options.clock ?? Date.now,
     idGenerator: options.idGenerator ?? (() => randomUUID()),
     timeoutMs,
     maxMessageLength: options.maxMessageLength,
     resolveDistrict: (input) => resolveDistrict(input, knownDistricts),
     planner,
+    understand,
     listColleges,
   })
 }
