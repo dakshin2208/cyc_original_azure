@@ -39,6 +39,20 @@ export {
   resolveReference,
 } from './conversation-memory'
 
+// ── LLM planner (owns understanding for hard turns; falls back to the classifier) ──
+export {
+  type CounselorPlan,
+  type CounselorPlanner,
+  type PlannerAction,
+  type PlannedAction,
+  PLANNER_ACTIONS,
+  ABBREVIATION_ALIASES,
+  expandCollegeWord,
+  parsePlan,
+  translatePlan,
+  createCounselorPlanner,
+} from './planner'
+
 // ── Capability Registry (dispatch a decision → its capability handler) ───────
 export {
   type CapabilityContext,

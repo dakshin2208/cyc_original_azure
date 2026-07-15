@@ -87,6 +87,49 @@ const PROFILE_INTENTS = new Set<string>(['recommend_college', 'eligibility_query
 const COLLEGE_FIT_RE =
   /\bcolleges?\b|\bfor me\b|\bcan i (get|join)\b|\bwhich college\b|\bmy (cutoff|rank|marks?|community|score)\b|\brecommend\b|\bsuggest\b|\bget (a |an |into )?(seat|admission)\b|\bwhere should i\b/i
 
+// Dimension rankings the engine serves from the warehouse alone (studentCutoff/community are
+// OPTIONAL filters, not requirements) — "best placements/faculty/research/roi/nirf colleges".
+const DIMENSION_INTENTS = new Set<string>(['placement_query', 'faculty_query', 'research_query', 'roi_query', 'nirf_query'])
+// A PERSONAL-FIT ask — "can he get", "for me", "safe for my rank", "will I get a seat". These
+// genuinely need cutoff + community (the engine can only BAND with them), so they still gate.
+const PERSONAL_FIT_RE =
+  /\bcan (i|he|she|we|my)\b|\bwill (i|he|she|we|my)\b|\bfor me\b|\bfor my (son|daughter|child|kid|ward)\b|\b(safe|safely|safer|realistic(ally)?)\b|\bget (a |an |into )?(seat|admission)\b|\beligib\w*\b|\bwhich colleges? can i\b/i
+
+// A RANKING ASK — an explicit "best/top/which/list/rank" cue. Required so a bare slot value
+// ("cse") or a one-shot profile ("158 BC Coimbatore CSE"), which also carries a branch token,
+// is NEVER mistaken for a global ranking and stripped of its profile merge.
+const RANKING_CUE_RE = /\b(best|top|good|which|list|rank(?:ed|ing)?|strongest|leading|highest|show me|name (?:some|the))\b/i
+
+/**
+ * A GLOBAL RANKING the warehouse answers WITHOUT a profile: a RANKING ASK scoped by a concrete
+ * branch, a dimension (placements/faculty/research/roi/nirf), or a govt/private category — and
+ * NOT a personal-fit ask. "best colleges for CSE", "best placements", "top government colleges"
+ * qualify; "which colleges can I get" does not (personal-fit → needs cutoff+community to band),
+ * and "158 BC Coimbatore CSE" does not (no ranking cue → it's a profile, so it still merges).
+ */
+export function isGlobalRanking(parsed: ParsedQuery, message: string): boolean {
+  if (!RANKING_CUE_RE.test(message) || PERSONAL_FIT_RE.test(message)) return false
+  return Boolean(parsed.branch) || DIMENSION_INTENTS.has(parsed.intent) || GOVT_RE.test(message) || PRIVATE_RE.test(message)
+}
+
+/**
+ * An honest DATA DECLINE — fees, hostel, or recruiter NAMES, none of which the warehouse holds.
+ * Exported so the coordinator can let this GUARD override the LLM planner: the planner must never
+ * talk us into listing/answering data we simply do not have. `null` when the message asks for
+ * nothing off-dataset. A two-college mention is a comparison, not a fee/hostel ask.
+ */
+export function dataDeclineFor(
+  message: string,
+  parsed: ParsedQuery,
+): Extract<CounselorDecision, { kind: 'dataDecline' }> | null {
+  if (parsed.hasMultipleColleges) return null
+  const college = parsed.colleges[0] ?? null
+  if (FEE_RE.test(message)) return { kind: 'dataDecline', topic: 'fee', college }
+  if (HOSTEL_RE.test(message)) return { kind: 'dataDecline', topic: 'hostel', college }
+  if (RECRUITER_RE.test(message)) return { kind: 'dataDecline', topic: 'recruiter', college }
+  return null
+}
+
 /** Whether a PROFILE SLOT (not just a college mention) changed — drives re-counsel. */
 function slotChanged(prior: StudentProfile, profile: StudentProfile): boolean {
   return PROFILE_SLOTS.some((s) => prior[s] !== profile[s] || prior.answered[s] !== profile.answered[s])
@@ -236,12 +279,8 @@ function baseRoute(ctx: BrainContext): CounselorDecision {
   if (refine) return { kind: 'refine', trigger: refine.trigger, intro: refine.intro }
 
   // Fees / hostel / recruiter names — honestly absent from the official dataset.
-  if (!parsed.hasMultipleColleges) {
-    const college = parsed.colleges[0] ?? null
-    if (FEE_RE.test(message)) return { kind: 'dataDecline', topic: 'fee', college }
-    if (HOSTEL_RE.test(message)) return { kind: 'dataDecline', topic: 'hostel', college }
-    if (RECRUITER_RE.test(message)) return { kind: 'dataDecline', topic: 'recruiter', college }
-  }
+  const decline = dataDeclineFor(message, parsed)
+  if (decline) return decline
 
   // A keyworded question → knowledge / comparison / branch guidance / recommendation.
   if (hasQuestion) return { kind: 'answerQuestion' }

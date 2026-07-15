@@ -60,6 +60,20 @@ export type AnalyticsEvent =
       readonly repairedSentenceCount: number
     }
   | { readonly type: 'conversation_completed'; readonly conversationId: string; readonly turns: number }
+  | {
+      /** The LLM planner ran this turn. Enums only — never the message, never a college name. */
+      readonly type: 'planner_decision'
+      readonly conversationId: string
+      /** The planner's chosen action (closed enum), or 'null' when it returned nothing usable. */
+      readonly action: string
+      readonly confidence: string
+      /** Whether the planner's action matched the deterministic classifier's intent family. */
+      readonly agreedWithClassifier: boolean
+      /** Whether the plan was ACTED on (true) or rejected/fell back to deterministic (false). */
+      readonly applied: boolean
+      /** A deterministic GUARD (fee/hostel/recruiter decline) overrode the planner this turn. */
+      readonly guardOverride: boolean
+    }
 
 /** Receives product/observability events. Side-effect only; never affects a response. */
 export interface AnalyticsSink {

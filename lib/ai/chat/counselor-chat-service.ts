@@ -28,8 +28,9 @@ import {
   type OpinionConfig,
   type OpinionService,
 } from '@/lib/opinion'
-import { decideTurn } from './counselor-brain'
+import { dataDeclineFor, decideTurn, isGlobalRanking, type CounselorDecision } from './counselor-brain'
 import { readMemory, resolveReference } from './conversation-memory'
+import { createCounselorPlanner, translatePlan, type CounselorPlanner } from './planner'
 import { createOpinionTrustPipeline } from './trust-pipeline'
 import { createConsoleAnalytics, createNullAnalytics, isClosingMessage, turnAnalyticsEvents, type AnalyticsSink } from './analytics'
 import { RECOMMEND_TRIGGER } from './constants'
@@ -94,6 +95,12 @@ export interface CounselorChatServiceDeps {
    */
   readonly resolveDistrict?: (input: string) => string | null
   /**
+   * The LLM planner that owns UNDERSTANDING for hard turns. When present, it is consulted only
+   * when the deterministic classifier is unsure (unknown / low-confidence), so obvious turns stay
+   * on the fast, free deterministic path. Absent (or returning null) → pure deterministic routing.
+   */
+  readonly planner?: CounselorPlanner
+  /**
    * Deterministic directory listing: N ranked colleges in a city (optional branch), as a
    * numbered list. Returns null when the city is unknown to the warehouse. No profile involved.
    */
@@ -147,6 +154,18 @@ const RECOMMENDATION_ASK_RE =
  */
 const UNSUPPORTED_TOPIC_RE =
   /\b(deadline|last date|due date|dates?|schedule|timeline)\b|\bwhen (is|are|do|does|will|can)\b|\b(document|documents|certificate|certificates|proof)\b|\b(apply|application|registration|register|form filling)\b|\b(round \d|counselling (round|process|procedure|schedule)|allotment|allot)\b|\bchange (my |his |her |the )?(branch|course|college)\b|\btransfer\b|\b(rule|rules|policy|procedure)\b/i
+
+/**
+ * The honest out-of-scope decline. Names NO invented URL or date — the portal address is a fact,
+ * and half-remembering one is exactly the fabrication the guard rails exist to prevent.
+ */
+const OUT_OF_SCOPE_DECLINE =
+  "I don't have that one. TNEA process details — deadlines, application steps, documents, " +
+  'counselling rounds, branch-change rules — are not in the official college dataset I work ' +
+  "from, so I won't guess at them. Please check the official TNEA counselling portal or your " +
+  'counselling centre for those.\n\n' +
+  'What I can do with your profile: show the colleges you can realistically get, compare any ' +
+  'two of them, or go deeper on placements, cutoffs and rankings.'
 
 // Capability selection / clarification / refinement matchers were extracted to the
 // Orchestration Brain (`./counselor-brain`), which owns the routing decision. The
@@ -291,15 +310,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         analytics.track({ type: 'honest_limitation', conversationId: id, topic: 'unsupported_topic' })
       }
       const where = profile.district ? ` in ${profile.district}` : ''
-      // No URL is named on purpose: the portal address is a fact, and inventing or
-      // half-remembering one would be exactly the fabrication this system exists to prevent.
-      const decline =
-        "I don't have that one. TNEA process details — deadlines, application steps, documents, " +
-        'counselling rounds, branch-change rules — are not in the official college dataset I work ' +
-        "from, so I won't guess at them. Please check the official TNEA counselling portal or your " +
-        'counselling centre for those.\n\n' +
-        'What I can do with your profile: show the colleges you can realistically get, compare any ' +
-        'two of them, or go deeper on placements, cutoffs and rankings.'
+      const decline = OUT_OF_SCOPE_DECLINE
       const reorient =
         `I have your details saved (cutoff, community, district and branch). Ask me "which colleges can I get?", to compare two colleges, or about placements — and if you'd like more options${where ? ` beyond${where}` : ''}, say "anywhere in Tamil Nadu" to widen the search and I'll pull them from the data.`
       advised = {
@@ -387,8 +398,86 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // phantom-college guard intact. With nothing remembered there is no rewrite, and the
     // counsellor asks which college, exactly as before.
     const resolved = resolveReference(message, parsedRaw, readMemory(priorState))
-    const text = resolved ?? message
-    const parsed = resolved ? trust.parse(resolved) : parsedRaw
+    let text = resolved ?? message
+    let parsed = resolved ? trust.parse(resolved) : parsedRaw
+    // The message the BRAIN routes on. Default: the original message (so memory-resolved turns
+    // keep "route on what they said, answer with what they meant"). A planner rewrite replaces
+    // it with the canonical trigger so the brain routes on the understood question.
+    let brainMessage = message
+    // A decision the planner forces (list). null ⇒ the brain decides normally.
+    let forcedDecision: CounselorDecision | null = null
+    // The planner classified the turn as out-of-scope TNEA process → honest decline.
+    let forcedDecline = false
+
+    // Computed on the ORIGINAL message (a planner rewrite is internal). `hasQuestion` also gates
+    // the planner: a bare slot value during onboarding ("bc", "158", "cse") is NOT a question, so
+    // the planner never fires mid-collection and can't hijack a slot answer.
+    const wasComplete = isComplete(priorProfile)
+    const hasQuestion =
+      message.includes('?') ||
+      QUESTION_RE.test(parsedRaw.normalized) ||
+      /^(is|are|does|do|did|has|have|can|could|will|would|should)\b/i.test(message.trim())
+
+    // ── LLM PLANNER (owns understanding for EVERY question turn) ─────────────────────────────
+    // The planner reads the question and decides WHAT is being asked; the engine still FETCHES and
+    // the guard still POLICES the prose. It returns WORDS + an action, and every field is
+    // re-resolved by the existing parser — so a name it invents that resolves to nothing is
+    // dropped (the phantom guard, reused). It runs on every question turn, EXCEPT:
+    //   • bare slot values during onboarding ("158"/"bc"/"cse") — not questions (`hasQuestion`);
+    //   • memory-resolved turns ("compare the two you mentioned") — already rewritten (`!resolved`).
+    // A null plan (unreachable / 6s-timeout / garbage) ⇒ the deterministic classifier routes
+    // exactly as today. A planner failure must NEVER kill a turn. See lib/ai/chat/planner.ts.
+    //
+    // GUARD that beats the planner: fees / hostel / recruiter NAMES are not in the warehouse, so an
+    // honest decline wins no matter what the planner proposes — never let it list "cheapest
+    // colleges" or promise data we don't hold. (Phantom names, out-of-scope process questions, and
+    // "cutoff comes only from the profile" are enforced elsewhere and are unchanged.)
+    const guardDecline = dataDeclineFor(message, parsedRaw)
+    if (deps.planner && hasQuestion && !resolved) {
+      const plan = await deps.planner.plan({
+        message,
+        profile: isComplete(priorProfile) || priorProfile.answered.cutoff ? toView(priorProfile) : null,
+        memory: readMemory(priorState),
+      })
+      let applied = false
+      let guardOverride = false
+      if (guardDecline) {
+        // The planner ran (logged below), but the data-decline guard wins deterministically.
+        forcedDecision = guardDecline
+        guardOverride = Boolean(plan)
+      } else if (plan) {
+        const act = translatePlan(plan)
+        if (act?.kind === 'rewrite') {
+          const reparsed = trust.parse(act.message)
+          // Phantom guard: if the plan claimed a college but the real lexicon resolves NONE,
+          // reject the rewrite — never let the planner conjure a college the warehouse denies.
+          if (!(act.needsCollege && reparsed.colleges.length === 0)) {
+            text = act.message
+            brainMessage = act.message
+            parsed = reparsed
+            applied = true
+          }
+        } else if (act?.kind === 'list') {
+          const city = deps.resolveDistrict?.(act.city) ?? act.city
+          if (deps.listColleges && deps.resolveDistrict?.(act.city)) {
+            forcedDecision = { kind: 'listColleges', city, count: act.count, branch: act.branch }
+            applied = true
+          }
+        } else if (act?.kind === 'decline') {
+          forcedDecline = true
+          applied = true
+        }
+      }
+      analytics.track({
+        type: 'planner_decision',
+        conversationId: id,
+        action: plan?.action ?? 'null',
+        confidence: plan?.confidence ?? 'low',
+        agreedWithClassifier: plan ? plan.action.includes(parsed.intent.split('_')[0]) : false,
+        applied,
+        guardOverride,
+      })
+    }
 
     // Domain / unknown-entity guards apply at ANY stage — decline immediately rather
     // than collecting a profile for a query the warehouse cannot serve.
@@ -397,15 +486,6 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
       return answer(text, id, priorState, priorHistory, priorProfile)
     }
 
-    const wasComplete = isComplete(priorProfile)
-    // A message is a QUESTION when it ends with "?", uses a question keyword, OR is an
-    // inverted question ("Does PSG have…", "Is CIT good?"). The inversion/"?" checks use
-    // the RAW message because the parser's normalizer strips "?" — without them a
-    // "Does X have hostels?" is mis-read as a statement and mutates the profile.
-    const hasQuestion =
-      message.includes('?') ||
-      QUESTION_RE.test(parsed.normalized) ||
-      /^(is|are|does|do|did|has|have|can|could|will|would|should)\b/i.test(message.trim())
     // Profile protection: once the profile is complete, a QUESTION never mutates it —
     // EXCEPT when it carries explicit change-intent ("switch to ECE", "actually my
     // cutoff is 187", "Chennai instead"), which must update the slot AND be remembered
@@ -426,13 +506,19 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     }
     await deps.profileStore.set(id, profile)
 
-    const finish = (text: string, stage: 'collecting' | 'ready'): ChatOutcome => {
-      rememberTurn(id, message, text)
+    const finish = (answerText: string, stage: 'collecting' | 'ready'): ChatOutcome => {
+      rememberTurn(id, message, answerText)
       deps.logger.log({ event: 'response', conversationId: id, httpStatus: 200, llmStatus: 'profile' })
       return {
         httpStatus: 200,
-        body: { answer: text, citations: [], confidence: 'low', followUps: [], conversationId: id, profile: toView(profile), stage },
+        body: { answer: answerText, citations: [], confidence: 'low', followUps: [], conversationId: id, profile: toView(profile), stage },
       }
+    }
+
+    // The planner classified this as out-of-scope TNEA process → honest decline, no engine call.
+    if (forcedDecline) {
+      analytics.track({ type: 'honest_limitation', conversationId: id, topic: 'unsupported_topic' })
+      return finish(OUT_OF_SCOPE_DECLINE, 'ready')
     }
 
     // Parent mode (#4): a reassuring tone when a parent is talking, in this message or
@@ -448,7 +534,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
     // Technology" into "is it realistic for him?" would trip the tier matcher (TIER_WORD
     // "realistic" + TIER_NOUN "colleg") and re-route the turn to a profile prompt. The RESOLVED
     // colleges still reach it via `parsed`, which is what the routing actually needs.
-    const decision = decideTurn({ message, parsed, priorProfile, profile, wasComplete, hasQuestion })
+    const decision = forcedDecision ?? decideTurn({ message: brainMessage, parsed, priorProfile, profile, wasComplete, hasQuestion })
 
     // Product analytics for this turn (privacy-safe: kinds/enums/public college names only).
     for (const ev of turnAnalyticsEvents({
@@ -584,6 +670,10 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     )
   }
 
+  // The LLM planner reuses the SAME provider as narration. Skip it entirely when no provider is
+  // configured — then routing is purely deterministic (and the suite/offline path is unaffected).
+  const planner = provider.name === 'none' ? undefined : createCounselorPlanner(provider)
+
   return createCounselorChatService({
     opinion,
     // Persist the canonical ConversationState in Supabase when configured, so multi-turn
@@ -603,6 +693,7 @@ export function buildCounselorChatService(options: BuildCounselorChatServiceOpti
     timeoutMs,
     maxMessageLength: options.maxMessageLength,
     resolveDistrict: (input) => resolveDistrict(input, knownDistricts),
+    planner,
     listColleges,
   })
 }
