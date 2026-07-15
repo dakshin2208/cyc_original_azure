@@ -73,7 +73,10 @@ describe.skipIf(!existsSync(DATA_DIR))('single-college opinion — answers the q
     expect(a).not.toMatch(/^.*My top recommendation is Anna University/im) // never leads with a different college
     expect(a).not.toMatch(/Based on your profile/i) // no empty-profile echo
     expect(a).not.toMatch(/no historical cutoff data/i) // Kumaraguru HAS a cutoff on file
-    expect(a).toMatch(/need your cutoff and community/i) // honest: we lack the STUDENT's cutoff
+    // Honest caveat that eligibility is unconfirmed — a STATEMENT, not a mid-answer demand for
+    // the cutoff (the ask now lives in the coordinator's closing offer, never the overview body).
+    expect(a).toMatch(/Eligibility here isn.t confirmed without a cutoff and community/i)
+    expect(a).not.toMatch(/I need your cutoff/i) // never a demand in the body
   })
 
   it('"is PSG College of Technology the best?" → answers about PSG, and OMITS the Power Score (it has none on file)', async () => {

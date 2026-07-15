@@ -102,10 +102,11 @@ describe('generateOpinions', () => {
     expect(kinds).toEqual(['top_pick', 'alternative'])
     const top = result.recommendations[0]
     expect(top.tradeoffs.join(' ')).toMatch(/weaker research/i)
-    // The fixture has no eligibility assessment → the STUDENT's cutoff is unknown. We must
-    // ask for it, NOT blame the dataset ("no historical cutoff data") — the college may well
-    // have a cutoff on file. (A college that genuinely has none says so explicitly.)
-    expect(top.risks.join(' ')).toMatch(/need your cutoff and community/i)
+    // The fixture has no eligibility assessment → the STUDENT's cutoff is unknown. We state that
+    // as a CAVEAT, never blaming the dataset ("no historical cutoff data") — the college may well
+    // have a cutoff on file — and never DEMANDING the cutoff in the body (that ask is the
+    // coordinator's closing offer). A college that genuinely has none says so explicitly.
+    expect(top.risks.join(' ')).toMatch(/Eligibility here isn.t confirmed without a cutoff and community/i)
     expect(top.risks.join(' ')).not.toMatch(/no historical cutoff data/i)
     expect(result.evidenceIds).toContain('ev:Top')
   })

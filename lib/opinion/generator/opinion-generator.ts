@@ -72,16 +72,31 @@ function tradeoffsFor(dossier: CollegeDossier): string[] {
   return [`Relatively weaker ${dossier.weaknesses.map((d) => DIMENSION_LABEL[d].toLowerCase()).join(' and ')}.`]
 }
 
-/** Risks/caveats for a single college. */
-function risksFor(dossier: CollegeDossier, priorities: readonly Priority[]): string[] {
+/**
+ * Risks/caveats for a single college. `studentKnown` = the STUDENT gave a cutoff + community
+ * (so eligibility COULD be assessed); it is the signal that stops the self-contradiction where
+ * a reply asks for a cutoff it was already given.
+ */
+function risksFor(dossier: CollegeDossier, priorities: readonly Priority[], studentKnown: boolean): string[] {
   const rs: string[] = []
   const cat = dossier.eligibility?.category
   if (cat === 'dream' || cat === 'reach') rs.push('Admission is a stretch — at or below the historical closing cutoff.')
-  // Two DIFFERENT causes — never blame the dataset for a missing user input:
-  //  (a) no eligibility was assessed  → we don't know the STUDENT's cutoff/community;
-  //  (b) assessed but 'unknown'       → the COLLEGE genuinely has no closing cutoff on file.
-  else if (!dossier.eligibility) rs.push("I need your cutoff and community to check eligibility.")
-  else if (cat === 'unknown') rs.push('This college has no closing cutoff on record.')
+  // No eligibility band was produced. TWO different causes, and blaming the wrong one is a bug:
+  //  (a) the STUDENT gave no cutoff/community → ask for them;
+  //  (b) the student DID, but this COLLEGE has no closing cutoff on record → the engine simply
+  //      cannot band it (e.g. PSG / Kumaraguru carry no cutoff data), so recommendByCutoff drops
+  //      it and eligibility comes back null. Saying "share your cutoff" here is the
+  //      self-contradiction — we already have it. Name the real gap instead.
+  else if (!dossier.eligibility || cat === 'unknown') {
+    rs.push(
+      studentKnown
+        ? 'I have your cutoff and community, but no closing-cutoff data is on record for this college, so I can’t confirm a specific-branch seat here.'
+        : // No profile: state the caveat, never DEMAND the cutoff in the body. The ask belongs
+          // in the coordinator's closing offer, not here (this note is fed to the narrator, which
+          // would otherwise turn an imperative into a mid-answer cutoff request).
+          'Eligibility here isn’t confirmed without a cutoff and community.',
+    )
+  }
   if (dossier.confidence === 'low') rs.push('Limited data — treat this with caution.')
   if (priorities.includes('budget')) rs.push('Tuition fees are not available in the dataset.')
   return rs
@@ -105,13 +120,14 @@ function bucket(
   kind: RecommendationKind,
   dossiers: readonly CollegeDossier[],
   priorities: readonly Priority[],
+  studentKnown: boolean,
   extraRisks: readonly string[] = [],
   headline?: string,
 ): OpinionRecommendation {
   const colleges = dossiers.map((d) => d.college.name)
   const reasoning = unique(dossiers.flatMap((d) => [`${d.college.name}: ${reasonsFor(d).join(', ')}`.trim()]))
   const tradeoffs = unique(dossiers.flatMap((d) => tradeoffsFor(d).map((t) => `${d.college.name}: ${t}`)))
-  const risks = unique([...dossiers.flatMap((d) => risksFor(d, priorities)), ...extraRisks])
+  const risks = unique([...dossiers.flatMap((d) => risksFor(d, priorities, studentKnown)), ...extraRisks])
   return {
     id: recId(kind, colleges),
     kind,
@@ -125,6 +141,10 @@ function bucket(
   }
 }
 
+/** Did the STUDENT supply a cutoff AND community (so eligibility could be assessed)? */
+const studentKnownOf = (context: OpinionContext): boolean =>
+  context.studentCutoff !== null && context.community !== null
+
 /** Quality-ranked recommendations: a top pick + alternatives. */
 function qualityRecommendations(
   context: OpinionContext,
@@ -132,9 +152,10 @@ function qualityRecommendations(
 ): OpinionRecommendation[] {
   const [top, ...rest] = context.candidates
   if (!top) return []
-  const recs: OpinionRecommendation[] = [bucket('top_pick', [top], context.priorities, extraRisks)]
+  const sk = studentKnownOf(context)
+  const recs: OpinionRecommendation[] = [bucket('top_pick', [top], context.priorities, sk, extraRisks)]
   const alternatives = rest.slice(0, 3)
-  if (alternatives.length > 0) recs.push(bucket('alternative', alternatives, context.priorities, extraRisks))
+  if (alternatives.length > 0) recs.push(bucket('alternative', alternatives, context.priorities, sk, extraRisks))
   return recs
 }
 
@@ -211,10 +232,11 @@ function eligibilityRecommendations(context: OpinionContext): OpinionRecommendat
     // No cutoff dataset → recommend by quality with an explicit eligibility caveat.
     return qualityRecommendations(context, ['Eligibility could not be confirmed — no historical cutoff data is available.'])
   }
+  const sk = studentKnownOf(context)
   const recs: OpinionRecommendation[] = []
-  if (groups.safe.length > 0) recs.push(bucket('safe', groups.safe, context.priorities, ['These clear the historical closing cutoff comfortably.']))
-  if (groups.moderate.length > 0) recs.push(bucket('moderate', groups.moderate, context.priorities))
-  if (groups.dream.length > 0) recs.push(bucket('dream', groups.dream, context.priorities, ['Admission is not guaranteed — these are at or below your cutoff historically.']))
+  if (groups.safe.length > 0) recs.push(bucket('safe', groups.safe, context.priorities, sk, ['These clear the historical closing cutoff comfortably.']))
+  if (groups.moderate.length > 0) recs.push(bucket('moderate', groups.moderate, context.priorities, sk))
+  if (groups.dream.length > 0) recs.push(bucket('dream', groups.dream, context.priorities, sk, ['Admission is not guaranteed — these are at or below your cutoff historically.']))
   return recs
 }
 
