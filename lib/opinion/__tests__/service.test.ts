@@ -28,7 +28,7 @@ describe('opinion service — counseling scenarios', () => {
   it('branch recommendation → quality with a branch-data caveat', async () => {
     const { response } = await makeOpinion().advise('which college is best for CSE?')
     expect(response.strategy).toBe('branch_recommendation')
-    expect(response.answer.toLowerCase()).toMatch(/branch-level data is unavailable/)
+    expect(response.answer.toLowerCase()).toMatch(/offering this branch are prioritised|branch-specific closing cutoffs/)
   })
 
   it('eligibility bands → safe / ambitious buckets when cutoffs are wired', async () => {

@@ -47,7 +47,7 @@ export const DIMENSION_SUMMARY: Readonly<
   selectivity: {
     strong: 'Highly selective admissions',
     moderate: 'Competitive admissions',
-    weak: 'Accessible admissions',
+    weak: 'Lower closing cutoff',
   },
   nirfPresence: {
     strong: 'NIRF-ranked institution',

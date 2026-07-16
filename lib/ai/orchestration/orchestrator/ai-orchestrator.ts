@@ -231,6 +231,7 @@ export function createAIOrchestrator(
             reco.recommendByCutoff(parsed.studentCutoff as number, parsed.community!, {
               limit: 1000,
               district: parsed.location ?? undefined,
+              branch: parsed.branch ?? undefined,
             }),
           [])
           recommendations =

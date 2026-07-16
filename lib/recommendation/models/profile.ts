@@ -30,4 +30,9 @@ export interface CollegeProfile {
   readonly powerScore: number | null
   /** 1-based Tamil Nadu rank BY CYC Power Score, or `null` when the college has no score. */
   readonly powerScoreRank: number | null
+  /**
+   * Canonical branch names this college offers (from the TNEA cutoff dataset), or an empty
+   * set when unknown. Used to PREFER colleges that actually offer a requested branch.
+   */
+  readonly branchesOffered: ReadonlySet<string>
 }

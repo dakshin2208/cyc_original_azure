@@ -54,6 +54,9 @@ export function createProfileProvider(
       // derived from the engine's internal match score.
       powerScore: repos.colleges.powerScoreOf(college.id),
       powerScoreRank: repos.colleges.powerScoreRankOf(college.id),
+      // Canonical branches this college offers — used to prefer colleges that actually
+      // offer a requested branch (e.g. AI & DS) over ones that only offer generic CSE.
+      branchesOffered: repos.colleges.branchesOffered(college.id),
     })
   }
 

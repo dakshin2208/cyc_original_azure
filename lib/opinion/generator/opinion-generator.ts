@@ -191,7 +191,7 @@ function comparisonRecommendation(context: OpinionContext): OpinionRecommendatio
       .map((d) => DIMENSION_LABEL[d.dimension].toLowerCase())
     const leadOn = wins.length > 0 ? ` — it leads on ${wins.slice(0, 3).join(', ')}` : ''
     reasoning.push(
-      `On balance I'd lean towards ${cmp.winner.name}${leadOn}. If those matter most to you, go with ${short(cmp.winner.name)}; otherwise ${short(loser!)} is a strong, often more accessible alternative.`,
+      `On balance I'd lean towards ${cmp.winner.name}${leadOn}. If those matter most to you, go with ${short(cmp.winner.name)}; otherwise ${short(loser!)} is a strong alternative worth considering.`,
     )
   } else {
     reasoning.push('The two are very close — either is a sound choice; decide by location and campus fit.')
@@ -275,7 +275,7 @@ export function generateOpinions(context: OpinionContext, _config: OpinionConfig
       break
     case 'branch_recommendation':
       recommendations = qualityRecommendations(context, [
-        'Branch-level data is unavailable; ranked by overall college quality.',
+        'Colleges offering this branch are prioritised; branch-specific closing cutoffs are not on record, so eligibility is banded at the college level.',
       ])
       break
     default:

@@ -324,7 +324,7 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
           )
           if (hasCols(wide)) {
             const place = profile.district.replace(/\b\w/g, (c) => c.toUpperCase())
-            note = `I couldn't find colleges specifically in ${place} for your profile, so here are strong options across Tamil Nadu:\n\n`
+            note = `I couldn't find colleges specifically in ${place} for your profile — so, as nearby alternatives, here are strong options across Tamil Nadu:\n\n`
             retry = wide
           }
         }
@@ -399,8 +399,11 @@ export function createCounselorChatService(deps: CounselorChatServiceDeps): Chat
         ? "If you tell me your cutoff and community, I'll show which of these you can realistically get into."
         : null
 
+    // #3 reduce repetition: show the "next step" prompt on ~alternate turns, so the counsellor
+    // doesn't end EVERY answer with the same "Would you like…" menu. Deterministic (by turn).
+    const nextStepOutro = !declined && (priorState?.turnCount ?? 0) % 2 === 0 ? outro : undefined
     const body: ChatResponse = {
-      answer: [declined ? null : intro, advised.response.answer, declined ? null : outro, offer]
+      answer: [declined ? null : intro, advised.response.answer, nextStepOutro ?? null, offer]
         .filter((s): s is string => !!s)
         .join('\n\n'),
       citations: advised.response.evidence,

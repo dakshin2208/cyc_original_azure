@@ -37,7 +37,7 @@ describe('facade wiring', () => {
     const h = makeHarness()
     const results = h.reco.recommendByBranch('Computer Science and Engineering', { limit: 3 })
     expect(results.length).toBeGreaterThan(0)
-    expect(results[0].notes.join(' ')).toMatch(/branch-level filtering is unavailable/i)
+    expect(results[0].notes.join(' ')).toMatch(/colleges that offer this branch are preferred/i)
   })
 })
 

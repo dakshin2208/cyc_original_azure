@@ -119,7 +119,7 @@ describe.skipIf(!existsSync(DATA_DIR))('single-college opinion — answers the q
   it('a TRUE global ask ("which college is best for me?") with a profile still recommends globally', async () => {
     const a = await ask('which college is best for me?', complete())
     expect(a).toMatch(/Based on your profile/i) // profile IS echoed when one exists
-    expect(a).toMatch(/My top recommendation is/i)
+    expect(a).toMatch(/My top pick for you is|I'd point you to|is where I'd start|Top of your list should be/i) // varied opener
     expect(a).toMatch(/Other strong options/i) // a real multi-college list, not a single-college verdict
     expect(a).not.toMatch(/CYC Power Score/i) // Power Score is a single-college verdict, not list noise
   })

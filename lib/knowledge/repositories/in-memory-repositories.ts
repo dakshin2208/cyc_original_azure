@@ -11,6 +11,9 @@ import { slugify } from '../ids'
 import type { CanonicalWarehouse } from '../warehouse'
 import type { KnowledgeRepositories } from './repository-interfaces'
 
+/** Shared frozen empty set returned when a college has no branch-offering data. */
+const EMPTY_BRANCH_SET: ReadonlySet<string> = new Set<string>()
+
 /**
  * Create the full set of read-only repositories over a warehouse.
  * @param warehouse The built canonical warehouse.
@@ -49,6 +52,13 @@ export function createRepositories(warehouse: CanonicalWarehouse): KnowledgeRepo
         const code = warehouse.nirf2026.byCollege.get(id)?.collegeCode
         if (!code) return null
         return warehouse.communityCutoffs.get(code)?.[community] ?? null
+      },
+      // Branches offered — resolved via the SAME counselling code as communityCutoffOf, so a
+      // college's offerings and its community cutoffs come from the same TNEA rows.
+      branchesOffered: (id) => {
+        const code = warehouse.nirf2026.byCollege.get(id)?.collegeCode
+        if (!code) return EMPTY_BRANCH_SET
+        return warehouse.branchOfferings.get(code) ?? EMPTY_BRANCH_SET
       },
     },
 

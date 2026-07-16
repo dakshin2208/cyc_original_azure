@@ -45,7 +45,7 @@ const isGovernment = (p: CollegeProfile): boolean => p.instituteType === 'govern
 
 const ROI_NOTE = 'ROI is approximated from placement outcomes; tuition fees are not present in the dataset.'
 const BRANCH_NOTE =
-  'Branch-level filtering is unavailable (no per-college branch linkage in the warehouse); ranked across all colleges.'
+  'Colleges that offer this branch are preferred; branch-specific closing cutoffs are not applied (only college-level cutoffs are on record).'
 const CUTOFF_NOTE =
   'Ranked by overall quality; per-college eligibility is annotated when a closing-cutoff dataset is available.'
 const focusNote = (dimension: string): string =>

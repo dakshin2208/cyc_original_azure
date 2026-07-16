@@ -10,7 +10,7 @@
 import { join } from 'path'
 import { loadCsvDirectory, loadCsvFile, type CsvRow } from '../csv'
 import { parseNirf2026, mergeNirf2026 } from '../nirf2026'
-import { parseCommunityCutoffs } from '../cutoffs/community-cutoffs'
+import { parseBranchOfferings, parseCommunityCutoffs } from '../cutoffs/community-cutoffs'
 import type { CanonicalBranchId, CanonicalCollegeId, CommunityCode, NirfId } from '../ids'
 import { buildCrosswalk } from '../mapping'
 import type {
@@ -115,6 +115,7 @@ export function buildWarehouse(sources: RawSources): CanonicalWarehouse {
   const parsed2026 = parseNirf2026(sources.nirf2026 ?? [])
   const nirf2026 = mergeNirf2026(parsed2026.profiles, colleges, parsed2026.skipped)
   const communityCutoffs = parseCommunityCutoffs(sources.cutoffRows ?? [])
+  const branchOfferings = parseBranchOfferings(sources.cutoffRows ?? [])
   const branches: readonly CanonicalBranch[] = buildBranchCatalog(sources.tneaBranches)
   const communities: readonly CanonicalCommunity[] = buildCommunityCatalog()
 
@@ -220,6 +221,7 @@ export function buildWarehouse(sources: RawSources): CanonicalWarehouse {
     financeByCollege: groupByCollege(finance),
     nirf2026,
     communityCutoffs,
+    branchOfferings,
     report: { statistics, coverage, issues },
   }
 }

@@ -53,6 +53,12 @@ export interface CollegeRepository {
    * community's marks rather than the OC band.
    */
   communityCutoffOf(id: CanonicalCollegeId, community: CommunityCode): number | null
+  /**
+   * The set of CANONICAL branch names this college offers (from the TNEA cutoff dataset),
+   * or an empty set when unknown. Lets the engine prefer colleges that actually offer a
+   * requested branch (e.g. "Artificial Intelligence and Data Science").
+   */
+  branchesOffered(id: CanonicalCollegeId): ReadonlySet<string>
 }
 
 /** Access to canonical branches. */

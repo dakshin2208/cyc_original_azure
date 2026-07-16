@@ -10,9 +10,38 @@
  */
 
 import type { CsvRow } from '../csv/csv-parser'
+import { normalizeBranch } from '../normalization'
 
 /** counselling code → { community code → median closing cutoff }. */
 export type CommunityCutoffs = ReadonlyMap<string, Readonly<Record<string, number>>>
+
+/** counselling code → set of CANONICAL branch names offered (from the TNEA cutoff dataset). */
+export type BranchOfferings = ReadonlyMap<string, ReadonlySet<string>>
+
+/**
+ * Parse the TNEA cutoff rows into the set of CANONICAL branches each counselling code
+ * offers. The raw `branch` column carries the many spellings the source uses (e.g.
+ * "ARTIFICIAL INTELLIGENCE AND DATA SCIENCE", "Computer Science and Engineering"); each
+ * is normalized to its canonical name so a student's "AI & DS" / "CSE" matches. Rows with
+ * no counselling code or no branch are skipped (never guessed). Deterministic.
+ */
+export function parseBranchOfferings(rows: readonly CsvRow[]): BranchOfferings {
+  const out = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const code = (row.counselling_code ?? '').trim()
+    const rawBranch = (row.branch ?? '').trim()
+    if (code === '' || rawBranch === '') continue
+    const canonical = normalizeBranch(rawBranch).canonicalName
+    if (canonical === '') continue
+    let set = out.get(code)
+    if (!set) {
+      set = new Set<string>()
+      out.set(code, set)
+    }
+    set.add(canonical)
+  }
+  return out
+}
 
 /** TNEA cutoff column → canonical community code. */
 const COMMUNITY_COLUMNS: readonly (readonly [string, string])[] = [

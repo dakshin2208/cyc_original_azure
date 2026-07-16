@@ -27,7 +27,7 @@ import type {
 } from '../models'
 import type { ValidationIssue } from '../validation'
 import type { Nirf2026Dataset } from '../nirf2026'
-import type { CommunityCutoffs } from '../cutoffs/community-cutoffs'
+import type { BranchOfferings, CommunityCutoffs } from '../cutoffs/community-cutoffs'
 
 /** Parsed source rows required to build the warehouse. */
 export interface RawSources {
@@ -162,6 +162,13 @@ export interface CanonicalWarehouse {
    * cutoff rows are absent.
    */
   readonly communityCutoffs: CommunityCutoffs
+
+  /**
+   * Canonical branch names offered per counselling code (from the TNEA cutoff dataset).
+   * Lets the engine prefer colleges that actually offer a requested branch. Empty when
+   * the cutoff rows are absent.
+   */
+  readonly branchOfferings: BranchOfferings
 
   // ── Metadata ────────────────────────────────────────────────────────────────
   readonly report: BuildReport

@@ -21,6 +21,24 @@ import { toDiscardCode, type DiscardCode, type OpinionValidation } from '../vali
 
 const MAX_CITATIONS = 12
 
+/** A stable, deterministic index in [0, mod) from a seed string (no Date/Math.random). */
+function stableIndex(seed: string, mod: number): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return mod > 0 ? h % mod : 0
+}
+
+/**
+ * Varied openers for the top recommendation (deterministic, chosen by the college name) so
+ * the counsellor doesn't begin every answer with the identical "My top recommendation is…".
+ */
+const TOP_OPENERS: readonly ((name: string, why: string) => string)[] = [
+  (n, why) => `My top pick for you is ${n}${why ? ` — ${why}` : ''}.`,
+  (n, why) => `I'd point you to ${n} first${why ? ` — ${why}` : ''}.`,
+  (n, why) => `${n} is where I'd start${why ? `: ${why}` : ''}.`,
+  (n, why) => `Top of your list should be ${n}${why ? ` — ${why}` : ''}.`,
+]
+
 /** Build citations from the opinion evidence ids (for the deterministic path). */
 function citationsFromEvidence(context: OpinionContext, evidenceIds: readonly string[]): ResponseCitation[] {
   const wanted = new Set(evidenceIds)
@@ -60,7 +78,7 @@ function deterministicAnswer(result: OpinionResult): string {
   if (top && top.colleges.length > 0) {
     const name = top.colleges[0]
     const whyText = top.reasoning[0] ? stripName(top.reasoning[0], name) : ''
-    parts.push(`My top recommendation is ${name}${whyText ? ` — ${whyText}` : ''}.`)
+    parts.push(TOP_OPENERS[stableIndex(name, TOP_OPENERS.length)](name, whyText))
     const cautions = [...top.tradeoffs.map((t) => stripName(t, name)), ...top.risks].filter((c) => c.length > 0)
     if (cautions.length > 0) parts.push(`Just note: ${cautions.join(' ')}`)
   }
@@ -81,7 +99,8 @@ function deterministicAnswer(result: OpinionResult): string {
   if (parts.length === 0) {
     for (const r of recs) if (r.colleges.length > 0) parts.push(`${r.headline}: ${r.colleges.join(', ')}.`)
   }
-  parts.push('\nYou can ask me to compare any two of these, show safer backup options, or dig into placements.')
+  // No canned "you can ask me to…" closer here — the coordinator appends a single, varied
+  // next-step so answers don't end with the same menu every time (#3 reduce repetition).
   return parts.join('\n').trim()
 }
 

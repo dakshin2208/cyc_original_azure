@@ -8,6 +8,7 @@
  * stable tie-breaks. No AI.
  */
 
+import { normalizeBranch } from '@/lib/knowledge'
 import type { DimensionWeights, RecommendationConfig } from '../config'
 import type { CutoffLookup, ProfileProvider } from '../data'
 import type { EligibilityEngine } from '../eligibility'
@@ -152,9 +153,23 @@ export function rankProfiles(
       return { profile, score, tier }
     })
     .filter(({ score }) => hasRequired(score))
-    .sort(compareScored)
 
-  return scored.slice(0, Math.max(0, limit)).map(({ profile, score }, index) => {
+  // Branch preference (RC: respect the preferred branch): when a branch is requested AND
+  // at least one in-scope college actually offers it, rank colleges that OFFER it first,
+  // colleges with unknown offerings next, and colleges that offer OTHER branches (but not
+  // this one) last — so an "AI & DS" ask prefers AI&DS colleges over ones that only offer
+  // generic CSE. A no-op when the branch is unrecognized or no candidate offers it (the
+  // data cannot help, so the quality ranking is left exactly as before). Deterministic.
+  const wantedBranch = request.branch ? normalizeBranch(request.branch).canonicalName : null
+  const branchActive = wantedBranch !== null && scored.some((s) => s.profile.branchesOffered.has(wantedBranch))
+  const branchTier = (p: CollegeProfile): number => {
+    if (!branchActive || wantedBranch === null) return 0
+    if (p.branchesOffered.has(wantedBranch)) return 0
+    return p.branchesOffered.size === 0 ? 1 : 2
+  }
+  const ranked = [...scored].sort((a, b) => branchTier(a.profile) - branchTier(b.profile) || compareScored(a, b))
+
+  return ranked.slice(0, Math.max(0, limit)).map(({ profile, score }, index) => {
     const explanation = ctx.reasons.explain(profile, score, spec.category)
     const eligibility: EligibilityAssessment | null =
       canAssess && request.community !== undefined
