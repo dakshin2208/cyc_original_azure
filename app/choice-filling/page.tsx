@@ -1101,6 +1101,156 @@ export default function ChoiceFilling() {
     }
   }
 
+  // For rank-based (AI Method) results the colleges come from the "Rank" table,
+  // which carries the closing RANK per category — not the cutoff. This fetches
+  // the closing CUTOFF (student's category column) from the "Cutoff" table for
+  // each college-branch and attaches it as `cutoff`, so the AI Method results can
+  // show rank, PowerScore AND cutoff together. Best-effort: failures leave the
+  // results untouched.
+  const enrichResultsWithCutoff = async (results: any[]) => {
+    try {
+      const category = (userPreferences.category || '').trim()
+      if (!category || !Array.isArray(results) || results.length === 0) return results
+
+      const codes = Array.from(
+        new Set(results.map((c) => String(c?.code ?? '').trim()).filter(Boolean))
+      )
+      if (codes.length === 0) return results
+
+      const { data, error } = await supabase
+        .from('Cutoff')
+        .select(`"College Code", "Branch Name", "${category}"`)
+        .in('College Code', codes)
+
+      if (error) {
+        console.error('[Cutoff enrich] fetch error:', error)
+        return results
+      }
+
+      // Index by "code||branch" -> closing cutoff (number).
+      const cutoffMap = new Map<string, number>()
+      for (const row of data || []) {
+        const code = String(row['College Code'] ?? '').trim()
+        const branch = normBranchName(row['Branch Name'])
+        const cut = parseFloat(String(row[category] ?? '').replace(/[^\d.]/g, ''))
+        if (code && branch && Number.isFinite(cut)) cutoffMap.set(`${code}||${branch}`, cut)
+      }
+
+      const lookup = (code: unknown, branch: unknown): number | null => {
+        const hit = cutoffMap.get(`${String(code ?? '').trim()}||${normBranchName(branch)}`)
+        return hit === undefined ? null : hit
+      }
+
+      return results.map((college) => {
+        if (Array.isArray(college?.branches)) {
+          return {
+            ...college,
+            branches: college.branches.map((branch: any) => ({
+              ...branch,
+              cutoff: lookup(college.code, branch.name),
+            })),
+          }
+        }
+        return { ...college, cutoff: lookup(college.code, college.branch) }
+      })
+    } catch (err) {
+      console.error('[Cutoff enrich] exception:', err)
+      return results
+    }
+  }
+
+  // "Aspirational" (reach) colleges: the plan grants N of them (Free 0, Secure 5,
+  // Assured 15, Assured+ 50). These are colleges ABOVE the student's cutoff
+  // (cutoff-based) or BELOW their rank (rank-based) — i.e. reach colleges they
+  // might not get. This fetches the N nearest reach colleges (respecting the same
+  // branch/district filters) and merges them at the TOP of the results, trimming
+  // the usual list so the total stays within the plan's choice limit.
+  const withAspirationalReach = async (
+    flatResults: any[],
+    maxChoices: number,
+    resultType: 'cutoff' | 'rank',
+  ) => {
+    try {
+      const N = planAspirationalLimit(usageData?.planType)
+      const category = (userPreferences.category || '').trim()
+      if (!N || N <= 0 || !category) return flatResults
+
+      const userCutoff = Number(userPreferences.cutoff)
+      const userRank = parseInt(formData.rank)
+      const table = resultType === 'rank' ? 'Rank' : 'Cutoff'
+
+      // Page all rows for the category that have a PowerScore.
+      const pageSize = 1000
+      let from = 0
+      const rows: any[] = []
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from(table)
+          .select(`"College Code","College Name","Branch Name","District","BranchNo","PowerScore","avgMedianSalary","avgPlacementPercentage","${category}"`)
+          .gt('PowerScore', 0)
+          .range(from, from + pageSize - 1)
+        if (error) { console.error('[Aspirational] fetch error:', error); return flatResults }
+        if (!data || data.length === 0) break
+        rows.push(...data)
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+
+      const branches = userPreferences.selectedBranches || []
+      const districts = userPreferences.selectedDistricts || []
+      const matchesBranch = (b: unknown) =>
+        branches.length === 0 || branches.some((sel) => String(b ?? '').toLowerCase().includes(sel.trim().toLowerCase()))
+      const matchesDistrict = (d: unknown) =>
+        districts.length === 0 || districts.includes(String(d ?? '').trim())
+
+      // Reach candidates, nearest to the boundary first.
+      const reach = rows
+        .map((item) => ({ item, val: parseFloat(String(item[category] ?? '').replace(/[^\d.]/g, '')) }))
+        .filter(({ item, val }) =>
+          Number.isFinite(val) && val > 0 &&
+          matchesBranch(item['Branch Name']) && matchesDistrict(item['District']) &&
+          (resultType === 'rank' ? val < userRank : val > userCutoff)
+        )
+        .sort((a, b) => (resultType === 'rank' ? b.val - a.val : a.val - b.val))
+
+      const norm = (s: unknown) => String(s ?? '').trim().toLowerCase()
+      const seen = new Set(flatResults.map((r) => `${String(r.code).trim()}||${norm(r.branch)}`))
+      const aspirational: any[] = []
+      for (const { item, val } of reach) {
+        if (aspirational.length >= N) break
+        const code = String(item['College Code'] ?? '').trim()
+        const branch = String(item['Branch Name'] ?? '').trim()
+        const key = `${code}||${norm(branch)}`
+        if (!code || seen.has(key)) continue
+        seen.add(key)
+        aspirational.push({
+          code,
+          name: String(item['College Name'] ?? '').trim(),
+          branch,
+          branchNo: Number(item['BranchNo']) || 999,
+          cutoff: resultType === 'cutoff' ? val : 0,
+          rank: resultType === 'rank' ? val : 0,
+          medianSalary: parseFloat(item['avgMedianSalary']) || 0,
+          placementPercentage: parseFloat(item['avgPlacementPercentage']) || 0,
+          powerScore: parseFloat(item['PowerScore']) || 0,
+          district: String(item['District'] ?? '').trim(),
+          category,
+          isSelected: false,
+          isAspirational: true,
+        })
+      }
+
+      if (aspirational.length === 0) return flatResults
+      // Reach first, then the usual list (trimmed so total stays within maxChoices).
+      const usual = flatResults.slice(0, Math.max(0, maxChoices - aspirational.length))
+      return [...aspirational, ...usual]
+    } catch (e) {
+      console.error('[Aspirational] exception:', e)
+      return flatResults
+    }
+  }
+
   // Render the trend rate as a coloured arrow:
   //   green  -> upward arrow (green)
   //   red    -> downward arrow (red)
@@ -1134,22 +1284,28 @@ export default function ChoiceFilling() {
     return Number.isFinite(userCutoff) && Number.isFinite(v) && Math.abs(v - userCutoff) < 0.001
   }
 
+  // Aspirational = "reach" colleges above the student's cutoff / below their rank
+  // (flagged isAspirational during generation). NOT the colleges the user picked.
   // Bucket for a flat college row (traditional view) — carries rank/cutoff.
   const getChoiceBucket = (college: any): ChoiceBucket => {
-    if (college?.isSelected) return 'aspirational'
+    if (college?.isAspirational) return 'aspirational'
     return isExactRankCutoffMatch(college) ? 'matching' : 'safe'
   }
 
-  // Bucket for a single branch row inside a smart college card.
+  // Bucket for a single branch row inside a smart college card. Aspirational is
+  // decided PER BRANCH (not per college) — a college can have some reach branches
+  // and some regular ones, and only the reach branches are aspirational.
   const getBranchBucket = (college: any, branch: any): ChoiceBucket => {
-    if (college?.isSelected) return 'aspirational'
+    if (branch?.isAspirational) return 'aspirational'
     return isExactRankCutoffMatch(branch) ? 'matching' : 'safe'
   }
 
-  // Bucket for a smart college card/header: green if picked, else yellow when
-  // any of its branches is an exact match, otherwise pink.
+  // Bucket for a smart college card/header: aspirational if any branch is a reach
+  // college, else matching when any branch is an exact match, otherwise safe.
   const getCollegeAggregateBucket = (college: any): ChoiceBucket => {
-    if (college?.isSelected) return 'aspirational'
+    if (college?.isAspirational || (Array.isArray(college?.branches) && college.branches.some((b: any) => b?.isAspirational))) {
+      return 'aspirational'
+    }
     const anyMatch = Array.isArray(college?.branches) && college.branches.some((b: any) => isExactRankCutoffMatch(b))
     return anyMatch ? 'matching' : 'safe'
   }
@@ -1188,17 +1344,29 @@ export default function ChoiceFilling() {
 
   // Flatten the grouped (college -> branches) smart results into one entry per
   // college-branch, so each BRANCH gets its own choice number — matching how the
-  // PDF numbers them. Branches are ordered by rank (rank-based) or branchNo.
-  const flattenSmartChoices = (colleges: any[]): { college: any; branch: any }[] =>
-    (colleges || []).flatMap((college: any) =>
-      [...(college.branches || [])]
-        .sort((a: any, b: any) =>
-          userPreferences.resultType === 'rank'
-            ? (a.rank || 0) - (b.rank || 0)
-            : (a.branchNo || 0) - (b.branchNo || 0)
-        )
-        .map((branch: any) => ({ college, branch }))
+  // PDF numbers them. Ordering: ALL aspirational (reach) choices first, then the
+  // student's selected colleges, then the rest — and within each of those groups
+  // by closing rank ascending (rank-based) or branchNo (cutoff-based).
+  const flattenSmartChoices = (colleges: any[]): { college: any; branch: any }[] => {
+    const rankBased = userPreferences.resultType === 'rank'
+    const flat = (colleges || []).flatMap((college: any) =>
+      [...(college.branches || [])].map((branch: any) => ({ college, branch }))
     )
+    const priority = ({ college, branch }: { college: any; branch: any }) => {
+      if (branch?.isAspirational) return 0
+      if (branch?.isSelected || college?.isSelected) return 1
+      return 2
+    }
+    flat.sort((a, b) => {
+      const pa = priority(a)
+      const pb = priority(b)
+      if (pa !== pb) return pa - pb
+      return rankBased
+        ? (a.branch.rank || 0) - (b.branch.rank || 0)
+        : (a.branch.branchNo || 0) - (b.branch.branchNo || 0)
+    })
+    return flat
+  }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1597,17 +1765,14 @@ export default function ChoiceFilling() {
         })
         triggerResultsGeneration(userPreferences.resultType ?? 'cutoff')
       } else if (option === 'Yes') {
-        // Show specific college selection options, capped at the plan's aspirational limit
-        const counts = new Set<number>()
-        for (let i = 1; i <= Math.min(5, aspirationalLimit); i++) counts.add(i)
-        for (const step of [10, 15, 20, 25, 50]) if (step <= aspirationalLimit) counts.add(step)
-        counts.add(aspirationalLimit)
-        const options = [...counts]
-          .sort((a, b) => a - b)
+        // Specific-college selection is capped at 5 (and never more than the
+        // plan's aspirational limit).
+        const maxSelectable = Math.min(5, aspirationalLimit)
+        const options = Array.from({ length: maxSelectable }, (_, i) => i + 1)
           .map((n) => `Select ${n} specific college${n > 1 ? 's' : ''}`)
         nextMessage = {
           type: 'bot',
-          content: `How many specific colleges would you like to select? (up to ${aspirationalLimit} on your plan)`,
+          content: `How many specific colleges would you like to select? (up to ${maxSelectable})`,
           options
         }
       } else if (option === 'No') {
@@ -2498,6 +2663,7 @@ export default function ChoiceFilling() {
       // Limit results based on user's plan
       const maxChoices = usage.maxChoices || 5 // Default to freemium limit
       let limitedResults = sortedResults.slice(0, maxChoices)
+      limitedResults = await withAspirationalReach(limitedResults, maxChoices, 'cutoff')
       
       console.log(`Limiting results to ${maxChoices} colleges based on user plan (${usage.planType})`)
       console.log(`Current results count: ${limitedResults.length}`)
@@ -2983,6 +3149,7 @@ export default function ChoiceFilling() {
       // Limit results based on user's plan
       const maxChoices = usage.maxChoices || 5 // Default to freemium limit
       let limitedResults = sortedResults.slice(0, maxChoices)
+      limitedResults = await withAspirationalReach(limitedResults, maxChoices, 'cutoff')
       
       console.log(`Limiting results to ${maxChoices} colleges based on user plan (${usage.planType})`)
       console.log(`Current results count: ${limitedResults.length}`)
@@ -3313,7 +3480,7 @@ export default function ChoiceFilling() {
       if (hasNullColleges) {
         doc.setFontSize(11)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(11, 85, 136) // Website color #0B5588
+        doc.setTextColor(11, 85, 136) // Website color #005596
         
         const message = 'Based on your rank and last year\'s TNEA + NIRF data, we\'ve identified colleges that had seats available previously. While it may be a close call, these suggestions are smart backup options to help you explore every possible opportunity with confidence!'
         
@@ -3393,19 +3560,10 @@ export default function ChoiceFilling() {
         const rowColleges: any[] = []
         const rowBranches: any[] = []
 
-        for (const college of groupedResults) {
-          // Sort branches within each college
-          const sortedBranches = college.branches.sort((a: any, b: any) => {
-                // For rank-based results, sort by rank (ascending)
-                if (userPreferences.resultType === 'rank') {
-                  return a.rank - b.rank
-                }
-                // For cutoff-based results, sort by branchNo
-                return a.branchNo - b.branchNo
-              })
-
-          // Add each branch as a row
-          for (const branch of sortedBranches) {
+        // Same order as the on-screen table: rank-based is globally rank-ascending
+        // (from the student's rank upward), cutoff-based is grouped by college.
+        for (const { college, branch } of flattenSmartChoices(groupedResults)) {
+              {
                 const currentChoice = choiceNumber
                 choiceNumber++
                 
@@ -3417,6 +3575,7 @@ export default function ChoiceFilling() {
                     branch.name,
                     (branch.powerScore || 0).toString(),
                     (branch.rank || 0).toString(),
+                    branch.cutoff != null ? branch.cutoff.toString() : '-',
                     '', // Trend Rate — arrow drawn via didDrawCell
                 college.district || '',
                 college.isSelected ? 'Yes' : 'No'
@@ -3443,7 +3602,7 @@ export default function ChoiceFilling() {
         autoTable(doc, {
           startY: currentY,
           head: userPreferences.resultType === 'rank'
-            ? [['Choice No', 'College Name', 'College Code', 'Branch', 'PowerScore', 'Rank', 'Trend Rate', 'District', 'Selected']]
+            ? [['Choice No', 'College Name', 'College Code', 'Branch', 'PowerScore', 'Rank', 'Cutoff', 'Trend Rate', 'District', 'Selected']]
             : [['Choice No', 'College Name', 'College Code', 'Branch', 'PowerScore', 'Trend Rate', 'District', 'Selected']],
           body: tableData,
             styles: {
@@ -3456,15 +3615,16 @@ export default function ChoiceFilling() {
             // Column widths sized to fit A4 portrait usable width (~170mm)
             columnStyles: userPreferences.resultType === 'rank'
               ? {
-                0: { cellWidth: 11 },  // Choice No
-                1: { cellWidth: 34 },  // College Name
-                2: { cellWidth: 14 },  // College Code
-                3: { cellWidth: 34 },  // Branch
-                4: { cellWidth: 15 },  // PowerScore
-                5: { cellWidth: 13 },  // Rank
-                6: { cellWidth: 16, halign: 'center' },  // Trend Rate
-                7: { cellWidth: 20 },  // District
-                8: { cellWidth: 13 }   // Selected
+                0: { cellWidth: 10 },  // Choice No
+                1: { cellWidth: 30 },  // College Name
+                2: { cellWidth: 13 },  // College Code
+                3: { cellWidth: 30 },  // Branch
+                4: { cellWidth: 14 },  // PowerScore
+                5: { cellWidth: 12 },  // Rank
+                6: { cellWidth: 13 },  // Cutoff
+                7: { cellWidth: 15, halign: 'center' },  // Trend Rate
+                8: { cellWidth: 20 },  // District
+                9: { cellWidth: 13 }   // Selected
               }
               : {
                 0: { cellWidth: 12 },  // Choice No
@@ -3477,7 +3637,7 @@ export default function ChoiceFilling() {
                 7: { cellWidth: 13 }   // Selected
                 },
             headStyles: {
-              fillColor: [11, 85, 136], // Website color #0B5588
+              fillColor: [11, 85, 136], // Website color #005596
               textColor: [255, 255, 255], // White text
               fontStyle: 'bold',
             fontSize: 7
@@ -3493,7 +3653,7 @@ export default function ChoiceFilling() {
               }
             },
             didDrawCell: (data: any) => {
-              const trendCol = userPreferences.resultType === 'rank' ? 6 : 5
+              const trendCol = userPreferences.resultType === 'rank' ? 7 : 5
               if (data.section === 'body' && data.column.index === trendCol) {
                 drawTrendArrow(trendColours[data.row.index] || '', data.cell)
               }
@@ -3518,7 +3678,7 @@ export default function ChoiceFilling() {
         const tradResults = resultsMessage.results
         autoTable(doc, {
           startY: currentY,
-          head: [['Choice No', 'College Code', 'College Name', 'Branch', userPreferences.resultType === 'rank' ? 'Rank' : 'Cutoff', 'Trend Rate']],
+          head: [['Choice No', 'College Code', 'College Name', 'Branch', userPreferences.resultType === 'rank' ? 'Rank' : 'Cutoff', 'PowerScore', 'Trend Rate']],
           body: tradResults.map((college, index) => [
               (index + 1).toString(),
               college.code,
@@ -3527,6 +3687,7 @@ export default function ChoiceFilling() {
               userPreferences.resultType === 'rank' ?
                 (college.rank !== undefined ? college.rank.toString() : (college.cutoff || 0).toString()) :
                 (college.cutoff || 0).toString(),
+              (college.powerScore || 0).toString(),
               '' // Trend Rate — arrow drawn via didDrawCell
           ]),
         styles: {
@@ -3538,15 +3699,16 @@ export default function ChoiceFilling() {
         },
         // Column widths sized to fit A4 portrait usable width (~170mm)
         columnStyles: {
-              0: { cellWidth: 18 },  // Choice No
-              1: { cellWidth: 24 },  // College Code
-              2: { cellWidth: 55 },  // College Name
-              3: { cellWidth: 45 },  // Branch
-              4: { cellWidth: 16 },  // Rank/Cutoff
-              5: { cellWidth: 12, halign: 'center' }   // Trend Rate
+              0: { cellWidth: 15 },  // Choice No
+              1: { cellWidth: 22 },  // College Code
+              2: { cellWidth: 50 },  // College Name
+              3: { cellWidth: 40 },  // Branch
+              4: { cellWidth: 15 },  // Rank/Cutoff
+              5: { cellWidth: 16 },  // PowerScore
+              6: { cellWidth: 12, halign: 'center' }   // Trend Rate
             },
         headStyles: {
-            fillColor: [11, 85, 136], // Website color #0B5588
+            fillColor: [11, 85, 136], // Website color #005596
             textColor: [255, 255, 255], // White text
           fontStyle: 'bold',
             fontSize: 8
@@ -3561,7 +3723,7 @@ export default function ChoiceFilling() {
             }
           },
           didDrawCell: (data: any) => {
-            if (data.section === 'body' && data.column.index === 5) {
+            if (data.section === 'body' && data.column.index === 6) {
               const college = tradResults[data.row.index]
               drawTrendArrow(college?.trendRate || '', data.cell)
             }
@@ -3692,9 +3854,12 @@ export default function ChoiceFilling() {
           name: college.name,
           district: college.district,
           isSelected: college.isSelected,
+          isAspirational: false,
           branches: []
         }
       }
+      // A college is aspirational if any of its branches is a reach college.
+      if (college.isAspirational) acc[key].isAspirational = true
       acc[key].branches.push({
         name: college.branch,
         branchNo: college.branchNo,
@@ -3702,7 +3867,9 @@ export default function ChoiceFilling() {
         rank: college.rank,
         medianSalary: college.medianSalary,
         placementPercentage: college.placementPercentage,
-        powerScore: college.powerScore
+        powerScore: college.powerScore,
+        isAspirational: !!college.isAspirational,
+        isSelected: !!college.isSelected,
       })
       return acc
     }, {})
@@ -4199,8 +4366,9 @@ export default function ChoiceFilling() {
         if (result.isSelected) {
           return true
         }
-        // Non-selected colleges should only be included if their rank is above user's rank
-        return result.rank > userRank
+        // Non-selected colleges are included from the student's rank upward
+        // (closing rank at or worse than theirs — i.e. colleges they can get).
+        return result.rank >= userRank
       })
 
       // Filter out colleges with missing placement and salary data (for traditional method)
@@ -4223,20 +4391,23 @@ export default function ChoiceFilling() {
       // NEW LOGIC: Apply different sorting and limiting based on choice type
       let finalResults
       if (userPreferences.choiceType === 'smart') {
-        // AI METHOD: Sort by PowerScore (descending) and take top colleges based on plan
+        // AI METHOD: order by rank ascending — from the student's rank to higher —
+        // and take the nearest colleges up to the plan limit (PowerScore is shown
+        // alongside, not used for ordering).
         const maxChoices = usage.maxChoices || 5 // Default to freemium limit
-        console.log(`AI Method: Sorting by PowerScore and taking top ${maxChoices} colleges`)
+        console.log(`AI Method: Sorting by rank (from the student's rank upward) and taking top ${maxChoices} colleges`)
         let sortedResults = dataFilteredResults
           .sort((a, b) => {
           // Selected colleges come first
           if (a.isSelected && !b.isSelected) return -1
           if (!a.isSelected && b.isSelected) return 1
-          
-          // Then sort by PowerScore (descending)
-          return b.powerScore - a.powerScore
+
+          // Then from their rank to higher (ascending closing rank)
+          return a.rank - b.rank
         })
         
         finalResults = sortedResults.slice(0, maxChoices)
+        finalResults = await withAspirationalReach(finalResults, maxChoices, 'rank')
         console.log(`AI Method - Initial results count: ${finalResults.length}`)
 
         // Check if user got enough colleges based on their plan
@@ -4276,8 +4447,10 @@ export default function ChoiceFilling() {
         // Check if null colleges are present in the results
         const hasNullColleges = finalResults.some(college => college.isNullCollege)
         
-        // Fetch trend rate for the computed results before displaying.
-        const displayResults = await enrichResultsWithTrendRate(groupedResults)
+        // AI Method: enrich with the closing cutoff (from the Cutoff table) and
+        // the trend rate before displaying, so results show rank + PowerScore + cutoff.
+        const withCutoff = await enrichResultsWithCutoff(groupedResults)
+        const displayResults = await enrichResultsWithTrendRate(withCutoff)
 
         // Add results message to chat
         const resultsMessage: Message = {
@@ -4306,6 +4479,7 @@ export default function ChoiceFilling() {
       })
         
         finalResults = sortedResults.slice(0, maxChoices)
+        finalResults = await withAspirationalReach(finalResults, maxChoices, 'rank')
         console.log(`Traditional Method - Initial results count: ${finalResults.length}`)
 
         // Check if user got enough colleges based on their plan
@@ -4371,7 +4545,7 @@ export default function ChoiceFilling() {
         <Header />
         <main className="flex-1 container py-8 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0B5588] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#005596] mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </main>
@@ -4387,7 +4561,7 @@ export default function ChoiceFilling() {
         <Header />
         <main className="flex-1 container py-8 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0B5588] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#005596] mx-auto"></div>
             <p className="mt-4 text-gray-600">Signing out...</p>
           </div>
         </main>
@@ -4413,7 +4587,7 @@ export default function ChoiceFilling() {
         {step === 'form' ? (
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Choice Filling</h1>
+              <h1 className="text-4xl font-bold mb-4 text-[#005596]">Choice Filling</h1>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
                 Fill in your details to get AI-assisted choice filling recommendations
               </p>
@@ -4424,7 +4598,7 @@ export default function ChoiceFilling() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-left">
                       <p className="text-sm text-gray-600">Current Plan</p>
-                      <p className="text-lg font-semibold text-[#0B5588]">{usageData.currentPlan}</p>
+                      <p className="text-lg font-semibold text-[#005596]">{usageData.currentPlan}</p>
                       <p className="text-xs text-gray-500">{usageData.maxChoices} max choices</p>
                     </div>
                     <div className="text-right">
@@ -4454,7 +4628,7 @@ export default function ChoiceFilling() {
                   variant="outline"
                   onClick={handleSignOut}
                   disabled={isSigningOut}
-                  className="text-[#0B5588] hover:bg-[#0B5588] hover:text-white"
+                  className="text-[#005596] hover:bg-[#005596] hover:text-white"
                 >
                   {isSigningOut ? "Signing Out..." : "Sign Out"}
                 </Button>
@@ -4710,7 +4884,7 @@ export default function ChoiceFilling() {
         ) : (
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">AI-Assisted Choice Filling</h1>
+              <h1 className="text-4xl font-bold mb-4 text-[#005596]">AI-Assisted Choice Filling</h1>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
                 Let AARVI help you make the best college choices
               </p>
@@ -4719,7 +4893,7 @@ export default function ChoiceFilling() {
                 {/* Free Plan */}
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 w-56 flex flex-col items-center">
                   <div className="text-xs font-bold text-gray-500 mb-1">FREE</div>
-                  <div className="text-xl font-bold text-[#0B5588]">Free</div>
+                  <div className="text-xl font-bold text-[#005596]">Free</div>
                   <div className="text-sm text-gray-700 mb-2">upto 10 Choices</div>
                   <div className="text-xs text-gray-500 mb-2">Traditional · AI chat 2</div>
                   <div className="text-xs text-green-600 font-semibold">1 Free Trial</div>
@@ -5244,6 +5418,7 @@ export default function ChoiceFilling() {
                                       <TableHead>District</TableHead>
                                       <TableHead>PowerScore</TableHead>
                                       {userPreferences.resultType === 'rank' && <TableHead>Rank</TableHead>}
+                                      {userPreferences.resultType === 'rank' && <TableHead>Cutoff</TableHead>}
                                       <TableHead>Trend Rate</TableHead>
                                       <TableHead>Type</TableHead>
                                     </TableRow>
@@ -5267,17 +5442,25 @@ export default function ChoiceFilling() {
                                           {userPreferences.resultType === 'rank' && (
                                             <TableCell>{branch.rank || 0}</TableCell>
                                           )}
+                                          {userPreferences.resultType === 'rank' && (
+                                            <TableCell>{branch.cutoff != null ? branch.cutoff : '-'}</TableCell>
+                                          )}
                                           <TableCell>{renderTrendRate(branch.trendRate)}</TableCell>
                                           <TableCell>
-                                            {bucket === 'aspirational' && (
-                                              <span className="px-2 py-1 text-xs bg-green-600 text-white rounded-full">Aspirational</span>
-                                            )}
-                                            {bucket === 'matching' && (
-                                              <span className="px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Matching</span>
-                                            )}
-                                            {bucket === 'safe' && (
-                                              <span className="px-2 py-1 text-xs bg-pink-500 text-white rounded-full">Safe</span>
-                                            )}
+                                            <span className="inline-flex flex-wrap gap-1">
+                                              {bucket === 'aspirational' && (
+                                                <span className="px-2 py-1 text-xs bg-green-600 text-white rounded-full">Aspirational</span>
+                                              )}
+                                              {bucket === 'matching' && (
+                                                <span className="px-2 py-1 text-xs bg-yellow-500 text-white rounded-full">Matching</span>
+                                              )}
+                                              {bucket === 'safe' && (
+                                                <span className="px-2 py-1 text-xs bg-pink-500 text-white rounded-full">Safe</span>
+                                              )}
+                                              {(branch.isSelected || college.isSelected) && (
+                                                <span className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded-full">Selected</span>
+                                              )}
+                                            </span>
                                           </TableCell>
                                         </TableRow>
                                       )
@@ -5294,6 +5477,7 @@ export default function ChoiceFilling() {
                                       <TableHead>College Name</TableHead>
                                       <TableHead>Branch</TableHead>
                                       <TableHead>{userPreferences.resultType === 'rank' ? 'Rank' : 'Cutoff'}</TableHead>
+                                      <TableHead>PowerScore</TableHead>
                                       <TableHead>Trend Rate</TableHead>
                                     </TableRow>
                                   </TableHeader>
@@ -5309,12 +5493,20 @@ export default function ChoiceFilling() {
                                       >
                                         <TableCell className={college.isSelected ? 'font-medium' : ''}>{index + 1}</TableCell>
                                         <TableCell className={college.isSelected ? 'font-medium' : ''}>{college.code}</TableCell>
-                                        <TableCell className={college.isSelected ? 'font-medium' : ''}>{college.name}</TableCell>
+                                        <TableCell className={college.isSelected ? 'font-medium' : ''}>
+                                          {college.name}
+                                          {college.isSelected && (
+                                            <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">Selected</span>
+                                          )}
+                                        </TableCell>
                                         <TableCell className={college.isSelected ? 'font-medium' : ''}>{college.branch}</TableCell>
                                         <TableCell className={college.isSelected ? 'font-medium' : ''}>
                                           {userPreferences.resultType === 'rank' ?
                                             (college.rank !== undefined ? college.rank.toString() : (college.cutoff || 0).toString()) :
                                             (college.cutoff || 0).toString()}
+                                        </TableCell>
+                                        <TableCell className={college.isSelected ? 'font-medium' : ''}>
+                                          {college.powerScore || 0}
                                         </TableCell>
                                         <TableCell className={college.isSelected ? 'font-medium' : ''}>
                                           {renderTrendRate(college.trendRate)}
@@ -5830,7 +6022,7 @@ export default function ChoiceFilling() {
       <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-[#0B5588]">
+            <DialogTitle className="text-2xl font-bold text-center text-[#005596]">
               🎉 Upgrade Your Plan
             </DialogTitle>
             <DialogDescription className="text-center text-lg">

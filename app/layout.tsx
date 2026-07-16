@@ -1,14 +1,21 @@
 import type React from "react"
 import "./globals.css"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Montserrat } from "next/font/google"
 import Script from "next/script"
 import { Providers } from "./providers"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ChatWidget } from "@/components/chat"
 
-const inter = Inter({ subsets: ["latin"] })
+// Institutional Excellence typography: Montserrat for headings, Inter for body/UI.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-montserrat",
+  display: "swap",
+})
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -31,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${montserrat.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
@@ -52,7 +59,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans antialiased">
         <AuthProvider>
         <Providers>
           {children}

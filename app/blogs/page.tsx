@@ -198,7 +198,7 @@ export default function BlogsPage() {
         />
         <div className="absolute inset-0 flex items-center">
           <div className="container max-w-6xl px-4 sm:px-6 md:px-8">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-[#0B5588]">Our Blogs</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-[#005596]">Our Blogs</h1>
             <p className="text-base sm:text-lg md:text-xl text-white">Insights and guidance for your college journey</p>
           </div>
         </div>

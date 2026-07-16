@@ -189,7 +189,7 @@ export default function Pricing() {
                           planName={plan.planName}
                           onSuccess={handlePaymentSuccess}
                           onError={handlePaymentError}
-                          className="w-full bg-[#0B5588] hover:bg-[#094670] text-white text-sm"
+                          className="w-full bg-[#005596] hover:bg-[#094670] text-white text-sm"
                           userId={user?.id}
                           userEmail={user?.email}
                           onClick={handlePaymentClick}

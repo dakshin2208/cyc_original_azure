@@ -11,7 +11,7 @@ export default function CancellationAndRefund() {
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Cancellation and Refund</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Cancellation and Refund</h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Our policy regarding cancellations and refunds
             </p>
@@ -19,7 +19,7 @@ export default function CancellationAndRefund() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#0B5588]">Cancellation and Refund Policy</CardTitle>
+              <CardTitle className="text-2xl text-[#005596]">Cancellation and Refund Policy</CardTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Last updated: {new Date().toLocaleDateString('en-US', { 
                   year: 'numeric', 
@@ -49,7 +49,7 @@ export default function CancellationAndRefund() {
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Policy Details</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Policy Details</h2>
                   <div className="space-y-3">
                     <p>
                       At Happi Global Ventures LLP, we strive to provide the best possible service to our users. However, due to the nature of our digital services and the immediate access provided upon payment, we maintain a strict no-refund policy.
@@ -69,21 +69,21 @@ export default function CancellationAndRefund() {
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Cancellation Policy</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Cancellation Policy</h2>
                   <p>
                     Due to the immediate digital delivery of our services, cancellations are not possible once a payment has been processed. All services are delivered instantly upon successful payment completion.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Before Making a Payment</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Before Making a Payment</h2>
                   <p>
                     We encourage all users to carefully review our service descriptions, terms and conditions, and this cancellation and refund policy before making any payment. By proceeding with a payment, you acknowledge that you have read and understood this policy.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Contact Information</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Contact Information</h2>
                   <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                     <p className="mb-4">
                       If you have any questions about this cancellation and refund policy or need clarification about our services before making a payment, please contact us:

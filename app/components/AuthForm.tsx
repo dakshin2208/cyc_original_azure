@@ -121,7 +121,7 @@ export function AuthForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-center text-[#0B5588]">
+        <CardTitle className="text-2xl text-center text-[#005596]">
           {activeTab === 'login' ? 'Welcome Back!' : 'Create Account'}
         </CardTitle>
         <CardDescription className="text-center">
@@ -134,7 +134,7 @@ export function AuthForm() {
             Don't have an account? <button 
               type="button" 
               onClick={() => setActiveTab('signup')}
-              className="text-[#0B5588] hover:underline font-medium"
+              className="text-[#005596] hover:underline font-medium"
             >
               Sign up here
             </button>
@@ -145,7 +145,7 @@ export function AuthForm() {
             Already have an account? <button 
               type="button" 
               onClick={() => setActiveTab('login')}
-              className="text-[#0B5588] hover:underline font-medium"
+              className="text-[#005596] hover:underline font-medium"
             >
               Sign in here
             </button>
@@ -383,7 +383,7 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => setActiveTab(activeTab === 'login' ? 'signup' : 'login')}
-            className="text-[#0B5588] hover:underline"
+            className="text-[#005596] hover:underline"
           >
             {activeTab === 'login' ? 'Sign up' : 'Sign in'}
           </button>

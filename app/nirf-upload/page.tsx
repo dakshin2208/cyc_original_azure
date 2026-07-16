@@ -285,7 +285,7 @@ export default function AddCollegeDataPage() {
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2 text-[#0B5588]">Add College Data</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#005596]">Add College Data</h1>
           <p className="text-muted-foreground mb-6">Submit your college's NIRF data to be included in our database</p>
 
           {submitStatus === "success" && (

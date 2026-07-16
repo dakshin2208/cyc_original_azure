@@ -11,7 +11,7 @@ export default function TermsAndConditions() {
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Terms and Conditions</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Terms and Conditions</h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Please read these terms and conditions carefully before using our platform
             </p>
@@ -19,7 +19,7 @@ export default function TermsAndConditions() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#0B5588]">Terms and Conditions</CardTitle>
+              <CardTitle className="text-2xl text-[#005596]">Terms and Conditions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 text-gray-700 dark:text-gray-300">
               <div className="space-y-4">
@@ -41,7 +41,7 @@ export default function TermsAndConditions() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Key Terms</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Key Terms</h2>
                 <div className="space-y-3">
                   <p>
                     For the purpose of these Terms of Use, wherever the context so requires "you", 'your' or "user" shall mean any natural or legal person who has agreed to become a user/buyer on the Platform.
@@ -59,14 +59,14 @@ export default function TermsAndConditions() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Intellectual Property</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Intellectual Property</h2>
                 <p>
                   The contents of the Platform and the Services are proprietary to us and are licensed to us. You will not have any authority to claim any intellectual property rights, title, or interest in its contents. The contents includes and is not limited to the design, layout, look and graphics.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Legal Jurisdiction</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Legal Jurisdiction</h2>
                 <div className="space-y-3">
                   <p>
                     These Terms and any dispute or claim relating to it, or its enforceability, shall be governed by and construed in accordance with the laws of India.
@@ -78,7 +78,7 @@ export default function TermsAndConditions() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Contact</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Contact</h2>
                 <p>
                   All concerns or communications relating to these Terms must be communicated to us using the contact information provided on this website.
                 </p>

@@ -98,22 +98,22 @@ export default function VotePage() {
       <main className="flex-1 container py-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#0B5588]/10 mb-4">
-              <Vote className="h-7 w-7 text-[#0B5588]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#005596]/10 mb-4">
+              <Vote className="h-7 w-7 text-[#005596]" />
             </div>
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Vote for Your State</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Vote for Your State</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Help us bring AI-assisted college choice filling to your state. Every vote moves your
               state higher on our launch queue.
             </p>
           </div>
 
-          <Card className="mb-6 border-[#0B5588]/20 bg-blue-50/50">
+          <Card className="mb-6 border-[#005596]/20 bg-blue-50/50">
             <CardContent className="pt-6">
               <p className="text-gray-700 leading-relaxed">
-                <strong className="text-[#0B5588]">In Tamil Nadu?</strong> ChooseYourCollege is
+                <strong className="text-[#005596]">In Tamil Nadu?</strong> ChooseYourCollege is
                 already live —{' '}
-                <Link href="/choice-filling" className="text-[#0B5588] font-medium hover:underline">
+                <Link href="/choice-filling" className="text-[#005596] font-medium hover:underline">
                   start choice filling now
                 </Link>
                 .
@@ -130,13 +130,13 @@ export default function VotePage() {
             <Card>
               <CardContent className="pt-8 pb-8 text-center">
                 <CheckCircle2 className="h-14 w-14 text-green-600 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold text-[#0B5588] mb-2">Thank you for voting!</h2>
+                <h2 className="text-2xl font-semibold text-[#005596] mb-2">Thank you for voting!</h2>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   Your vote for <strong>{state}</strong> has been recorded. Share this page with
                   friends and family to help your state move up faster.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button onClick={handleShare} className="bg-[#0B5588] hover:bg-[#094670]">
+                  <Button onClick={handleShare} className="bg-[#005596] hover:bg-[#094670]">
                     <Users className="h-4 w-4 mr-2" />
                     Share with friends & relatives
                   </Button>
@@ -149,7 +149,7 @@ export default function VotePage() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-[#0B5588]">Cast your vote</CardTitle>
+                <CardTitle className="text-2xl text-[#005596]">Cast your vote</CardTitle>
                 <CardDescription>
                   Tell us your state and how we can reach you. One vote per person helps us plan
                   where to launch next.
@@ -237,7 +237,7 @@ export default function VotePage() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-[#0B5588] hover:bg-[#094670]"
+                    className="w-full bg-[#005596] hover:bg-[#094670]"
                     disabled={loading}
                   >
                     {loading ? 'Submitting…' : 'Submit my vote'}
@@ -250,15 +250,15 @@ export default function VotePage() {
 
           <div className="mt-8 grid sm:grid-cols-3 gap-4 text-center text-sm text-gray-600">
             <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-gray-50">
-              <MapPin className="h-5 w-5 text-[#0B5588]" />
+              <MapPin className="h-5 w-5 text-[#005596]" />
               <span>State-level votes decide launch priority</span>
             </div>
             <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-gray-50">
-              <Users className="h-5 w-5 text-[#0B5588]" />
+              <Users className="h-5 w-5 text-[#005596]" />
               <span>More votes = faster rollout in your state</span>
             </div>
             <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-gray-50">
-              <Vote className="h-5 w-5 text-[#0B5588]" />
+              <Vote className="h-5 w-5 text-[#005596]" />
               <span>Takes less than a minute</span>
             </div>
           </div>

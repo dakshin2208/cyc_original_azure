@@ -191,7 +191,7 @@ export default function BranchExplorer() {
   return (
     <div className="container py-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2 text-[#0B5588]">Branch Explorer</h1>
+        <h1 className="text-3xl font-bold mb-2 text-[#005596]">Branch Explorer</h1>
         <p className="text-muted-foreground mb-6">
           Explore branches offered by colleges
         </p>

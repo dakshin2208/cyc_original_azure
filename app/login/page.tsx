@@ -23,7 +23,7 @@ export default function LoginPage() {
         <Header />
         <main className="flex-1 container py-8 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0B5588] mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#005596] mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </main>
@@ -38,7 +38,7 @@ export default function LoginPage() {
       <main className="flex-1 container py-8">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Welcome to ChooseYourCollege</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Welcome to ChooseYourCollege</h1>
             <p className="text-lg text-gray-600">
               Sign in or create an account to get started with choice filling
             </p>

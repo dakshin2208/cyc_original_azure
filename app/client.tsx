@@ -125,7 +125,7 @@ export default function HomeClient() {
         <main className="flex-1 flex flex-col items-center p-4 md:p-8">
           <div className="w-full max-w-3xl mx-auto space-y-8 pt-12">
             <div className="text-center space-y-2">
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#0B5588]">ChooseYourCollege.com</h1>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#005596]">ChooseYourCollege.com</h1>
               <p className="text-gray-400 text-lg">Find the perfect college based on your preferences</p>
               <p className="text-gray-500 text-sm mt-4">
               If your college data is missing or wrong, please click on add college data & update it.
@@ -421,7 +421,7 @@ export default function HomeClient() {
 
             <div className="w-full max-w-3xl mx-auto space-y-8 mt-16 mb-12">
               <div className="border-t-2 border-gray-300 dark:border-gray-700 my-12"></div>
-              <h2 className="text-3xl font-bold text-center mb-8 text-[#0B5588]">Frequently Asked Questions</h2>
+              <h2 className="text-3xl font-bold text-center mb-8 text-[#005596]">Frequently Asked Questions</h2>
               
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="data-source">

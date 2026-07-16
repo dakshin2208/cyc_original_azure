@@ -199,10 +199,10 @@ export default function LetterToYourKidPage() {
       <main className="flex-1 container py-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-6 print:hidden">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#0B5588]/10 mb-4">
-              <Heart className="h-7 w-7 text-[#0B5588]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#005596]/10 mb-4">
+              <Heart className="h-7 w-7 text-[#005596]" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3 text-[#0B5588]">Letter to Your Kid</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3 text-[#005596]">Letter to Your Kid</h1>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               A letter for the night before your child leaves. Read it, fill in the blanks by hand,
               and download a copy to keep.
@@ -210,7 +210,7 @@ export default function LetterToYourKidPage() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-3 mb-8 print:hidden">
-            <Button onClick={handleDownload} className="bg-[#0B5588] hover:bg-[#094670]">
+            <Button onClick={handleDownload} className="bg-[#005596] hover:bg-[#094670]">
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
@@ -225,7 +225,7 @@ export default function LetterToYourKidPage() {
             {BLOCKS.map((b, i) => {
               if (b.type === 'title')
                 return (
-                  <h2 key={i} className="text-2xl sm:text-3xl font-bold text-[#0B5588] text-center mb-6">
+                  <h2 key={i} className="text-2xl sm:text-3xl font-bold text-[#005596] text-center mb-6">
                     {b.text}
                   </h2>
                 )

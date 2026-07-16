@@ -12,7 +12,7 @@ export default function Contact() {
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Contact Us</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Contact Us</h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Get in touch with us for any queries or support
             </p>
@@ -20,7 +20,7 @@ export default function Contact() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#0B5588]">Contact Information</CardTitle>
+              <CardTitle className="text-2xl text-[#005596]">Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 text-gray-700 dark:text-gray-300">
               <div className="space-y-6">
@@ -75,17 +75,17 @@ export default function Contact() {
 
                 {/* Company Information */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Company Details</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Company Details</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="flex items-start space-x-3">
-                      <Building className="h-6 w-6 text-[#0B5588] mt-1" />
+                      <Building className="h-6 w-6 text-[#005596] mt-1" />
                       <div>
                         <p className="font-medium">Company</p>
                         <p>Happi Global Ventures LLP</p>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <MapPin className="h-6 w-6 text-[#0B5588] mt-1" />
+                      <MapPin className="h-6 w-6 text-[#005596] mt-1" />
                       <div>
                         <p className="font-medium">Address</p>
                         <p>Innov8 Mantri Commercio MIS Deeta</p>

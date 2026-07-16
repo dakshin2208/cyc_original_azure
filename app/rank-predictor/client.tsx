@@ -20,13 +20,14 @@ import autoTable from "jspdf-autotable"
 // rank_list.COMMUNITY and the category columns present in the "Rank" table.
 const COMMUNITIES = ["OC", "BC", "BCM", "MBC", "MBCDNC", "MBCV", "SC", "SCA", "ST"]
 
-// Rank-based match (this year): college by OC closing rank.
+// Rank-based match (this year): college by OC closing rank, with its OC closing cutoff.
 interface CollegeResult {
   collegeCode: string
   collegeName: string
   branchName: string
   district: string
   ocRank: number
+  closingCutoff: number | null
 }
 
 // Cutoff-based match (last year): college by the student's community closing cutoff.
@@ -294,16 +295,32 @@ export default function RankPredictorClient() {
           cutPicked.push(r)
         }
       }
+      // Look up each college-branch's OC closing cutoff (from the Cutoff table)
+      // so the rank-based "this year" table can show cutoff alongside OC rank.
+      const norm = (s: unknown) => String(s ?? "").trim().toLowerCase()
+      const ocCutoffByKey = new Map<string, number>()
+      for (const row of cutoffRows) {
+        const oc = toCutoffNumber(row["OC"])
+        const code = String(row["College Code"] ?? "").trim()
+        const branch = norm(row["Branch Name"])
+        if (oc !== null && code && branch) ocCutoffByKey.set(`${code}||${branch}`, oc)
+      }
+
       // Two independent lists, shown side by side for comparison.
       const chosen: CollegeResult[] = picked
         .sort((a, b) => a.oc - b.oc)
-        .map((r) => ({
-          collegeCode: String(r.row["College Code"] ?? "").trim(),
-          collegeName: String(r.row["College Name"] ?? "").trim(),
-          branchName: String(r.row["Branch Name"] ?? "").trim(),
-          district: String(r.row["District"] ?? "").trim(),
-          ocRank: r.oc,
-        }))
+        .map((r) => {
+          const code = String(r.row["College Code"] ?? "").trim()
+          const branch = String(r.row["Branch Name"] ?? "").trim()
+          return {
+            collegeCode: code,
+            collegeName: String(r.row["College Name"] ?? "").trim(),
+            branchName: branch,
+            district: String(r.row["District"] ?? "").trim(),
+            ocRank: r.oc,
+            closingCutoff: ocCutoffByKey.get(`${code}||${norm(branch)}`) ?? null,
+          }
+        })
 
       const cutChosen: CutoffResult[] = cutPicked
         .sort((a, b) => b.cut - a.cut)
@@ -453,11 +470,11 @@ export default function RankPredictorClient() {
     })
     y = (doc as any).lastAutoTable.finalY + 10
 
-    // Table 2 — this year (rank-based)
+    // Table 2 — this year (rank-based), with OC closing cutoff alongside the rank
     sectionTitle("College's that you might get for your Rank this year")
     autoTable(doc, {
       startY: y,
-      head: [["#", "Code", "College", "Branch", "District", "OC Closing Rank"]],
+      head: [["#", "Code", "College", "Branch", "District", "OC Closing Rank", "OC Closing Cutoff"]],
       body: (results ?? []).map((r, i) => [
         (i + 1).toString(),
         r.collegeCode || "-",
@@ -465,9 +482,18 @@ export default function RankPredictorClient() {
         r.branchName || "-",
         r.district || "-",
         r.ocRank.toString(),
+        r.closingCutoff != null ? r.closingCutoff.toString() : "-",
       ]),
       styles: commonStyles,
-      columnStyles: commonCols,
+      columnStyles: {
+        0: { cellWidth: 8 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 52 },
+        3: { cellWidth: 36 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 24 },
+      },
       headStyles: commonHead,
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 15, right: 15, top: 40, bottom: 25 },
@@ -493,7 +519,7 @@ export default function RankPredictorClient() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 container py-8 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[#0B5588]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#005596]" />
         </main>
         <Footer />
       </div>
@@ -505,7 +531,7 @@ export default function RankPredictorClient() {
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2 text-[#0B5588]">College Predictor</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#005596]">College Predictor</h1>
           <p className="text-muted-foreground mb-6">
             Enter your details to validate your rank and get the colleges that match it.
           </p>
@@ -698,6 +724,7 @@ export default function RankPredictorClient() {
                           <TableHead>Branch</TableHead>
                           <TableHead>District</TableHead>
                           <TableHead>OC Closing Rank</TableHead>
+                          <TableHead>OC Closing Cutoff</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -709,11 +736,12 @@ export default function RankPredictorClient() {
                             <TableCell>{r.branchName || "-"}</TableCell>
                             <TableCell>{r.district || "-"}</TableCell>
                             <TableCell>{r.ocRank}</TableCell>
+                            <TableCell>{r.closingCutoff != null ? r.closingCutoff : "-"}</TableCell>
                           </TableRow>
                         ))}
                         {(results?.length ?? 0) === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
                               No colleges found for this rank.
                             </TableCell>
                           </TableRow>

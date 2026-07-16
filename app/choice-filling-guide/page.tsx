@@ -238,7 +238,7 @@ export default function ChoiceFillingGuidePage() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#0B5588]">Choice Filling Guide</h1>
+            <h1 className="text-3xl font-bold text-[#005596]">Choice Filling Guide</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">
               A quick step-by-step guide to filling your choices with confidence.
             </p>
@@ -256,7 +256,7 @@ export default function ChoiceFillingGuidePage() {
 
           {/* Section 4 — Read Your Results, with legends */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-            <h2 className="text-lg font-semibold text-[#0B5588] mb-3">4. Read Your Results</h2>
+            <h2 className="text-lg font-semibold text-[#005596] mb-3">4. Read Your Results</h2>
             <p className="text-gray-700 dark:text-gray-200 mb-3">
               Each college in your results is colour-coded so you can see its type at a glance:
             </p>
@@ -296,7 +296,7 @@ export default function ChoiceFillingGuidePage() {
 function GuideCard({ title, points }: { title: string; points: string[] }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-      <h2 className="text-lg font-semibold text-[#0B5588] mb-3">{title}</h2>
+      <h2 className="text-lg font-semibold text-[#005596] mb-3">{title}</h2>
       <ul className="space-y-2 list-disc list-inside">
         {points.map((p, i) => (
           <li key={i} className="text-gray-700 dark:text-gray-200">{p}</li>

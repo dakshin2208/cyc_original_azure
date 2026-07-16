@@ -12,7 +12,7 @@ export default function ShippingDelivery() {
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Shipping & Delivery</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Shipping & Delivery</h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               How our educational services are delivered to you
             </p>
@@ -20,7 +20,7 @@ export default function ShippingDelivery() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#0B5588]">Service Delivery Information</CardTitle>
+              <CardTitle className="text-2xl text-[#005596]">Service Delivery Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 text-gray-700 dark:text-gray-300">
               <div className="space-y-6">
@@ -43,7 +43,7 @@ export default function ShippingDelivery() {
 
                 {/* Instant Access */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Instant Digital Delivery</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Instant Digital Delivery</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="h-6 w-6 text-green-600 mt-1" />
@@ -55,7 +55,7 @@ export default function ShippingDelivery() {
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <Smartphone className="h-6 w-6 text-[#0B5588] mt-1" />
+                      <Smartphone className="h-6 w-6 text-[#005596] mt-1" />
                       <div>
                         <p className="font-medium">Multi-Device Access</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -64,7 +64,7 @@ export default function ShippingDelivery() {
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <Download className="h-6 w-6 text-[#0B5588] mt-1" />
+                      <Download className="h-6 w-6 text-[#005596] mt-1" />
                       <div>
                         <p className="font-medium">Downloadable Reports</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -73,7 +73,7 @@ export default function ShippingDelivery() {
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <Mail className="h-6 w-6 text-[#0B5588] mt-1" />
+                      <Mail className="h-6 w-6 text-[#005596] mt-1" />
                       <div>
                         <p className="font-medium">Email Notifications</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -86,7 +86,7 @@ export default function ShippingDelivery() {
 
                 {/* Service Types */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Service Delivery Details</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Service Delivery Details</h2>
                   <div className="space-y-4">
                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <h3 className="font-semibold text-lg mb-2">Choice Filling Services</h3>
@@ -122,10 +122,10 @@ export default function ShippingDelivery() {
 
                 {/* Delivery Timeline */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Delivery Timeline</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Delivery Timeline</h2>
                   <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                     <div className="flex items-center space-x-3 mb-4">
-                      <Clock className="h-6 w-6 text-[#0B5588]" />
+                      <Clock className="h-6 w-6 text-[#005596]" />
                       <h3 className="font-semibold text-lg">Service Delivery Schedule</h3>
                     </div>
                     <div className="space-y-3">
@@ -151,7 +151,7 @@ export default function ShippingDelivery() {
 
                 {/* No Physical Shipping */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">No Physical Shipping</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">No Physical Shipping</h2>
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
@@ -173,7 +173,7 @@ export default function ShippingDelivery() {
 
                 {/* Technical Requirements */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Technical Requirements</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Technical Requirements</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <h3 className="font-semibold">Device Requirements</h3>
@@ -198,7 +198,7 @@ export default function ShippingDelivery() {
 
                 {/* Support */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Need Help?</h2>
+                  <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Need Help?</h2>
                   <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                     <p className="mb-4">
                       If you experience any issues accessing our services or have questions about delivery:

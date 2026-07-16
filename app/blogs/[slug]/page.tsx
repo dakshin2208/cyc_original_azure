@@ -1021,7 +1021,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
   if (!post) {
     return (
       <div className="container py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4 text-[#0B5588]">Blog post not found</h1>
+        <h1 className="text-2xl font-bold mb-4 text-[#005596]">Blog post not found</h1>
         <Link href="/blogs">
           <Button variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -1045,7 +1045,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         />
         <div className="absolute inset-0 flex items-center">
           <div className="container max-w-6xl px-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#0B5588]">{post.title}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-[#005596]">{post.title}</h1>
           </div>
         </div>
       </div>
@@ -1069,7 +1069,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         </div>
 
         {/* Blog Content */}
-        <div className="prose prose-lg dark:prose-invert max-w-none prose-p:my-2 prose-headings:my-6 prose-h1:text-4xl prose-h1:font-bold prose-h1:text-[#0B5588] prose-h2:text-3xl prose-h2:font-semibold prose-h2:text-[#0B5588] prose-h3:text-2xl prose-h3:font-semibold prose-h3:text-[#0B5588] prose-ul:my-2 bg-white dark:bg-gray-900 rounded-lg p-8 shadow-lg">
+        <div className="prose prose-lg dark:prose-invert max-w-none prose-p:my-2 prose-headings:my-6 prose-h1:text-4xl prose-h1:font-bold prose-h1:text-[#005596] prose-h2:text-3xl prose-h2:font-semibold prose-h2:text-[#005596] prose-h3:text-2xl prose-h3:font-semibold prose-h3:text-[#005596] prose-ul:my-2 bg-white dark:bg-gray-900 rounded-lg p-8 shadow-lg">
           {post.content.split('\n').map((paragraph, index) => {
             if (paragraph.startsWith('#')) {
               const level = paragraph.match(/^#+/)?.[0].length || 1
@@ -1080,7 +1080,7 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
                 return (
                   <Tag 
                     key={index} 
-                    className="text-5xl font-extrabold text-[#0B5588] border-b-2 border-[#0B5588] pb-4 mb-8"
+                    className="text-5xl font-extrabold text-[#005596] border-b-2 border-[#005596] pb-4 mb-8"
                   >
                     {text}
                   </Tag>

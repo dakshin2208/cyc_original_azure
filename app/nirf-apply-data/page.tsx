@@ -137,7 +137,7 @@ export default function DataTransparencyPage() {
       <main className="flex-1 container py-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-3 text-[#0B5588]">Data Transparency</h1>
+            <h1 className="text-4xl font-bold mb-3 text-[#005596]">Data Transparency</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               A single, colour-coded list of Tamil Nadu engineering colleges by how openly they
               publish their NIRF data. Search, filter, and download the full list as one PDF.
@@ -174,7 +174,7 @@ export default function DataTransparencyPage() {
                 className="pl-9"
               />
             </div>
-            <Button className="bg-[#0B5588] hover:bg-[#094670] shrink-0" onClick={handleDownloadPdf}>
+            <Button className="bg-[#005596] hover:bg-[#094670] shrink-0" onClick={handleDownloadPdf}>
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
@@ -189,8 +189,8 @@ export default function DataTransparencyPage() {
                 className={cn(
                   'rounded-full border px-3 py-1 text-sm transition-colors',
                   filter === f.key
-                    ? 'border-[#0B5588] bg-[#0B5588] text-white'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#0B5588]/40',
+                    ? 'border-[#005596] bg-[#005596] text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-[#005596]/40',
                 )}
               >
                 {f.label} ({f.count})

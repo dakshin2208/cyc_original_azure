@@ -117,7 +117,7 @@ export default function CompareColleges() {
 
   return (
     <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-[#0B5588]">Compare Colleges</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-[#005596]">Compare Colleges</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
         {/* College 1 Selection */}

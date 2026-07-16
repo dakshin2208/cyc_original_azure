@@ -66,10 +66,10 @@ export default function CheatsheetPage() {
       <main className="flex-1 container py-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#0B5588]/10 mb-4">
-              <FileText className="h-7 w-7 text-[#0B5588]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#005596]/10 mb-4">
+              <FileText className="h-7 w-7 text-[#005596]" />
             </div>
-            <h1 className="text-4xl font-bold mb-3 text-[#0B5588]">
+            <h1 className="text-4xl font-bold mb-3 text-[#005596]">
               Engineering College Cheat Sheet
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -83,12 +83,12 @@ export default function CheatsheetPage() {
               <section key={sheet.id}>
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-[#0B5588]">{sheet.title}</h2>
+                    <h2 className="text-2xl font-bold text-[#005596]">{sheet.title}</h2>
                     <p className="text-sm text-gray-600 max-w-2xl">{sheet.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-3 shrink-0 print:hidden">
                     <Button
-                      className="bg-[#0B5588] hover:bg-[#094670]"
+                      className="bg-[#005596] hover:bg-[#094670]"
                       onClick={() => handleDownload(sheet.path, sheet.filename)}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -117,7 +117,7 @@ export default function CheatsheetPage() {
                   <button
                     type="button"
                     onClick={() => handleDownload(sheet.path, sheet.filename)}
-                    className="text-[#0B5588] hover:underline font-medium"
+                    className="text-[#005596] hover:underline font-medium"
                   >
                     Download
                   </button>{' '}

@@ -192,7 +192,7 @@ export function TrackReferrals() {
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0B5588]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#005596]"></div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -204,9 +204,9 @@ export function TrackReferrals() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Total Referrals</p>
-                        <p className="text-2xl font-bold text-[#0B5588]">{stats.total}</p>
+                        <p className="text-2xl font-bold text-[#005596]">{stats.total}</p>
                       </div>
-                      <Users className="h-8 w-8 text-[#0B5588]" />
+                      <Users className="h-8 w-8 text-[#005596]" />
                     </div>
                   </CardContent>
                 </Card>
@@ -242,7 +242,7 @@ export function TrackReferrals() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Current Plan</p>
-                        <p className="text-lg font-semibold text-[#0B5588]">{stats.currentPlan}</p>
+                        <p className="text-lg font-semibold text-[#005596]">{stats.currentPlan}</p>
                       </div>
                     </div>
                   </CardContent>

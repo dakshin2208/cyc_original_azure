@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 text-[#0B5588]">Privacy Policy</h1>
+            <h1 className="text-4xl font-bold mb-4 text-[#005596]">Privacy Policy</h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               How we collect, use, and protect your personal information
             </p>
@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl text-[#0B5588]">Privacy Policy</CardTitle>
+              <CardTitle className="text-2xl text-[#005596]">Privacy Policy</CardTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Last updated: December 21, 2024
               </p>
@@ -36,7 +36,7 @@ export default function PrivacyPolicy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Collection</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Collection</h2>
                 <p>
                   We collect your personal data when you use our Platform, services or otherwise interact with us during the course of our relationship. Some of the information that we may collect includes but is not limited to:
                 </p>
@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Usage</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Usage</h2>
                 <p>We use personal data to:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Provide the services you request</li>
@@ -64,7 +64,7 @@ export default function PrivacyPolicy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Sharing</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Sharing</h2>
                 <p>We may share your personal data:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Internally within our group entities</li>
@@ -75,21 +75,21 @@ export default function PrivacyPolicy() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Security Precautions</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Security Precautions</h2>
                 <p>
                   To protect your personal data from unauthorised access or disclosure, loss or misuse we adopt reasonable security practices and procedures. Users are responsible for ensuring the protection of login and password records for their account.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Data Deletion and Retention</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Data Deletion and Retention</h2>
                 <p>
                   You have an option to delete your account by visiting your profile and settings on our Platform. We retain your personal data information for a period no longer than is required for the purpose for which it was collected or as required under any applicable law.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0B5588] mt-8 mb-4">Contact Us</h2>
+                <h2 className="text-xl font-semibold text-[#005596] mt-8 mb-4">Contact Us</h2>
                 <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                   <h3 className="font-semibold text-lg mb-4">Grievance Officer</h3>
                   <div className="space-y-2">
