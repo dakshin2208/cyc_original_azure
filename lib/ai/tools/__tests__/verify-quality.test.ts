@@ -1,44 +1,29 @@
 /**
  * @module lib/ai/tools/__tests__/verify-quality
  *
- * LIVE verification of the recommendation-quality improvements against the REAL
- * warehouse (and, when the Azure key is present, the real writer). Opt-in: skips
- * when .env.local lacks CYC_DATA_DIR. Proves:
+ * Verifies the recommendation-quality improvements against the REAL warehouse. It
+ * loads the CSVs from the repository's committed `data/` directory (the same
+ * repo-relative pattern the other warehouse tests use), so it runs in CI without any
+ * developer-specific path or `.env.local`. Skips only if `data/` is absent. Proves:
  *   #5 branch preference — AI & DS asks prefer colleges that offer AI & DS
  *   #4 district strict   — a Chennai ask never returns a non-Chennai college
  *   #1 constraints       — district + branch + cutoff + community applied together
- *   #2/#3 writer phrasing — printed for inspection (no "accessible" w/o cutoff; varied)
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync } from 'fs'
+import { resolve } from 'path'
 import { describe, expect, it } from 'vitest'
 import { buildWarehouseFromDirectory, createRepositories, type CanonicalCollegeId, type CommunityCode } from '@/lib/knowledge'
 import { createRetrievalEngine } from '@/lib/retrieval'
 import { createCommunityCutoffLookup, createRecommendationEngine } from '@/lib/recommendation'
 
-function loadEnvLocal(): Record<string, string> {
-  const out: Record<string, string> = {}
-  let raw = ''
-  try {
-    raw = readFileSync('.env.local', 'utf8')
-  } catch {
-    return out
-  }
-  for (const line of raw.split('\n')) {
-    const t = line.trim()
-    if (!t || t.startsWith('#')) continue
-    const eq = t.indexOf('=')
-    if (eq > 0) out[t.slice(0, eq).trim()] = t.slice(eq + 1).trim()
-  }
-  return out
-}
-
-const env = loadEnvLocal()
+/** Repository-relative CSV directory (committed to the repo) — the pattern other warehouse tests use. */
+const DATA_DIR = resolve(process.cwd(), 'data')
 const AIDS = 'Artificial Intelligence and Data Science'
 const cc = (s: string): CommunityCode => s as CommunityCode
 
-describe.skipIf(!env.CYC_DATA_DIR)('recommendation-quality improvements (real warehouse)', () => {
-  const repos = createRepositories(buildWarehouseFromDirectory(env.CYC_DATA_DIR as string))
+describe.skipIf(!existsSync(DATA_DIR))('recommendation-quality improvements (real warehouse)', () => {
+  const repos = createRepositories(buildWarehouseFromDirectory(DATA_DIR))
   const retrieval = createRetrievalEngine(repos)
   const reco = createRecommendationEngine(repos, retrieval, { cutoffs: createCommunityCutoffLookup(repos) })
   const offers = (id: CanonicalCollegeId, branch: string) => repos.colleges.branchesOffered(id).has(branch)
