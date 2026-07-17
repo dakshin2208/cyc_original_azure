@@ -5005,7 +5005,7 @@ export default function ChoiceFilling() {
                                 <p className="text-sm text-gray-600">Select the plan that best fits your needs</p>
                               </div>
                               
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* 75 Choices Plan */}
                                 <Card className="border-2 border-green-200 hover:border-green-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                                   <CardHeader className="text-center pb-4">
@@ -5137,6 +5137,73 @@ export default function ChoiceFilling() {
                                     </div>
                                   </CardContent>
                                 </Card>
+
+{/* 300+ Choices Plan */}
+<Card className="border-2 border-purple-200 hover:border-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+  <CardHeader className="text-center pb-4">
+    <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+      <span className="text-lg font-bold text-purple-600">upto 300+</span>
+    </div>
+    <CardTitle className="text-xl text-purple-700">upto 300+ Choices Plan</CardTitle>
+    <p className="text-sm text-gray-600">AI Method + 50 aspirational choices</p>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Referral Option */}
+    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Users className="h-4 w-4 text-green-600" />
+          <span className="font-semibold text-green-700">Free with Referrals</span>
+        </div>
+        <div className="text-2xl font-bold text-green-600 mb-1">10 Referrals</div>
+        <p className="text-xs text-gray-600">Complete choice filling</p>
+      </div>
+      <Button
+        onClick={() => {
+          const trackReferralsButton = document.querySelector('[data-track-referrals]') as HTMLButtonElement
+          if (trackReferralsButton) {
+            trackReferralsButton.click()
+          }
+        }}
+        className="w-full bg-green-600 hover:bg-green-700 text-white"
+        size="sm"
+      >
+        <Users className="h-4 w-4 mr-2" />
+        Get Free with 10 Referrals
+      </Button>
+    </div>
+
+    <div className="text-center">
+      <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1 rounded-full border">OR</span>
+    </div>
+
+    {/* Payment Option */}
+    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <IndianRupee className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-blue-700">Premium Access</span>
+        </div>
+        <div className="text-2xl font-bold text-blue-600 mb-1">₹699</div>
+        <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
+      </div>
+      <PaymentButton
+        amount={699}
+        planName="Assured+"
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        onClick={() => setShowPricingDialog(false)}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        userId={user?.id}
+        userEmail={user?.email}
+      >
+        <IndianRupee className="h-4 w-4 mr-2" />
+        Get Premium Access
+      </PaymentButton>
+    </div>
+  </CardContent>
+</Card>
+
                               </div>
                             </div>
 
@@ -5206,7 +5273,7 @@ export default function ChoiceFilling() {
                                 <p className="text-sm text-gray-600">Select the plan that best fits your needs</p>
                               </div>
                               
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* 75 Choices Plan */}
                                 <Card className="border-2 border-green-200 hover:border-green-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                                   <CardHeader className="text-center pb-4">
@@ -5338,6 +5405,73 @@ export default function ChoiceFilling() {
                                     </div>
                                   </CardContent>
                                 </Card>
+
+{/* 300+ Choices Plan */}
+<Card className="border-2 border-purple-200 hover:border-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+  <CardHeader className="text-center pb-4">
+    <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+      <span className="text-lg font-bold text-purple-600">upto 300+</span>
+    </div>
+    <CardTitle className="text-xl text-purple-700">upto 300+ Choices Plan</CardTitle>
+    <p className="text-sm text-gray-600">AI Method + 50 aspirational choices</p>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Referral Option */}
+    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Users className="h-4 w-4 text-green-600" />
+          <span className="font-semibold text-green-700">Free with Referrals</span>
+        </div>
+        <div className="text-2xl font-bold text-green-600 mb-1">10 Referrals</div>
+        <p className="text-xs text-gray-600">Complete choice filling</p>
+      </div>
+      <Button
+        onClick={() => {
+          const trackReferralsButton = document.querySelector('[data-track-referrals]') as HTMLButtonElement
+          if (trackReferralsButton) {
+            trackReferralsButton.click()
+          }
+        }}
+        className="w-full bg-green-600 hover:bg-green-700 text-white"
+        size="sm"
+      >
+        <Users className="h-4 w-4 mr-2" />
+        Get Free with 10 Referrals
+      </Button>
+    </div>
+
+    <div className="text-center">
+      <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1 rounded-full border">OR</span>
+    </div>
+
+    {/* Payment Option */}
+    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <IndianRupee className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-blue-700">Premium Access</span>
+        </div>
+        <div className="text-2xl font-bold text-blue-600 mb-1">₹699</div>
+        <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
+      </div>
+      <PaymentButton
+        amount={699}
+        planName="Assured+"
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        onClick={() => setShowPricingDialog(false)}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        userId={user?.id}
+        userEmail={user?.email}
+      >
+        <IndianRupee className="h-4 w-4 mr-2" />
+        Get Premium Access
+      </PaymentButton>
+    </div>
+  </CardContent>
+</Card>
+
                               </div>
                             </div>
 
@@ -5831,7 +5965,7 @@ export default function ChoiceFilling() {
                 <p className="text-sm text-gray-600">Select the plan that best fits your needs</p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* 75 Choices Plan */}
                 <Card className="border-2 border-green-200 hover:border-green-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                   <CardHeader className="text-center pb-4">
@@ -5965,6 +6099,73 @@ export default function ChoiceFilling() {
                     </div>
                   </CardContent>
                 </Card>
+
+{/* 300+ Choices Plan */}
+<Card className="border-2 border-purple-200 hover:border-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+  <CardHeader className="text-center pb-4">
+    <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+      <span className="text-lg font-bold text-purple-600">upto 300+</span>
+    </div>
+    <CardTitle className="text-xl text-purple-700">upto 300+ Choices Plan</CardTitle>
+    <p className="text-sm text-gray-600">AI Method + 50 aspirational choices</p>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Referral Option */}
+    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Users className="h-4 w-4 text-green-600" />
+          <span className="font-semibold text-green-700">Free with Referrals</span>
+        </div>
+        <div className="text-2xl font-bold text-green-600 mb-1">10 Referrals</div>
+        <p className="text-xs text-gray-600">Complete choice filling</p>
+      </div>
+      <Button
+        onClick={() => {
+          const trackReferralsButton = document.querySelector('[data-track-referrals]') as HTMLButtonElement
+          if (trackReferralsButton) {
+            trackReferralsButton.click()
+          }
+        }}
+        className="w-full bg-green-600 hover:bg-green-700 text-white"
+        size="sm"
+      >
+        <Users className="h-4 w-4 mr-2" />
+        Get Free with 10 Referrals
+      </Button>
+    </div>
+
+    <div className="text-center">
+      <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1 rounded-full border">OR</span>
+    </div>
+
+    {/* Payment Option */}
+    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <IndianRupee className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-blue-700">Premium Access</span>
+        </div>
+        <div className="text-2xl font-bold text-blue-600 mb-1">₹699</div>
+        <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
+      </div>
+      <PaymentButton
+        amount={699}
+        planName="Assured+"
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        onClick={() => setShowPricingDialog(false)}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        userId={user?.id}
+        userEmail={user?.email}
+      >
+        <IndianRupee className="h-4 w-4 mr-2" />
+        Get Premium Access
+      </PaymentButton>
+    </div>
+  </CardContent>
+</Card>
+
               </div>
             </div>
 
@@ -6052,7 +6253,7 @@ export default function ChoiceFilling() {
                 <p className="text-sm text-gray-600">Select the plan that best fits your needs</p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* 75 Choices Plan */}
                 <Card className="border-2 border-green-200 hover:border-green-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                   <CardHeader className="text-center pb-4">
@@ -6186,6 +6387,73 @@ export default function ChoiceFilling() {
                     </div>
                   </CardContent>
                 </Card>
+
+{/* 300+ Choices Plan */}
+<Card className="border-2 border-purple-200 hover:border-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+  <CardHeader className="text-center pb-4">
+    <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+      <span className="text-lg font-bold text-purple-600">upto 300+</span>
+    </div>
+    <CardTitle className="text-xl text-purple-700">upto 300+ Choices Plan</CardTitle>
+    <p className="text-sm text-gray-600">AI Method + 50 aspirational choices</p>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Referral Option */}
+    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Users className="h-4 w-4 text-green-600" />
+          <span className="font-semibold text-green-700">Free with Referrals</span>
+        </div>
+        <div className="text-2xl font-bold text-green-600 mb-1">10 Referrals</div>
+        <p className="text-xs text-gray-600">Complete choice filling</p>
+      </div>
+      <Button
+        onClick={() => {
+          const trackReferralsButton = document.querySelector('[data-track-referrals]') as HTMLButtonElement
+          if (trackReferralsButton) {
+            trackReferralsButton.click()
+          }
+        }}
+        className="w-full bg-green-600 hover:bg-green-700 text-white"
+        size="sm"
+      >
+        <Users className="h-4 w-4 mr-2" />
+        Get Free with 10 Referrals
+      </Button>
+    </div>
+
+    <div className="text-center">
+      <span className="text-sm font-bold text-gray-700 bg-white px-3 py-1 rounded-full border">OR</span>
+    </div>
+
+    {/* Payment Option */}
+    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+      <div className="text-center mb-3">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <IndianRupee className="h-4 w-4 text-blue-600" />
+          <span className="font-semibold text-blue-700">Premium Access</span>
+        </div>
+        <div className="text-2xl font-bold text-blue-600 mb-1">₹699</div>
+        <p className="text-xs text-gray-600">Unlimited access for 30 days</p>
+      </div>
+      <PaymentButton
+        amount={699}
+        planName="Assured+"
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        onClick={() => setShowPricingDialog(false)}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        userId={user?.id}
+        userEmail={user?.email}
+      >
+        <IndianRupee className="h-4 w-4 mr-2" />
+        Get Premium Access
+      </PaymentButton>
+    </div>
+  </CardContent>
+</Card>
+
               </div>
             </div>
 
